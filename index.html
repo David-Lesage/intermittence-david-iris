@@ -697,9 +697,12 @@ function pdfHref(f){ if(!f.pdf) return '';
   if(/^(data:|blob:|https?:|file:)/.test(f.pdf)) return f.pdf;
   if(f.pdf.charAt(0)==='/') return 'file://'+encodeURI(f.pdf);
   return encodeURI(f.pdf); }
+// PDF réellement ouvrable depuis le site en ligne (https) : data:/https:/blob: seulement.
+// Les chemins de fichiers locaux (guso/… ou /Users/…) ne sont PAS hébergés → on n'ouvre pas un lien cassé.
+function pdfOnline(f){ return (f.pdf && /^(data:|https?:|blob:)/.test(f.pdf)) ? f.pdf : ''; }
 function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
-  const href=pdfHref(f);
+  const href=pdfOnline(f);
   const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="toggleStep('${f.id}','${s.key}');openDetail('${f.id}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative"><span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
   document.getElementById('modalBox').innerHTML=`
     <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
@@ -719,7 +722,11 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     <div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
     <div class="steps">${chips}</div>
     <div class="modal-actions">
-      ${href?`<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le feuillet GUSO (PDF) de cette date dans un nouvel onglet">📄 Ouvrir le GUSO</a>`:''}
+      ${href
+        ? `<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le feuillet GUSO (PDF) de cette date dans un nouvel onglet">📄 Ouvrir le GUSO</a>`
+        : (f.pdf||f.num)
+          ? `<span class="btn pdf disabled" data-tip="Le feuillet GUSO est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 Feuillet ${f.num?('n° '+f.num):'GUSO'} · hors ligne</span>`
+          : ''}
       <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
       <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Marquer confirmée':'🔮 Marquer possible'}</button>
       <button class="btn ghost" style="border-color:var(--bad);color:var(--bad)" onclick="delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">🗑️ Supprimer</button>
