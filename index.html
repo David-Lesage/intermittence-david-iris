@@ -86,7 +86,7 @@
   .pill.warn{background:rgba(255,209,102,.15);color:var(--warn)}
   .pill.bad{background:rgba(255,107,107,.15);color:var(--bad)}
   .anniv-bar{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted);flex-wrap:wrap}
-  .anniv-bar input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 9px;font-size:13px}
+  .anniv-bar input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 12px;font-size:15px;max-width:200px}
   .countdown{display:block;margin-top:14px;padding:20px 22px;border-radius:12px;
     background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.35)}
   .countdown .cd-title{font-size:19px;font-weight:800;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;gap:8px}
@@ -153,9 +153,16 @@
   .eng .del:hover{color:var(--bad)}
   .empty{text-align:center;color:var(--muted);padding:24px;font-size:14px}
   .mini{font-size:12px;color:var(--muted)}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);
-    padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;transition:.2s;pointer-events:none;z-index:50}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f1117;color:#fff;border:1px solid var(--line);
+    padding:14px 22px;border-radius:12px;font-size:16px;font-weight:700;box-shadow:0 10px 34px rgba(0,0,0,.55);opacity:0;transition:.2s;pointer-events:none;z-index:400;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
+  .app-tip{position:fixed;display:none;z-index:500;pointer-events:none;background:#0f1117;color:#fff;border:1px solid var(--line);
+    border-radius:9px;padding:8px 12px;font-size:14px;font-weight:600;line-height:1.35;max-width:270px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+  .form-help{margin:6px 0 2px;padding:13px 16px;border-radius:11px;background:rgba(108,140,255,.13);border:1px solid rgba(108,140,255,.4);
+    color:#fff;font-size:15px;font-weight:600;line-height:1.55}
+  .form-help div{margin:1px 0}
+  input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.9);cursor:pointer;opacity:.95;transform:scale(1.45);margin-right:3px}
+  input[type="date"]:hover::-webkit-calendar-picker-indicator{opacity:1}
   .progress-mini{height:5px;background:#202d3c;border-radius:3px;overflow:hidden;margin-top:9px}
   .progress-mini>div{height:100%;background:var(--ok);transition:.2s}
   .eng:hover{border-color:var(--accent)}
@@ -190,16 +197,16 @@
     <div class="sub">507 h sur 12 mois · David &amp; Iris · données locales (rien n'est envoyé)</div>
   </div>
   <div style="display:flex;gap:8px">
-    <button class="btn ghost sm" onclick="exportData()">⬇ Sauvegarder</button>
-    <button class="btn ghost sm" onclick="document.getElementById('importf').click()">⬆ Importer</button>
+    <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
+    <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
     <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
   </div>
 </header>
 
 <div class="wrap">
   <div class="tabs" id="tabs">
-    <div class="tab david active" data-p="David" onclick="setPerson('David')"><span class="dot"></span>David</div>
-    <div class="tab iris" data-p="Iris" onclick="setPerson('Iris')"><span class="dot"></span>Iris</div>
+    <div class="tab david active" data-p="David" onclick="setPerson('David')" data-tip="Afficher le suivi des heures de David"><span class="dot"></span>David</div>
+    <div class="tab iris" data-p="Iris" onclick="setPerson('Iris')" data-tip="Afficher le suivi des heures d'Iris"><span class="dot"></span>Iris</div>
   </div>
 
   <!-- DASHBOARD -->
@@ -254,8 +261,8 @@
         <span class="cd-txt" id="cdTxt">jours avant la date anniversaire</span>
       </div>
       <div class="anniv-bar">
-        <span>Modifier la date&nbsp;:</span>
-        <input type="date" id="annivInput" onchange="setAnniv(this.value)">
+        <span>Modifier la date anniversaire&nbsp;:</span>
+        <input type="date" id="annivInput" onchange="setAnniv(this.value)" data-tip="Change la date anniversaire (le seuil des 507 h se calcule sur les 12 mois qui précèdent)">
       </div>
     </div>
   </div>
@@ -270,8 +277,8 @@
     </div>
     <div class="save-ok" id="dataOk">✓ Enregistré dans ce navigateur — non effacé par les mises à jour de l'app.</div>
     <div class="save-actions">
-      <button class="btn" onclick="exportData()">⬇ Télécharger une sauvegarde (fichier)</button>
-      <button class="btn ghost" onclick="document.getElementById('importf').click()">⬆ Restaurer une sauvegarde</button>
+      <button class="btn" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (bonus : la synchro cloud sauvegarde déjà tout automatiquement)">⬇ Télécharger une sauvegarde (fichier)</button>
+      <button class="btn ghost" onclick="document.getElementById('importf').click()" data-tip="Recharger tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Restaurer une sauvegarde</button>
     </div>
     <div class="save-fileinfo" id="dataFileInfo"></div>
   </div>
@@ -279,7 +286,7 @@
   <!-- GRAPHIQUE DE L'ANNÉE -->
   <div class="card">
     <h2>📅 L'année en un coup d'œil</h2>
-    <div class="hint">Tes dates sur la période. Hauteur de la barre = nombre d'heures. Survole une barre pour le détail.</div>
+    <div class="hint">Tes dates sur la période. Hauteur de la barre = nombre d'heures. Survole une barre pour le détail, <b>clique dessus pour ouvrir la date</b>.</div>
     <div id="yearChart"></div>
     <div class="chart-legend">
       <span><i style="background:var(--c-concert)"></i>🎤 Concert / spectacle</span>
@@ -299,15 +306,16 @@
   <div class="card">
     <h2 id="addTitle">➕ Ajouter une date (concert / répétition)</h2>
     <div class="hint">Dépose un PDF GUSO (pré-remplissage auto) ou saisis la date à la main. Le suivi des 5 étapes se crée tout seul.</div>
-    <div class="dropzone" id="dropzone">📄 Glisse un PDF GUSO ici ou <b>clique pour choisir</b>
+    <div class="dropzone" id="dropzone" data-tip="Dépose un PDF GUSO ici : les champs (dates, cachets, heures, brut, n° GUSO) se remplissent automatiquement">📄 Glisse un PDF GUSO ici ou <b>clique pour choisir</b>
       <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none"></div>
     <div id="confirmArea"></div>
     <form class="fiche" id="ficheForm" onsubmit="return addFiche(event)">
-      <div><label>Personne</label><select id="f_owner"><option>David</option><option>Iris</option></select></div>
-      <div><label>Type</label><select id="f_type"><option value="concert">Concert / spectacle</option><option value="repet">Répétition</option></select></div>
-      <div class="full"><label>Statut</label><select id="f_hypo"><option value="non">✅ Confirmée (validée par l'orga)</option><option value="oui">🔮 Possible / hypothétique (non validée)</option></select></div>
-      <div class="full" id="f_bothRow"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)">
-        <input type="checkbox" id="f_both" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 👥 Appliquer à David ET Iris (crée la date pour les deux)</label></div>
+      <div><label>Personne</label><select id="f_owner" onchange="updateFormHelp()" data-tip="À qui appartient cette date : David ou Iris"><option>David</option><option>Iris</option></select></div>
+      <div><label>Type</label><select id="f_type" onchange="updateFormHelp()" data-tip="Concert / spectacle (avec cachets) ou Répétition (heures réelles)"><option value="concert">Concert / spectacle</option><option value="repet">Répétition</option></select></div>
+      <div class="full"><label>Statut</label><select id="f_hypo" onchange="updateFormHelp()" data-tip="Confirmée = compte dans tes heures · Possible = compte seulement dans la projection"><option value="non">✅ Confirmée (validée par l'orga)</option><option value="oui">🔮 Possible / hypothétique (non validée)</option></select></div>
+      <div class="full" id="f_bothRow"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche pour créer automatiquement la même date pour David ET pour Iris">
+        <input type="checkbox" id="f_both" onchange="updateFormHelp()" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 👥 Appliquer à David ET Iris (crée la date pour les deux)</label></div>
+      <div class="full"><div class="form-help" id="formHelp"></div></div>
       <div><label>Date début</label><input type="date" id="f_start" required></div>
       <div><label>Date fin</label><input type="date" id="f_end"></div>
       <div class="full"><label>Titre / objet du concert</label><input id="f_lieu" placeholder="ex. Showcase Neotone, Spectacle Solune…"></div>
@@ -319,9 +327,9 @@
       <div><label>N° GUSO (si édité)</label><input id="f_num" placeholder="—"></div>
       <div><label>Brut (€)</label><input type="number" id="f_brut" min="0" step="0.01" value="0"></div>
       <div class="full" style="display:flex;gap:10px;align-items:center">
-        <button class="btn" type="submit" id="submitBtn">+ Ajouter (confirmée)</button>
-        <button class="btn btn-hypo" type="button" id="addPossibleBtn" onclick="addPossible()">🔮 Ajouter comme date possible</button>
-        <button class="btn ghost" type="button" id="cancelEditBtn" style="display:none" onclick="cancelEdit()">Annuler</button>
+        <button class="btn" type="submit" id="submitBtn" data-tip="Ajouter cette date comme confirmée — elle compte tout de suite dans tes heures">+ Ajouter (confirmée)</button>
+        <button class="btn btn-hypo" type="button" id="addPossibleBtn" onclick="addPossible()" data-tip="Ajouter en date possible (non validée) — elle apparaît seulement dans la projection (en violet)">🔮 Ajouter comme date possible</button>
+        <button class="btn ghost" type="button" id="cancelEditBtn" style="display:none" onclick="cancelEdit()" data-tip="Annuler la modification en cours sans enregistrer">Annuler</button>
         <span class="mini" id="calcPreview"></span>
       </div>
     </form>
@@ -332,9 +340,9 @@
     <div class="toolbar">
       <h2 style="margin:0">Engagements</h2>
       <div class="seg" id="filterSeg">
-        <button data-f="period" class="active" onclick="setFilter('period')">Période en cours</button>
-        <button data-f="todo" onclick="setFilter('todo')">À traiter</button>
-        <button data-f="all" onclick="setFilter('all')">Tout</button>
+        <button data-f="period" class="active" onclick="setFilter('period')" data-tip="Afficher seulement les dates de la période en cours (les 12 mois qui comptent pour les 507 h)">Période en cours</button>
+        <button data-f="todo" onclick="setFilter('todo')" data-tip="Afficher seulement les dates qui ont encore des démarches administratives à faire">À traiter</button>
+        <button data-f="all" onclick="setFilter('all')" data-tip="Afficher toutes les dates enregistrées, toutes périodes confondues">Tout</button>
       </div>
     </div>
     <div id="engList"></div>
@@ -398,7 +406,7 @@ function renderSaveStatus(){
 }
 
 function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d)?null:d; }
-function fmt(s){ const d=parseD(s); return d?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'2-digit'}):(s||'—'); }
+function fmt(s){ const d=parseD(s); return d?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):(s||'—'); }
 function addMonths(d,m){ const x=new Date(d); x.setMonth(x.getMonth()+m); return x; }
 function isoLocal(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
 function today0(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
@@ -533,10 +541,10 @@ function renderYearChart(p){
   const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
   let bars='';
   list.forEach(f=>{ const h=ficheHours(f);
-    const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-3.5;
+    const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-4.5;
     const col=f.hypo?'var(--hypo)':(f.type==='repet'?'var(--c-repet)':'var(--c-concert)');
     const t=(f.hypo?'🔮 ':'')+(f.type==='repet'?'🎼 Répétition':'🎤 Concert');
-    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="7" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-t="${esc(t)}" data-d="${esc(fmt(f.start))}" data-l="${esc(f.lieu||'')}" data-h="${h}"/>`;
+    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="9" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-id="${f.id}" data-t="${esc(t)}" data-d="${esc(fmt(f.start))}" data-l="${esc(f.lieu||'')}" data-h="${h}"/>`;
   });
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}${bars}</svg><div class="chart-tip" id="chartTip"></div>`;
   const tip=document.getElementById('chartTip');
@@ -552,7 +560,7 @@ function renderYearChart(p){
       tip.style.display='block'; move(e); };
     b.addEventListener('mouseenter',show);
     b.addEventListener('mousemove',move);
-    b.addEventListener('click',show);
+    b.addEventListener('click',()=>{ tip.style.display='none'; openDetail(b.dataset.id); });
     b.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
   });
 }
@@ -584,25 +592,30 @@ function renderList(){
     const priceVal = Number(f.brut)>0 ? Number(f.brut) : (rate>0 ? ficheHours(f)*rate : 0);
     const priceStr = priceVal>0 ? (Number(f.brut)>0?'':'~')+Math.round(priceVal)+' €' : '—';
     const priceEst = !(Number(f.brut)>0);
-    const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${s.key}')" title="${s.label}">
+    const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${s.key}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
         <span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
     const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
-    const typ=f.type==='repet'?'🎼 Répét.':'🎤 Concert';
+    const cc=Number(f.cachets)||0, rr=Number(f.repet)||0;
+    const isConcert=f.type!=='repet';
+    const mainLabel=isConcert?'🎤 Prestation':'🎼 Répétition';
+    const hoursBreak=`<b>${ficheHours(f)} h</b>`
+      +(cc>0?` · <span style="color:var(--c-concert);font-weight:700">🎤 ${cc} cachet${cc>1?'s':''} = ${cc*12} h</span>`:'')
+      +(rr>0?` · <span style="color:var(--c-repet);font-weight:700">🎼 ${rr} h répét.</span>`:'');
     const foot = f.hypo
-      ? `<div style="text-align:right;margin-top:8px"><button class="btn sm" onclick="event.stopPropagation();confirmHypo('${f.id}')">✓ Confirmer (validée)</button> <button class="del" onclick="event.stopPropagation();delFiche('${f.id}')">supprimer</button></div>`
-      : `<div class="steps">${chips}</div><div class="progress-mini"><div style="width:${done/STEPS.length*100}%"></div></div><div style="text-align:right;margin-top:6px"><button class="del" onclick="event.stopPropagation();delFiche('${f.id}')">supprimer</button></div>`;
-    return `<div class="eng ${f.hypo?'hypo':''}" onclick="openDetail('${f.id}')" title="Voir le détail et le feuillet GUSO">
+      ? `<div style="text-align:right;margin-top:8px"><button class="btn sm" onclick="event.stopPropagation();confirmHypo('${f.id}')" data-tip="Valider cette date possible : elle comptera dans tes heures">✓ Confirmer (validée)</button> <button class="del" onclick="event.stopPropagation();delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">supprimer</button></div>`
+      : `<div class="steps">${chips}</div><div class="progress-mini"><div style="width:${done/STEPS.length*100}%"></div></div><div style="text-align:right;margin-top:6px"><button class="del" onclick="event.stopPropagation();delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">supprimer</button></div>`;
+    return `<div class="eng ${f.hypo?'hypo':''}" onclick="openDetail('${f.id}')" data-tip="Cliquer pour voir le détail, le feuillet GUSO et modifier cette date">
       <div class="top">
         <div style="min-width:0">
-          <div class="eng-date">📅 ${per}${f.hypo?'<span class="badge-hypo">🔮 possible</span>':''}</div>
+          <div class="eng-date">${mainLabel} : ${per}${f.hypo?'<span class="badge-hypo">🔮 possible</span>':''}</div>
           <div class="eng-titre">${f.lieu||'(sans titre)'}</div>
           ${f.place?`<div class="eng-lieu">📍 ${f.place}</div>`:''}
-          ${f.repetStart?`<div class="eng-rep">🎼 Répét. : ${fmt(f.repetStart)}${f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''}</div>`:(f.repetDates?`<div class="eng-rep">🎼 Répét. : ${f.repetDates}</div>`:'')}
-          <div class="eng-meta">${typ}${f.num?' · GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''} · <span style="color:var(--accent);font-weight:600">détail ›</span></div>
+          ${f.repetStart?`<div class="eng-rep">🎼 Répétitions : ${fmt(f.repetStart)}${f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''}</div>`:(f.repetDates?`<div class="eng-rep">🎼 Répétitions : ${f.repetDates}</div>`:'')}
+          <div class="eng-meta">${f.num?'GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''}${(f.num||f.pdf||f.warn)?' · ':''}<span style="color:var(--accent);font-weight:600">détail ›</span></div>
         </div>
         <div class="hrs">
           <div class="price ${priceEst?'est':''}">${priceStr}</div>
-          <div class="hrs-sub">${ficheHours(f)} h · ${f.cachets||0}c · ${f.repet||0}h répét.</div>
+          <div class="hrs-sub">${hoursBreak}</div>
         </div>
       </div>
       ${foot}
@@ -624,7 +637,7 @@ function pdfHref(f){ if(!f.pdf) return '';
 function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
   const href=pdfHref(f);
-  const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="toggleStep('${f.id}','${s.key}');openDetail('${f.id}')"><span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
+  const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="toggleStep('${f.id}','${s.key}');openDetail('${f.id}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative"><span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
   document.getElementById('modalBox').innerHTML=`
     <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
     <div class="msub">${f.owner} · ${per}</div>
@@ -632,8 +645,8 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     <div class="kv">
       <div class="k">Période</div><div class="v">${per}</div>
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
-      <div class="k">Cachets (représ.)</div><div class="v">${f.cachets||0}</div>
-      <div class="k">Heures de répétition</div><div class="v">${f.repet||0} h</div>
+      <div class="k">🎤 Cachets (scène)</div><div class="v" style="color:var(--c-concert);font-weight:700">${f.cachets||0} cachet${(f.cachets||0)>1?'s':''} = ${(Number(f.cachets)||0)*12} h</div>
+      <div class="k">🎼 Heures de répétition</div><div class="v" style="color:var(--c-repet);font-weight:700">${f.repet||0} h</div>
       <div class="k">Période de répét.</div><div class="v">${f.repetStart?fmt(f.repetStart)+(f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''):(f.repetDates||'—')}</div>
       <div class="k">Total comptabilisé</div><div class="v">${ficheHours(f)} h</div>
       <div class="k">Salaire brut</div><div class="v">${f.brut?Number(f.brut).toFixed(2).replace('.',',')+' €':'—'}</div>
@@ -642,11 +655,11 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     <div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
     <div class="steps">${chips}</div>
     <div class="modal-actions">
-      ${href?`<a class="btn pdf" href="${href}" target="_blank" rel="noopener">📄 Ouvrir le GUSO</a>`:''}
-      <button class="btn ghost" onclick="startEdit('${f.id}')">✏️ Modifier</button>
-      <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')">${f.hypo?'✅ Marquer confirmée':'🔮 Marquer possible'}</button>
-      <button class="btn ghost" style="border-color:var(--bad);color:var(--bad)" onclick="delFiche('${f.id}')">🗑️ Supprimer</button>
-      <button class="btn ghost" onclick="closeDetail()">Fermer</button>
+      ${href?`<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le feuillet GUSO (PDF) de cette date dans un nouvel onglet">📄 Ouvrir le GUSO</a>`:''}
+      <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
+      <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Marquer confirmée':'🔮 Marquer possible'}</button>
+      <button class="btn ghost" style="border-color:var(--bad);color:var(--bad)" onclick="delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">🗑️ Supprimer</button>
+      <button class="btn ghost" onclick="closeDetail()" data-tip="Fermer cette fenêtre">Fermer</button>
     </div>`;
   document.getElementById('modalBg').classList.add('show');
 }
@@ -676,7 +689,7 @@ function addFiche(e){ e.preventDefault();
   toast(both?'Date ajoutée pour David ET Iris ✓':(data.hypo?'Date possible ajoutée 🔮':'Engagement ajouté ✓')); render(); return false;
 }
 function resetForm(){ document.getElementById('ficheForm').reset(); f_owner.value=currentPerson;
-  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; }
+  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; updateFormHelp(); }
 function addPossible(){ document.getElementById('f_hypo').value='oui';
   const form=document.getElementById('ficheForm');
   if(form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit',{cancelable:true})); }
@@ -692,6 +705,7 @@ function startEdit(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   document.getElementById('cancelEditBtn').style.display='inline-block';
   document.getElementById('addPossibleBtn').style.display='none';
   document.getElementById('f_bothRow').style.display='none';
+  updateFormHelp();
   closeDetail(); document.getElementById('ficheForm').scrollIntoView({block:'center'});
   toast('Modifie les champs puis « Enregistrer »');
 }
@@ -794,9 +808,42 @@ function showConfirm(r,fname){
   document.getElementById('confirmArea').innerHTML=`<div class="confirm-card">📄 <span class="badge">${fname}</span> — détecté : ${found.join(' · ')||'rien'}. Vérifie puis « Ajouter ».</div>`;
   toast('Pré-rempli ✓ — vérifie puis Ajoute');
 }
-['f_cachets','f_repet'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{
-  const h=(Number(f_cachets.value)||0)*HOURS_PER_CACHET+(Number(f_repet.value)||0);
-  document.getElementById('calcPreview').textContent='= '+h+' h comptabilisées'; }));
+function updateFormHelp(){
+  const fh=document.getElementById('formHelp'); if(!fh) return;
+  const hypo=document.getElementById('f_hypo').value==='oui';
+  const both=document.getElementById('f_both').checked;
+  const owner=document.getElementById('f_owner').value;
+  const c=Number(document.getElementById('f_cachets').value)||0;
+  const r=Number(document.getElementById('f_repet').value)||0;
+  const h=c*HOURS_PER_CACHET+r;
+  const parts=[];
+  parts.push(hypo
+    ? '🔮 <b>Date possible</b> : elle compte dans la projection (en violet), pas encore dans tes heures validées.'
+    : '✅ <b>Date confirmée</b> : elle compte tout de suite dans tes heures validées.');
+  if(h>0) parts.push('⏱️ <b>'+h+' h</b> comptabilisées'+(c>0?' = '+c+' cachet'+(c>1?'s':'')+' × 12 h':'')+(r>0?((c>0?' + ':' = ')+r+' h de répétition'):'')+'.');
+  parts.push(both
+    ? '👥 La date sera créée pour <b>David ET Iris</b>.'
+    : '👤 La date sera créée seulement pour <b>'+owner+'</b>.');
+  fh.innerHTML=parts.map(p=>'<div>'+p+'</div>').join('');
+}
+['f_cachets','f_repet'].forEach(id=>document.getElementById(id).addEventListener('input',updateFormHelp));
+updateFormHelp();
+
+/* Infobulles globales : tout élément avec un attribut data-tip */
+(function(){
+  const tip=document.createElement('div'); tip.className='app-tip'; document.body.appendChild(tip);
+  let timer=null, cur=null;
+  function place(el){ const r=el.getBoundingClientRect(), tw=tip.offsetWidth, th=tip.offsetHeight;
+    let x=r.left+r.width/2-tw/2; x=Math.max(8,Math.min(x,window.innerWidth-tw-8));
+    let y=r.top-th-10; if(y<6) y=r.bottom+10;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; }
+  function show(el){ const t=el.getAttribute('data-tip'); if(!t) return; tip.textContent=t; tip.style.display='block'; place(el); }
+  function hide(){ tip.style.display='none'; clearTimeout(timer); cur=null; }
+  document.addEventListener('mouseover',e=>{ const el=e.target.closest('[data-tip]'); if(!el||el===cur) return; cur=el; clearTimeout(timer); timer=setTimeout(()=>show(el),350); });
+  document.addEventListener('mouseout',e=>{ if(e.target.closest('[data-tip]')) hide(); });
+  document.addEventListener('click',hide,true);
+  window.addEventListener('scroll',hide,true);
+})();
 
 /* ===== Synchro temps réel (Firebase Firestore) — données chiffrées AES ===== */
 let CRYPTO_KEY=null, db=null, syncRef=null, applyingRemote=false, firstSnap=true;
