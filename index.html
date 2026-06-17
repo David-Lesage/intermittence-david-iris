@@ -60,7 +60,14 @@
   #yearChart svg{width:100%;height:auto;display:block}
   #yearChart .gl{stroke:var(--line);stroke-width:1}
   #yearChart .ml{fill:var(--muted);font-size:13px}
-  #yearChart .bar{cursor:default} #yearChart .bar:hover{opacity:.75}
+  #yearChart{position:relative}
+  #yearChart .bar{cursor:pointer;transition:opacity .1s} #yearChart .bar:hover{opacity:.7}
+  .chart-tip{position:absolute;display:none;pointer-events:none;transform:translateX(-50%);z-index:6;
+    background:rgba(15,17,23,.97);border:1px solid var(--line);border-radius:11px;padding:11px 15px;
+    box-shadow:0 8px 24px rgba(0,0,0,.6);white-space:nowrap;text-align:left}
+  .chart-tip .ct-main{font-size:18px;font-weight:800;color:var(--txt)}
+  .chart-tip .ct-sub{font-size:14.5px;font-weight:500;color:var(--muted);margin-top:2px}
+  .chart-tip .ct-h{font-size:21px;font-weight:800;color:var(--ok);margin-top:4px}
   .chart-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--muted)}
   .chart-legend span{display:inline-flex;align-items:center;gap:6px}
   .chart-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
@@ -78,13 +85,16 @@
   .pill.ok{background:rgba(61,220,151,.15);color:var(--ok)}
   .pill.warn{background:rgba(255,209,102,.15);color:var(--warn)}
   .pill.bad{background:rgba(255,107,107,.15);color:var(--bad)}
-  .anniv-bar{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .anniv-bar{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted);flex-wrap:wrap}
   .anniv-bar input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 9px;font-size:13px}
-  .countdown{display:flex;align-items:baseline;gap:10px;margin-top:14px;padding:14px 18px;border-radius:12px;
-    background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.35);flex-wrap:wrap}
-  .countdown .cd-ic{font-size:26px;line-height:1}
-  .countdown .cd-num{font-size:40px;font-weight:800;line-height:1;color:var(--ok)}
-  .countdown .cd-txt{font-size:14px;font-weight:600;color:var(--muted)}
+  .countdown{display:block;margin-top:14px;padding:20px 22px;border-radius:12px;
+    background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.35)}
+  .countdown .cd-title{font-size:19px;font-weight:800;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .countdown .cd-main{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .countdown .cd-ic{font-size:36px;line-height:1}
+  .countdown .cd-num{font-size:58px;font-weight:800;line-height:1;color:var(--ok)}
+  .countdown .cd-txt{font-size:19px;font-weight:700;color:var(--txt);line-height:1.35}
+  .countdown .cd-txt span{font-size:16px;font-weight:500;color:var(--muted)}
   .countdown.soon{background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.45)} .countdown.soon .cd-num{color:var(--warn)}
   .countdown.urgent{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.5)} .countdown.urgent .cd-num{color:var(--bad)}
 
@@ -237,13 +247,16 @@
     </div>
 
     <div class="countdown" id="countdownBig">
-      <span class="cd-ic">⏳</span>
-      <span class="cd-num" id="cdNum">—</span>
-      <span class="cd-txt" id="cdTxt">jours avant la date anniversaire</span>
-    </div>
-    <div class="anniv-bar">
-      <span>📅 Date anniversaire&nbsp;:</span>
-      <input type="date" id="annivInput" onchange="setAnniv(this.value)">
+      <div class="cd-title">📅 Date anniversaire</div>
+      <div class="cd-main">
+        <span class="cd-ic">⏳</span>
+        <span class="cd-num" id="cdNum">—</span>
+        <span class="cd-txt" id="cdTxt">jours avant la date anniversaire</span>
+      </div>
+      <div class="anniv-bar">
+        <span>Modifier la date&nbsp;:</span>
+        <input type="date" id="annivInput" onchange="setAnniv(this.value)">
+      </div>
     </div>
   </div>
 
@@ -487,7 +500,7 @@ function render(){
   const cdBox=document.getElementById('countdownBig'), cdNum=document.getElementById('cdNum'), cdTxt=document.getElementById('cdTxt');
   if(period){ document.getElementById('periodHint').textContent='Du '+fmt(isoLocal(period.start))+' au '+fmt(isoLocal(period.end));
     const dl=daysBetween(today0(),period.end);
-    cdBox.style.display='flex';
+    cdBox.style.display='block';
     cdBox.className='countdown '+(dl<30?'urgent':dl<90?'soon':'');
     cdNum.textContent= dl>=0 ? dl : 0;
     cdTxt.innerHTML= dl>=0 ? 'jours avant la date anniversaire<br><span style="font-weight:400">le '+fmt(isoLocal(period.end))+' — pour valider tes 507 h</span>' : 'date anniversaire passée'; }
@@ -517,13 +530,31 @@ function renderYearChart(p){
     m.setMonth(m.getMonth()+1);
   }
   g+=`<line class="gl" x1="${padL}" y1="${baseline}" x2="${W-padR}" y2="${baseline}" stroke-width="1.5"/>`;
+  const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
   let bars='';
   list.forEach(f=>{ const h=ficheHours(f);
     const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-3.5;
     const col=f.hypo?'var(--hypo)':(f.type==='repet'?'var(--c-repet)':'var(--c-concert)');
-    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="7" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}"><title>${(f.hypo?'🔮 ':'')+(f.type==='repet'?'🎼 Répét. ':'🎤 Concert ')}· ${fmt(f.start)} · ${(f.lieu||'').replace(/[<>&]/g,'')} · ${h} h</title></rect>`;
+    const t=(f.hypo?'🔮 ':'')+(f.type==='repet'?'🎼 Répétition':'🎤 Concert');
+    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="7" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-t="${esc(t)}" data-d="${esc(fmt(f.start))}" data-l="${esc(f.lieu||'')}" data-h="${h}"/>`;
   });
-  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}${bars}</svg>`;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}${bars}</svg><div class="chart-tip" id="chartTip"></div>`;
+  const tip=document.getElementById('chartTip');
+  el.querySelectorAll('.bar').forEach(b=>{
+    const move=e=>{ const r=el.getBoundingClientRect(); const tw=tip.offsetWidth||120;
+      let x=e.clientX-r.left; x=Math.min(Math.max(x,tw/2+4),r.width-tw/2-4);
+      let y=e.clientY-r.top-tip.offsetHeight-12; if(y<0) y=e.clientY-r.top+18;
+      tip.style.left=x+'px'; tip.style.top=y+'px'; };
+    const show=e=>{ tip.innerHTML='<div class="ct-main"></div><div class="ct-sub"></div><div class="ct-h"></div>';
+      tip.querySelector('.ct-main').textContent=b.dataset.t+' · '+b.dataset.d;
+      const sub=tip.querySelector('.ct-sub'); if(b.dataset.l){ sub.textContent='📍 '+b.dataset.l; } else { sub.remove(); }
+      tip.querySelector('.ct-h').textContent=b.dataset.h+' h';
+      tip.style.display='block'; move(e); };
+    b.addEventListener('mouseenter',show);
+    b.addEventListener('mousemove',move);
+    b.addEventListener('click',show);
+    b.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
+  });
 }
 
 function renderTodo(p){
