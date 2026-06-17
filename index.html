@@ -4,6 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Guso Facile — David & Iris</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="Une gestion claire et simplifiée pour te concentrer sur ton art.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Guso Facile">
+<meta property="og:title" content="Guso Facile">
+<meta property="og:description" content="Une gestion claire et simplifiée pour te concentrer sur ton art.">
+<meta property="og:image" content="https://david-lesage.github.io/intermittence-david-iris/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://david-lesage.github.io/intermittence-david-iris/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Guso Facile">
+<meta name="twitter:description" content="Une gestion claire et simplifiée pour te concentrer sur ton art.">
+<meta name="twitter:image" content="https://david-lesage.github.io/intermittence-david-iris/og.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -193,8 +207,9 @@
 <body>
 <div id="unlockOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center">
   <div style="font-size:46px;margin-bottom:6px">🔐</div>
-  <h2 style="margin:0 0 4px;font-size:26px;font-weight:800;background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent">Guso Facile</h2>
-  <div style="color:var(--muted);font-size:12.5px;margin-bottom:8px;font-style:italic">créé avec amour ❤️ par David Lesage</div>
+  <h2 style="margin:0 0 6px;font-size:28px;font-weight:800;background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent">Guso Facile</h2>
+  <div style="color:var(--txt);font-size:14px;opacity:.92;max-width:340px;margin:0 auto 6px">Une gestion claire et simplifiée pour te concentrer sur ton art</div>
+  <div style="color:var(--muted);font-size:12.5px;margin-bottom:10px;font-style:italic">créé avec amour ❤️ par David Lesage</div>
   <p style="color:var(--muted);font-size:13.5px;max-width:320px">Entre le code d'accès pour afficher les données de David &amp; Iris.</p>
   <input id="unlockCode" type="password" placeholder="Code d'accès" autocomplete="off" style="margin-top:10px;max-width:280px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:12px;font-size:15px;text-align:center" onkeydown="if(event.key==='Enter')tryUnlock()">
   <button class="btn" style="margin-top:12px;max-width:280px;width:100%" onclick="tryUnlock()">Déverrouiller</button>
@@ -337,10 +352,10 @@
   <div class="modal-bg" id="addBg" onclick="closeAdd(event)">
    <div class="modal add-modal" onclick="event.stopPropagation()">
     <div class="add-head">
-      <h2 id="addTitle" style="margin:0">➕ Ajouter une date (concert / répétition)</h2>
-      <button class="btn ghost sm" type="button" onclick="closeAdd()" data-tip="Fermer le formulaire sans enregistrer">✕ Fermer</button>
+      <h2 id="addTitle" style="margin:0;font-size:19px;white-space:nowrap">➕ Ajouter une date</h2>
+      <button class="btn ghost sm" type="button" onclick="closeAdd()" data-tip="Fermer le formulaire sans enregistrer" style="flex:0 0 auto">✕</button>
     </div>
-    <div class="hint">Dépose un PDF GUSO (pré-remplissage auto) ou saisis la date à la main. Le suivi des 5 étapes se crée tout seul.</div>
+    <div class="hint">Concert, répétition ou date possible. Dépose un PDF GUSO (pré-remplissage auto) ou saisis à la main — le suivi des 5 étapes se crée tout seul.</div>
     <div class="dropzone" id="dropzone" data-tip="Dépose un PDF GUSO ici : les champs (dates, cachets, heures, brut, n° GUSO) se remplissent automatiquement">📄 Glisse un PDF GUSO ici ou <b>clique pour choisir</b>
       <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none"></div>
     <div id="confirmArea"></div>
@@ -761,7 +776,7 @@ function startEdit(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   toast('Modifie les champs puis « Enregistrer »');
 }
 function finishEdit(){ editId=null; resetForm();
-  document.getElementById('addTitle').textContent='➕ Ajouter une date (concert / répétition)';
+  document.getElementById('addTitle').textContent='➕ Ajouter une date';
   document.getElementById('submitBtn').textContent='+ Ajouter (confirmée)';
   document.getElementById('cancelEditBtn').style.display='none';
   document.getElementById('addPossibleBtn').style.display='inline-block';
