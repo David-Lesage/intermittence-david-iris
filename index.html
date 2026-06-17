@@ -786,15 +786,18 @@ async function decJSON(blob){ const b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(blob.iv)},CRYPTO_KEY,b(blob.ct));
   return JSON.parse(new TextDecoder().decode(pt)); }
 
-function ensureSyncDot(){ if(document.getElementById('syncDot')) return;
-  const d=document.createElement('div'); d.id='syncDot';
-  d.style.cssText='position:fixed;bottom:12px;right:12px;width:13px;height:13px;border-radius:50%;background:#888;z-index:200;box-shadow:0 0 6px rgba(0,0,0,.5);cursor:default';
-  d.title='Synchro Iris ↔ David'; document.body.appendChild(d); }
-function syncDot(s){ const d=document.getElementById('syncDot'); if(!d) return;
-  d.style.background = s==='ok' ? '#34d399' : s==='err' ? '#f87171' : '#888';
-  d.title = s==='ok' ? '✅ Synchronisé (Iris ↔ David)' : s==='err' ? '⚠️ Synchro indisponible (données sauvegardées localement)' : 'Synchro…'; }
+function ensureSyncDot(){ if(document.getElementById('syncPill')) return;
+  const p=document.createElement('div'); p.id='syncPill';
+  p.style.cssText='position:fixed;bottom:14px;right:14px;display:flex;align-items:center;gap:8px;z-index:200;background:rgba(20,22,30,.93);border:1px solid rgba(255,255,255,.09);padding:8px 14px;border-radius:999px;font:600 12.5px/1.25 system-ui,-apple-system,sans-serif;box-shadow:0 3px 14px rgba(0,0,0,.5);max-width:min(82vw,330px)';
+  p.innerHTML='<span id="syncDot" style="flex:0 0 auto;width:11px;height:11px;border-radius:50%;background:#888"></span><span id="syncMsg" style="color:#e8eaf0"></span>';
+  document.body.appendChild(p); }
+function syncDot(s){ ensureSyncDot(); const d=document.getElementById('syncDot'), m=document.getElementById('syncMsg'); if(!d||!m) return;
+  if(s==='saving'){ d.style.background='#f59e0b'; m.textContent='Sauvegarde en cours… ne ferme pas la fenêtre'; m.style.color='#ffd089'; }
+  else if(s==='err'){ d.style.background='#f87171'; m.textContent='Sauvegarde locale OK · cloud indisponible'; m.style.color='#ffb4b4'; }
+  else { d.style.background='#34d399'; m.textContent='Toutes les données sont sauvegardées'; m.style.color='#bdf3d8'; } }
 
 async function pushRemote(){ if(!syncRef||!CRYPTO_KEY||applyingRemote) return;
+  syncDot('saving');
   try{ const blob=await encJSON(state); blob.lastModified=state.lastModified||''; blob.by=currentPerson;
     await syncRef.set(blob); syncDot('ok'); }
   catch(e){ syncDot('err'); console.warn('push',e); } }
