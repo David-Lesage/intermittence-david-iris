@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Intermittence — Suivi (David & Iris)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg:#0f1419; --panel:#171f29; --panel2:#1e2a38; --line:#2a3a4d;
@@ -368,6 +370,7 @@ function save(){
   if(prev) localStorage.setItem('intermittence_v1_prev', prev);   // version précédente (filet de sécurité)
   localStorage.setItem('intermittence_v1', JSON.stringify(state));
   renderSaveStatus();
+  if(!applyingRemote && typeof pushRemote==='function') pushRemote();
 }
 function renderSaveStatus(){
   const el=document.getElementById('dataCount'); if(!el) return;
@@ -764,17 +767,67 @@ function showConfirm(r,fname){
   const h=(Number(f_cachets.value)||0)*HOURS_PER_CACHET+(Number(f_repet.value)||0);
   document.getElementById('calcPreview').textContent='= '+h+' h comptabilisées'; }));
 
-async function decryptSeed(pw){ const b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+/* ===== Synchro temps réel (Firebase Firestore) — données chiffrées AES ===== */
+let CRYPTO_KEY=null, db=null, syncRef=null, applyingRemote=false, firstSnap=true;
+const PW_KEY='intermittence_pw';
+const firebaseConfig={apiKey:"AIzaSyCK3Mruv-XxPZdZzClcMJfF8WuQ0uJm_fA",authDomain:"guso-facile.firebaseapp.com",projectId:"guso-facile",storageBucket:"guso-facile.firebasestorage.app",messagingSenderId:"1034579003338",appId:"1:1034579003338:web:46b601b97f86f062573133"};
+
+async function deriveKey(pw){ const b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
   const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
-  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b(ENC_SEED.salt),iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
-  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(ENC_SEED.iv)},key,b(ENC_SEED.ct));
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:b(ENC_SEED.salt),iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); }
+async function decryptSeed(){ const b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(ENC_SEED.iv)},CRYPTO_KEY,b(ENC_SEED.ct));
   return JSON.parse(new TextDecoder().decode(pt)); }
-function startApp(){ setPerson('David'); renderSaveStatus(); }
+async function encJSON(obj){ const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},CRYPTO_KEY,new TextEncoder().encode(JSON.stringify(obj)));
+  const a=x=>btoa(String.fromCharCode.apply(null,new Uint8Array(x)));
+  return {iv:a(iv),ct:a(ct)}; }
+async function decJSON(blob){ const b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(blob.iv)},CRYPTO_KEY,b(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt)); }
+
+function ensureSyncDot(){ if(document.getElementById('syncDot')) return;
+  const d=document.createElement('div'); d.id='syncDot';
+  d.style.cssText='position:fixed;bottom:12px;right:12px;width:13px;height:13px;border-radius:50%;background:#888;z-index:200;box-shadow:0 0 6px rgba(0,0,0,.5);cursor:default';
+  d.title='Synchro Iris ↔ David'; document.body.appendChild(d); }
+function syncDot(s){ const d=document.getElementById('syncDot'); if(!d) return;
+  d.style.background = s==='ok' ? '#34d399' : s==='err' ? '#f87171' : '#888';
+  d.title = s==='ok' ? '✅ Synchronisé (Iris ↔ David)' : s==='err' ? '⚠️ Synchro indisponible (données sauvegardées localement)' : 'Synchro…'; }
+
+async function pushRemote(){ if(!syncRef||!CRYPTO_KEY||applyingRemote) return;
+  try{ const blob=await encJSON(state); blob.lastModified=state.lastModified||''; blob.by=currentPerson;
+    await syncRef.set(blob); syncDot('ok'); }
+  catch(e){ syncDot('err'); console.warn('push',e); } }
+function connectSync(){ if(!CRYPTO_KEY||typeof firebase==='undefined') return;
+  ensureSyncDot();
+  try{ if(!firebase.apps.length) firebase.initializeApp(firebaseConfig); db=firebase.firestore(); }
+  catch(e){ console.warn('fb init',e); syncDot('err'); return; }
+  syncRef=db.collection('sync').doc('state');
+  syncRef.onSnapshot(async snap=>{
+    let remote=null; if(snap.exists){ try{ remote=await decJSON(snap.data()); }catch(e){} }
+    const rT=(remote&&remote.fiches&&remote.lastModified)||''; const lT=(state&&state.lastModified)||'';
+    if(remote&&remote.fiches&&rT>lT){ applyingRemote=true; state=migrate(remote);
+      localStorage.setItem('intermittence_v1',JSON.stringify(state)); setPerson(currentPerson); renderSaveStatus();
+      applyingRemote=false; syncDot('ok'); if(!firstSnap) toast('🔄 Mise à jour reçue (synchro)'); }
+    else if(lT>rT){ pushRemote(); }
+    else { syncDot('ok'); }
+    firstSnap=false;
+  }, err=>{ syncDot('err'); console.warn('snapshot',err); });
+}
+
+function startApp(){ setPerson('David'); renderSaveStatus(); connectSync(); }
 async function tryUnlock(){ const pw=document.getElementById('unlockCode').value;
   const e=document.getElementById('unlockErr'); e.textContent='Déverrouillage…';
-  try{ const d=await decryptSeed(pw); state=migrate(d); save(); document.getElementById('unlockOverlay').style.display='none'; startApp(); }
-  catch(err){ e.textContent='❌ Code incorrect, réessaie.'; } }
-function boot(){ const ls=loadLocal(); if(ls){ state=ls; startApp(); } else { document.getElementById('unlockOverlay').style.display='flex'; setTimeout(()=>{var c=document.getElementById('unlockCode'); if(c)c.focus();},120); } }
+  try{ CRYPTO_KEY=await deriveKey(pw); const seed=await decryptSeed(); /* valide le code */
+    const ls=loadLocal();
+    if(ls){ state=ls; }
+    else { seed.lastModified=''; state=migrate(seed); localStorage.setItem('intermittence_v1',JSON.stringify(state)); }
+    localStorage.setItem(PW_KEY,pw);
+    document.getElementById('unlockOverlay').style.display='none'; startApp(); }
+  catch(err){ e.textContent='❌ Code incorrect, réessaie.'; CRYPTO_KEY=null; } }
+async function boot(){ const ls=loadLocal(); const pw=localStorage.getItem(PW_KEY);
+  if(ls&&pw){ try{ CRYPTO_KEY=await deriveKey(pw); }catch(e){} state=ls; startApp(); }
+  else { document.getElementById('unlockOverlay').style.display='flex'; setTimeout(()=>{var c=document.getElementById('unlockCode'); if(c)c.focus();},120); } }
 boot();
 </script>
 </body>
