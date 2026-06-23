@@ -417,6 +417,9 @@
 
 <script>
 const HOURS_PER_CACHET=12, THRESHOLD=507, CIRC=2*Math.PI*60;
+// Coût réel facturé à l'organisateur (facture Résonances Productions du 06/06/2026) :
+// 1 cachet de 12 h tout compris (salaire net + charges + frais admin) = 189 € → 15,75 €/h.
+const COST_PER_CACHET=189, COST_PER_HOUR=189/12;
 const STEPS=[
   {key:'dpae',     ic:'📋', short:'DPAE',          label:'DPAE demandée à Jean-Paul'},
   {key:'guso',     ic:'📄', short:'Feuillet GUSO', label:'Feuillet GUSO édité'},
@@ -544,12 +547,11 @@ function render(){
   else pf.innerHTML='Avec ces <b>'+hypoInP.length+'</b> date(s) possible(s), il te resterait <b>'+Math.round(projRemain)+' h</b> à trouver pour les 507 h.';
   // montant que représentent les dates possibles
   const pmEl=document.getElementById('projMoney');
-  const hypoBrutSaisi=hypoInP.reduce((s,f)=>s+(Number(f.brut)||0),0);
-  const hypoBrut = hypoBrutSaisi>0 ? hypoBrutSaisi : hypoH*rate;
-  if(hypoH>0 && (hypoBrut>0)){
+  if(hypoH>0){
     pmEl.style.display='block';
-    pmEl.innerHTML='💶 Ces dates possibles représentent ≈ <b>'+(hypoBrut*1.7).toLocaleString('fr-FR',{maximumFractionDigits:0})+' € à facturer</b> '
-      +'<span style="opacity:.8">(≈ '+hypoBrut.toLocaleString('fr-FR',{maximumFractionDigits:0})+' € de brut'+(hypoBrutSaisi>0?'':' estimé')+')</span>';
+    const factureHypo=hypoH*COST_PER_HOUR;
+    pmEl.innerHTML='💶 Ces dates possibles représentent ≈ <b>'+factureHypo.toLocaleString('fr-FR',{maximumFractionDigits:0})+' € à facturer</b> '
+      +'<span style="opacity:.8">(189 €/cachet · '+Math.round(hypoH)+' h)</span>';
   } else pmEl.style.display='none';
 
   const sp=document.getElementById('statusPill');
@@ -561,12 +563,12 @@ function render(){
   // money line
   const mEl=document.getElementById('moneyNeeded'), dEl=document.getElementById('moneyDetail');
   if(remaining<=0){ mEl.textContent='0 € — objectif atteint 🎉'; dEl.textContent='Les 507 h sont sécurisées pour cette période.'; }
-  else if(rate>0){
-    const money=remaining*rate, cachetsNeeded=Math.ceil(remaining/HOURS_PER_CACHET), cost=money*1.7;
+  else {
+    const cachetsNeeded=Math.ceil(remaining/HOURS_PER_CACHET), cost=cachetsNeeded*COST_PER_CACHET;
     mEl.textContent='≈ '+cost.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €';
-    dEl.innerHTML='à facturer (brut + charges GUSO, estimé ×1,7) pour générer les <b>'+remaining.toFixed(0)+' h</b> manquantes ≈ <b>'+cachetsNeeded+' cachets</b>, d\'ici le '+(period?fmt(isoLocal(period.end)):'—')+'.<br>'
-      +'<span style="opacity:.8">≈ '+money.toLocaleString('fr-FR',{maximumFractionDigits:0})+' € de salaire brut · tarif moyen '+rate.toFixed(0)+' €/h.</span>';
-  } else { mEl.textContent='—'; dEl.textContent='Ajoute des engagements avec leur brut pour estimer ton tarif moyen.'; }
+    dEl.innerHTML='à facturer aux organisateurs (<b>189 €/cachet</b> tout compris : salaire + charges + frais admin) pour générer les <b>'+remaining.toFixed(0)+' h</b> manquantes ≈ <b>'+cachetsNeeded+' cachets</b>, d\'ici le '+(period?fmt(isoLocal(period.end)):'—')+'.<br>'
+      +'<span style="opacity:.8">base réelle : facture Résonances Productions (1 cachet de 12 h = 189 €).</span>';
+  }
 
   const cdBox=document.getElementById('countdownBig'), cdNum=document.getElementById('cdNum'), cdTxt=document.getElementById('cdTxt');
   if(period){ document.getElementById('periodHint').textContent='Du '+fmt(isoLocal(period.start))+' au '+fmt(isoLocal(period.end));
@@ -652,7 +654,7 @@ function renderList(){
   document.getElementById('emptyMsg').style.display=arr.length?'none':'block';
   document.getElementById('engList').innerHTML=arr.map(f=>{
     const done=STEPS.filter(s=>f.steps[s.key]).length;
-    const priceVal = Number(f.brut)>0 ? Number(f.brut) : (rate>0 ? ficheHours(f)*rate : 0);
+    const priceVal = Number(f.brut)>0 ? Number(f.brut) : ficheHours(f)*COST_PER_HOUR;
     const priceStr = priceVal>0 ? (Number(f.brut)>0?'':'~')+Math.round(priceVal)+' €' : '—';
     const priceEst = !(Number(f.brut)>0);
     const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${s.key}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
