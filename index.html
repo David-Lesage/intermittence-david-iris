@@ -550,8 +550,8 @@ function render(){
   if(hypoH>0){
     pmEl.style.display='block';
     const factureHypo=hypoH*COST_PER_HOUR;
-    pmEl.innerHTML='💶 Ces dates possibles représentent ≈ <b>'+factureHypo.toLocaleString('fr-FR',{maximumFractionDigits:0})+' € à facturer</b> '
-      +'<span style="opacity:.8">(189 €/cachet · '+Math.round(hypoH)+' h)</span>';
+    pmEl.innerHTML='💶 Ces dates possibles représentent au minimum ≈ <b>'+factureHypo.toLocaleString('fr-FR',{maximumFractionDigits:0})+' € à facturer</b> '
+      +'<span style="opacity:.8">(base 189 €/cachet · '+Math.round(hypoH)+' h · les cachets réels peuvent être plus élevés)</span>';
   } else pmEl.style.display='none';
 
   const sp=document.getElementById('statusPill');
@@ -566,8 +566,8 @@ function render(){
   else {
     const cachetsNeeded=Math.ceil(remaining/HOURS_PER_CACHET), cost=cachetsNeeded*COST_PER_CACHET;
     mEl.textContent='≈ '+cost.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €';
-    dEl.innerHTML='à facturer aux organisateurs (<b>189 €/cachet</b> tout compris : salaire + charges + frais admin) pour générer les <b>'+remaining.toFixed(0)+' h</b> manquantes ≈ <b>'+cachetsNeeded+' cachets</b>, d\'ici le '+(period?fmt(isoLocal(period.end)):'—')+'.<br>'
-      +'<span style="opacity:.8">base réelle : facture Résonances Productions (1 cachet de 12 h = 189 €).</span>';
+    dEl.innerHTML='estimation minimale : <b>189 €/cachet</b> (12 h, salaire + charges + <b>5% de frais administratifs</b>) pour générer les <b>'+remaining.toFixed(0)+' h</b> manquantes ≈ <b>'+cachetsNeeded+' cachets</b>, d\'ici le '+(period?fmt(isoLocal(period.end)):'—')+'.<br>'
+      +'<span style="opacity:.8">base : facture Résonances Productions du 06/06/2026 — c\'est un minimum, les cachets réels peuvent être plus élevés.</span>';
   }
 
   const cdBox=document.getElementById('countdownBig'), cdNum=document.getElementById('cdNum'), cdTxt=document.getElementById('cdTxt');
@@ -704,6 +704,9 @@ function pdfHref(f){ if(!f.pdf) return '';
 // Les chemins de fichiers locaux (guso/… ou /Users/…) ne sont PAS hébergés → on n'ouvre pas un lien cassé.
 function gusoNum(f){ if(f.num){var n=String(f.num).replace(/\D/g,''); if(n) return n;} var m=(f.pdf||'').match(/(\d{6,})/); return m?m[1]:''; }
 function pdfOnline(f){ if(f.pdf && /^(data:|https?:|blob:)/.test(f.pdf)) return f.pdf; var n=gusoNum(f); if(n && GUSO_DRIVE[n]) return 'https://drive.google.com/file/d/'+GUSO_DRIVE[n]+'/view'; return ''; }
+// Factures Résonances Productions (n° GUSO -> id fichier Drive). Une facture couvre souvent David ET Iris.
+const FACTURE_DRIVE={"6486166189":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489742661":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489967276":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6489968892":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6491075096":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6491078231":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6494558612":"1MACTkb7LzjKC8Hjbn55eMIQSJKERFTJo","6495905696":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6495904989":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6498315037":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6498314027":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6500833401":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6500832690":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6508798010":"15aERoKAgqXK4kddg64M3qNfpua06p89k","6510133778":"1pIFwjkifGxMmIDcW2b6RxbF3Md9eZByj"};
+function factureOnline(f){ var n=gusoNum(f); return (n && FACTURE_DRIVE[n]) ? 'https://drive.google.com/file/d/'+FACTURE_DRIVE[n]+'/view' : ''; }
 function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
   const href=pdfOnline(f);
@@ -731,6 +734,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
         : (f.pdf||f.num)
           ? `<span class="btn pdf disabled" data-tip="Le feuillet GUSO est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 Feuillet ${f.num?('n° '+f.num):'GUSO'} · hors ligne</span>`
           : ''}
+      ${factureOnline(f)?`<a class="btn pdf" style="background:#e0a458;color:#2a1a06" href="${factureOnline(f)}" target="_blank" rel="noopener" data-tip="Ouvrir la facture Résonances Productions liée à cette date (Google Drive)">🧾 Ouvrir la facture</a>`:''}
       <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
       <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Marquer confirmée':'🔮 Marquer possible'}</button>
       <button class="btn ghost" style="border-color:var(--bad);color:var(--bad)" onclick="delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">🗑️ Supprimer</button>
