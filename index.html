@@ -527,7 +527,10 @@ function setFilter(f){ listFilter=f;
 function setAnniv(v){ state.people[currentPerson].anniv=v; save(); render(); }
 
 function render(){
-  const p=currentPerson, period=currentPeriod(p);
+  if(!state||!state.people) return;                 // garde-fou : pas de données prêtes → on n'affiche pas du vide
+  let p=currentPerson;
+  if(!state.people[p]){ p=state.people['David']?'David':Object.keys(state.people)[0]; currentPerson=p; }
+  const period=currentPeriod(p);
   const allInP=fichesFor(p,'period');
   const inP=allInP.filter(f=>!f.hypo);          // confirmées
   const hypoInP=allInP.filter(f=>f.hypo);       // dates possibles
