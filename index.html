@@ -119,6 +119,25 @@
   .countdown .cd-txt span{font-size:16px;font-weight:500;color:var(--muted)}
   .countdown.soon{background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.45)} .countdown.soon .cd-num{color:var(--warn)}
   .countdown.urgent{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.5)} .countdown.urgent .cd-num{color:var(--bad)}
+  /* Hero résumé + plan mensuel */
+  .hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin:8px 0 16px}
+  .hero .ring{flex:0 0 auto}
+  .hero-text{flex:1;min-width:240px}
+  .hero-l{font-size:23px;font-weight:700;color:var(--txt);line-height:1.4}
+  .hero-l b{font-weight:800}
+  .hn{font-size:31px;font-weight:800}
+  .hn.done{color:var(--accent)} .hn.left{color:var(--warn)} .hn.days{color:var(--money)}
+  .hero-anniv{font-size:15px;font-weight:500;color:var(--muted)}
+  .hero-rhythm{margin-top:12px;font-size:15.5px;color:var(--accent2);font-weight:700}
+  .month-plan{margin-top:18px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .mp-title{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:8px}
+  .mp-sub2{font-weight:500;color:var(--muted);font-size:13px}
+  .mp-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+  .mp-row:first-of-type{border-top:0}
+  .mp-month{font-weight:700;text-transform:capitalize}
+  .mp-find{color:var(--warn);font-weight:600} .mp-find b{font-size:17px;color:var(--warn)}
+  .mp-sub{color:var(--muted);font-weight:400;font-size:12.5px}
+  .mp-ok{color:var(--ok);font-weight:600}
 
   /* À faire (pending) */
   .todo{display:flex;flex-direction:column;gap:8px}
@@ -258,24 +277,27 @@
   <div class="card" style="order:2">
     <h2>Où j'en suis — période en cours</h2>
     <div class="hint" id="periodHint">—</div>
-    <div class="dash">
+    <div class="hero">
       <div class="ring">
-        <svg width="140" height="140" viewBox="0 0 140 140">
+        <svg width="146" height="146" viewBox="0 0 140 140">
           <circle cx="70" cy="70" r="60" fill="none" stroke="var(--line)" stroke-width="11"/>
-          <circle id="gaugeArcProj" cx="70" cy="70" r="60" fill="none" stroke="var(--hypo)" stroke-width="11"
-                  stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99" opacity="0.85"/>
-          <circle id="gaugeArc" cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="11"
-                  stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99"/>
+          <circle id="gaugeArcProj" cx="70" cy="70" r="60" fill="none" stroke="var(--hypo)" stroke-width="11" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99" opacity="0.85"/>
+          <circle id="gaugeArc" cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="11" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99"/>
         </svg>
         <div class="center"><div class="big" id="gaugeHours">0</div><div class="lbl">/ 507 h</div></div>
       </div>
-      <div class="stat-rows">
-        <div class="stat"><span class="k">Heures restantes à faire</span><span class="v" id="remaining">—</span></div>
-        <div class="stat"><span class="k">Statut</span><span class="v" id="statusPill">—</span></div>
-        <div class="stat"><span class="k">Déjà fait (cachets · répét.)</span><span class="v" id="breakdown">—</span></div>
-        <div class="stat" id="techRow" style="display:none"><span class="k">🔧 dont technicien (annexe 8)</span><span class="v" id="techLine" style="color:#5ec9c9">—</span></div>
-        <div class="stat"><span class="k">Brut encaissé (période)</span><span class="v" id="brutPeriod">—</span></div>
+      <div class="hero-text">
+        <div class="hero-l">J'ai effectué <b class="hn done" id="heroDone">—</b> sur <b>507 h</b></div>
+        <div class="hero-l">Il m'en reste <b class="hn left" id="heroLeft">—</b> à effectuer</div>
+        <div class="hero-l">dans <b class="hn days" id="heroDays">—</b> <span class="hero-anniv" id="heroAnniv"></span></div>
+        <div class="hero-rhythm" id="heroRhythm"></div>
       </div>
+    </div>
+    <div class="stat-rows">
+      <div class="stat"><span class="k">Statut</span><span class="v" id="statusPill">—</span></div>
+      <div class="stat"><span class="k">Déjà fait (cachets · répét.)</span><span class="v" id="breakdown">—</span></div>
+      <div class="stat" id="techRow" style="display:none"><span class="k">🔧 dont technicien (annexe 8)</span><span class="v" id="techLine" style="color:#5ec9c9">—</span></div>
+      <div class="stat"><span class="k">Brut encaissé (période)</span><span class="v" id="brutPeriod">—</span></div>
     </div>
 
     <div class="money-box">
@@ -299,17 +321,13 @@
       <div class="proj-money" id="projMoney" style="display:none"></div>
     </div>
 
-    <div class="countdown" id="countdownBig">
-      <div class="cd-title">📅 Date anniversaire</div>
-      <div class="cd-main">
-        <span class="cd-ic">⏳</span>
-        <span class="cd-num" id="cdNum">—</span>
-        <span class="cd-txt" id="cdTxt">jours avant la date anniversaire</span>
-      </div>
-      <div class="anniv-bar">
-        <span>Modifier la date anniversaire&nbsp;:</span>
-        <input type="date" id="annivInput" onchange="setAnniv(this.value)" data-tip="Change la date anniversaire (le seuil des 507 h se calcule sur les 12 mois qui précèdent)">
-      </div>
+    <div class="month-plan" id="monthPlanBox">
+      <div class="mp-title">🗓️ Ton plan mois par mois <span class="mp-sub2">— combien trouver chaque mois avant le <span id="mpAnniv">—</span></span></div>
+      <div id="monthPlan"></div>
+    </div>
+    <div class="anniv-bar">
+      <span>📅 Modifier la date anniversaire&nbsp;:</span>
+      <input type="date" id="annivInput" onchange="setAnniv(this.value)" data-tip="Change la date anniversaire (le seuil des 507 h se calcule sur les 12 mois qui précèdent)">
     </div>
   </div>
 
@@ -525,7 +543,8 @@ function render(){
   document.getElementById('gaugeHours').textContent=Math.round(totalH);
   document.getElementById('gaugeArc').style.strokeDashoffset=CIRC*(1-Math.min(1,totalH/THRESHOLD));
   document.getElementById('gaugeArcProj').style.strokeDashoffset=CIRC*(1-Math.min(1,projected/THRESHOLD));
-  document.getElementById('remaining').textContent= remaining>0 ? remaining.toFixed(0)+' h' : '✓ atteint (+'+(totalH-THRESHOLD).toFixed(0)+' h)';
+  document.getElementById('heroDone').textContent=Math.round(totalH)+' h';
+  document.getElementById('heroLeft').textContent= remaining>0 ? Math.round(remaining)+' h' : '0 h ✓';
   document.getElementById('breakdown').textContent=cachets+' cachets · '+repet+' h répét.';
   const techH=inP.filter(f=>f.tech).reduce((s,f)=>s+ficheHours(f),0);
   document.getElementById('techRow').style.display=techH>0?'flex':'none';
@@ -570,15 +589,37 @@ function render(){
       +'<span style="opacity:.8">base : facture Résonances Productions du 06/06/2026 — c\'est un minimum, les cachets réels peuvent être plus élevés.</span>';
   }
 
-  const cdBox=document.getElementById('countdownBig'), cdNum=document.getElementById('cdNum'), cdTxt=document.getElementById('cdTxt');
-  if(period){ document.getElementById('periodHint').textContent='Du '+fmt(isoLocal(period.start))+' au '+fmt(isoLocal(period.end));
-    const dl=daysBetween(today0(),period.end);
-    cdBox.style.display='block';
-    cdBox.className='countdown '+(dl<30?'urgent':dl<90?'soon':'');
-    cdNum.textContent= dl>=0 ? dl : 0;
-    cdTxt.innerHTML= dl>=0 ? 'jours avant la date anniversaire<br><span style="font-weight:400">le '+fmt(isoLocal(period.end))+' — pour valider tes 507 h</span>' : 'date anniversaire passée'; }
-  else { document.getElementById('periodHint').textContent='Renseigne la date anniversaire pour activer le décompte.';
-    cdBox.style.display='none'; }
+  // hero : jours restants + plan mois par mois
+  const hd=document.getElementById('heroDays'), ha=document.getElementById('heroAnniv'),
+        hr=document.getElementById('heroRhythm'), mp=document.getElementById('monthPlan');
+  if(period){
+    document.getElementById('periodHint').textContent='Du '+fmt(isoLocal(period.start))+' au '+fmt(isoLocal(period.end));
+    document.getElementById('mpAnniv').textContent=fmt(isoLocal(period.end));
+    const dl=Math.max(0,daysBetween(today0(),period.end));
+    hd.textContent=dl+' jour'+(dl>1?'s':''); ha.textContent='avant le '+fmt(isoLocal(period.end))+' (date anniversaire)';
+    if(remaining>0){
+      const t=today0(), months=[]; let mm=new Date(t.getFullYear(),t.getMonth(),1);
+      const em=new Date(period.end.getFullYear(),period.end.getMonth(),1);
+      while(mm<=em){ months.push(new Date(mm)); mm.setMonth(mm.getMonth()+1); }
+      const monthsLeft=months.length||1, perMonth=remaining/monthsLeft, cpm=Math.ceil(perMonth/HOURS_PER_CACHET);
+      const MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      hr.innerHTML='⚡ ≈ <b>'+Math.round(perMonth)+' h/mois</b> ('+cpm+' cachet'+(cpm>1?'s':'')+'/mois) sur '+monthsLeft+' mois pour y arriver';
+      mp.innerHTML=months.map(mo=>{
+        const poss=hypoInP.filter(f=>{const d=parseD(f.start); return d&&d.getFullYear()===mo.getFullYear()&&d.getMonth()===mo.getMonth();}).reduce((s,f)=>s+ficheHours(f),0);
+        const toFind=Math.max(0,perMonth-poss), cn=Math.ceil(toFind/HOURS_PER_CACHET);
+        const lbl=MN[mo.getMonth()]+' '+mo.getFullYear();
+        return '<div class="mp-row"><span class="mp-month">'+lbl+'</span>'+
+          (toFind<=0
+            ? '<span class="mp-ok">✓ couvert'+(poss>0?' ('+Math.round(poss)+' h prévues)':'')+'</span>'
+            : '<span class="mp-find"><b>'+Math.round(toFind)+' h</b> à trouver · ≈ '+cn+' cachet'+(cn>1?'s':'')+(poss>0?' <span class="mp-sub">('+Math.round(poss)+' h déjà prévues)</span>':'')+'</span>')+
+          '</div>';
+      }).join('');
+    } else { hr.textContent=''; mp.innerHTML='<div class="mp-ok">🎉 Les 507 h sont atteintes pour cette période.</div>'; }
+  } else {
+    document.getElementById('periodHint').textContent='Renseigne la date anniversaire pour activer le décompte.';
+    hd.textContent='—'; ha.textContent='(date anniversaire manquante)'; hr.textContent=''; mp.innerHTML='';
+    document.getElementById('mpAnniv').textContent='—';
+  }
 
   renderTodo(p); renderList(); renderYearChart(p);
 }
