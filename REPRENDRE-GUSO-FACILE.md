@@ -204,9 +204,23 @@ donner la clé au backend, ou backend qui ne voit que le strict nécessaire). **
 
 ---
 
-## 7. ✅ PLAN PROPOSÉ — à faire VALIDER par David avant de coder
+## 7. ✅ PLAN VALIDÉ PAR DAVID (2026-06-24)
 
-**Découpage en phases (du moins cher / sans backend au plus lourd) :**
+> **DÉCISION : faire « Tout le client d'abord » = Phases 0→4 ci-dessous (côté client, SANS
+> backend).** Les Phases 5 (emails/backend) et 6 (multi-comptes) sont **reportées** (à cadrer
+> séparément, après — priorité Neotone Studio). ⇒ La prochaine session peut **démarrer
+> directement l'implémentation des Phases 0→4**, par petits incréments **déployés un par un**
+> (commit+push après chaque), sans tout enchaîner d'un coup. Tester sans polluer le cloud.
+
+**Ordre d'implémentation conseillé (Phases 0→4) :**
+1. **Phase 0** — auto-date-fin (= date début à la saisie) + inverser les blocs « À facturer » ⇄
+   « Projection dates possibles ».
+2. **Phase 1** — badge cohérence GUSO + bandeau « heures prouvées (GUSO tamponné) vs à tamponner ».
+3. **Phase 3** — deep-links `#date=<id>` (ouvre la fiche) — petit, réutilisable, à faire tôt.
+4. **Phase 2** — 3ᵉ onglet « Des Sons et Des Liens » (to-do DPAE / GUSO / factures).
+5. **Phase 4** — regroupement DPAE : pop-up détection des dates dans ±7 jours + `dpaeGroupId`.
+
+**Découpage en phases (rappel, du moins cher / sans backend au plus lourd) :**
 
 - **Phase 0 — petits réglages (rapide, client) :** auto-date-fin, inversion des 2 blocs dashboard.
 - **Phase 1 — badge cohérence GUSO + bandeau "prouvé vs à tamponner" (client) :** §5.3.
