@@ -765,7 +765,8 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   document.getElementById('modalBox').innerHTML=`
     <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
     <div class="msub">${f.owner} · ${per}</div>
-    ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}</div>`:''}
+    ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}<br><span style="opacity:.85;font-size:12px">Corrige les champs via « Modifier » → l'avertissement disparaîtra et le changement sera noté ci-dessous.</span></div>`:''}
+    ${(f.notes&&f.notes.length)?`<div style="background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.4);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#bdf3d8"><b>📝 Historique des corrections</b>${f.notes.map(n=>`<br>• <span style="opacity:.8">${fmt(n.date)} :</span> ${n.text}`).join('')}</div>`:''}
     <div class="kv">
       <div class="k">Période</div><div class="v">${per}</div>
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
@@ -805,8 +806,23 @@ function addFiche(e){ e.preventDefault();
     hypo: document.getElementById('f_hypo').value==='oui' };
   if(editId){                                  // --- modification ---
     const f=state.fiches.find(x=>x.id===editId);
-    if(f) Object.assign(f, data);              // conserve steps, warn, pdf
-    finishEdit(); save(); render(); toast('Date modifiée ✓'); return false;
+    let hadWarn='';
+    if(f){
+      hadWarn=f.warn||'';
+      // diff des champs importants pour garder une trace de ce qui change
+      const labels={cachets:'cachets',repet:'h répét',brut:'brut €',start:'date début',end:'date fin',num:'n° GUSO',lieu:'titre',place:'lieu',type:'type',tech:'technicien'};
+      const show=v=>(v===''||v===false||v===undefined||v===null)?'—':(v===true?'oui':v);
+      const changes=[];
+      Object.keys(labels).forEach(k=>{ if(String(f[k]??'')!==String(data[k]??'')) changes.push(labels[k]+' : '+show(f[k])+' → '+show(data[k])); });
+      Object.assign(f, data);                  // conserve steps, pdf, notes
+      if(hadWarn || changes.length){
+        if(!f.notes) f.notes=[];
+        let txt=(hadWarn?'⚠️ Incohérence traitée ('+hadWarn+'). ':'')+(changes.length?'Modifié : '+changes.join(' · ')+'.':'');
+        f.notes.push({date:isoLocal(today0()), text:txt.trim()});
+      }
+      f.warn='';                               // l'incohérence a été revue → l'avertissement disparaît
+    }
+    finishEdit(); save(); render(); toast(hadWarn?'✅ Incohérence corrigée — note ajoutée':'Date modifiée ✓'); return false;
   }
   const both=document.getElementById('f_both').checked;
   const owners=both?['David','Iris']:[data.owner];
