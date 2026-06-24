@@ -561,8 +561,17 @@ const SEED_IDS = new Set(["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", 
 
 let state=null, currentPerson='David', listFilter='upcoming', editId=null, lastRenderDay='';
 
-function emptySteps(){ return {dpae:false,guso:false,paiement:false,recu:false,actu:false}; }
-function migrate(s){ s.fiches.forEach(f=>{ if(!f.steps){ const all=!!f.num; f.steps={dpae:all,guso:all,paiement:all,recu:all,actu:all}; } if(!f.type) f.type=(f.cachets>0?'concert':'repet'); }); return s; }
+function emptySteps(){ return {dpae:false,dpaeIris:false,guso:false,paiement:false,recu:false,actu:false}; }
+// === DPAE nominative : 1 DPAE par personne. Sur une date partagée (both), 2 DPAE distinctes :
+//     David = steps.dpae · Iris = steps.dpaeIris. Sur une date solo, l'unique DPAE = steps.dpae. ===
+function dpaePersons(f){ return f.owner==='both' ? ['David','Iris'] : [f.owner]; }
+function dpaeKey(f,person){ return (f.owner==='both' && person==='Iris') ? 'dpaeIris' : 'dpae'; }
+function dpaeDone(f,person){ return !!(f.steps && f.steps[dpaeKey(f,person)]); }
+function dpaeAnyMissing(f){ return dpaePersons(f).some(p=>!dpaeDone(f,p)); }
+function dpaeGroupCountPerson(f,person){ return f.dpaeGroupId ? state.fiches.filter(x=>x.dpaeGroupId===f.dpaeGroupId && (x.owner===person||x.owner==='both')).length : 1; }
+// compat données existantes : initialise la DPAE d'Iris depuis l'ancienne case unique (préserve l'état)
+function ensureDpaeIris(s){ if(s&&s.fiches) s.fiches.forEach(f=>{ if(f.steps && f.owner==='both' && f.steps.dpaeIris===undefined) f.steps.dpaeIris=!!f.steps.dpae; }); return s; }
+function migrate(s){ s.fiches.forEach(f=>{ if(!f.steps){ const all=!!f.num; f.steps={dpae:all,guso:all,paiement:all,recu:all,actu:all}; } if(!f.type) f.type=(f.cachets>0?'concert':'repet'); }); return ensureDpaeIris(s); }
 function loadLocal(){
   try{ const s=JSON.parse(localStorage.getItem('intermittence_v1'));
     if(s&&s.people) return migrate(s);
@@ -615,7 +624,7 @@ function fichesFor(p,filter){
     const pe=currentPeriod(p);
     if(pe&&filter==='period') arr=arr.filter(f=>{const d=parseD(f.start);return d&&d>=pe.start&&d<pe.end;});
   }
-  if(filter==='todo') arr=arr.filter(f=>STEPS.some(s=>!f.steps[s.key]));
+  if(filter==='todo') arr=arr.filter(f=>STEPS.some(s=>!f.steps[s.key]) || dpaeAnyMissing(f));
   if(filter==='upcoming'||filter==='past'){
     const t=today0();
     arr=arr.filter(f=>{const d=parseD(f.end||f.start); if(!d) return false; return filter==='upcoming'?d>=t:d<t;});
@@ -831,12 +840,13 @@ function renderList(){
   const rate=avgRate(currentPerson);
   document.getElementById('emptyMsg').style.display=arr.length?'none':'block';
   document.getElementById('engList').innerHTML=arr.map(f=>{
-    const done=STEPS.filter(s=>f.steps[s.key]).length;
+    const done=STEPS.filter(s=> s.key==='dpae' ? dpaeDone(f,currentPerson) : f.steps[s.key]).length;
     const priceVal = Number(f.brut)>0 ? Number(f.brut) : ficheHours(f,currentPerson)*COST_PER_HOUR;
     const priceStr = priceVal>0 ? (Number(f.brut)>0?'':'~')+Math.round(priceVal)+' €' : '—';
     const priceEst = !(Number(f.brut)>0);
-    const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${s.key}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
-        <span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
+    const chips=STEPS.map(s=>{ const k=s.key==='dpae'?dpaeKey(f,currentPerson):s.key; const on=!!f.steps[k];
+      return `<div class="step ${on?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${k}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
+        <span class="box">${on?'✓':''}</span>${s.ic} ${s.short}</div>`; }).join('');
     const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
     const cc=Number(f.cachets)||0, rr=repetFor(f,currentPerson);
     const isConcert=f.type!=='repet';
@@ -869,10 +879,12 @@ function renderList(){
 
 function toggleStep(id,key){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   f.steps[key]=!f.steps[key];
-  if(key==='dpae' && f.dpaeGroupId){            // 1 seule DPAE pour le groupe → on coche tout le groupe
-    state.fiches.forEach(x=>{ if(x.dpaeGroupId===f.dpaeGroupId) x.steps.dpae=f.steps.dpae; }); }
+  if((key==='dpae'||key==='dpaeIris') && f.dpaeGroupId){   // DPAE nominative : propage au groupe, mais seulement pour LA personne concernée
+    const person = key==='dpaeIris' ? 'Iris' : (f.owner==='both' ? 'David' : f.owner);
+    state.fiches.forEach(x=>{ if(x.dpaeGroupId===f.dpaeGroupId && (x.owner===person||x.owner==='both')) x.steps[dpaeKey(x,person)]=f.steps[key]; }); }
   save(); render();
-  toast(f.steps[key]?'✓ '+STEPS.find(s=>s.key===key).label:'décoché'); }
+  const lbl = key==='dpaeIris' ? 'DPAE Iris' : (key==='dpae'&&f.owner==='both' ? 'DPAE David' : STEPS.find(s=>s.key===key).label);
+  toast(f.steps[key]?'✓ '+lbl:'décoché'); }
 
 function confirmHypo(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   f.hypo=false; save(); render(); toast('Date confirmée ✓ — elle compte maintenant dans tes heures'); }
@@ -914,11 +926,17 @@ function factureLine(f){ const i=factureInfo(f); if(!i) return '';
 function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
   const href=pdfOnline(f);
-  const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="toggleStep('${f.id}','${s.key}');openDetail('${f.id}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative"><span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
+  const stepChip=(key,ic,short,label)=>{ const on=!!f.steps[key];
+    return `<div class="step ${on?'done':''}" onclick="toggleStep('${f.id}','${key}');openDetail('${f.id}')" data-tip="${label} — clique pour cocher/décocher cette étape administrative"><span class="box">${on?'✓':''}</span>${ic} ${short}</div>`; };
+  const chips=STEPS.map(s=>{
+    if(s.key==='dpae' && f.owner==='both')   // DPAE nominative : 2 cases distinctes
+      return stepChip('dpae','📋','DPAE David','DPAE de David (nominative, 1 par personne)')+stepChip('dpaeIris','📋','DPAE Iris','DPAE d\'Iris (nominative, 1 par personne)');
+    return stepChip(s.key,s.ic,s.short,s.label);
+  }).join('');
   document.getElementById('modalBox').innerHTML=`
     <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
     <div class="msub">${f.owner==='both'?'👥 David et Iris':f.owner} · ${per}</div>
-    ${(f.dpaeGroupId&&dpaeGroupCount(f)>1)?`<div style="background:rgba(124,131,255,.12);border:1px solid rgba(124,131,255,.45);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#c5c9ff">🔗 <b>DPAE commune</b> avec ${dpaeGroupCount(f)-1} autre(s) date(s) — 1 seule déclaration couvre tout le groupe (cocher « DPAE » ici les coche toutes).</div>`:''}
+    ${(f.dpaeGroupId&&dpaeGroupCount(f)>1)?`<div style="background:rgba(124,131,255,.12);border:1px solid rgba(124,131,255,.45);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#c5c9ff">🔗 <b>DPAE commune</b> avec ${dpaeGroupCount(f)-1} autre(s) date(s) — 1 seule déclaration <b>par personne</b> couvre tout le groupe (cocher une DPAE ici coche la même personne sur tout le groupe).</div>`:''}
     ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}<br><span style="opacity:.85;font-size:12px">Corrige les champs via « Modifier » → l'avertissement disparaîtra et le changement sera noté ci-dessous.</span></div>`:''}
     ${(f.notes&&f.notes.length)?`<div style="background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.4);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#bdf3d8"><b>📝 Historique des corrections</b>${f.notes.map(n=>`<br>• <span style="opacity:.8">${fmt(n.date)} :</span> ${n.text}`).join('')}</div>`:''}
     ${factureInfo(f)?`<div style="background:rgba(224,138,88,.12);border:1px solid rgba(224,138,88,.55);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#f0c9a0"><b>🧾 Facturation (Des Sons et Des Liens → Résonances)</b><br>${factureLine(f)}${factureOnline(f)?`<br><a href="${factureOnline(f)}" target="_blank" rel="noopener" style="color:#ffd089;font-weight:700">📄 Ouvrir la facture ›</a>`:''}</div>`:''}
@@ -997,12 +1015,21 @@ function openBackoffice(){
   const all=state.fiches.filter(f=>!f.hypo);              // dates réelles (les "possibles" pas encore déclarées)
   const owner=o=>o==='both'?'David + Iris':o;
   const cls=o=>o==='Iris'?'iris':'david';
-  // calcule chaque liste (avec dédoublonnage des DPAE groupées) + total
+  // calcule chaque liste + total. Items = {f, person} (person = null hors DPAE).
   const lists={}; let totalTodo=0;
   BO_CATS.forEach(cat=>{
-    let list=all.filter(f=>!(f.steps&&f.steps[cat.key])).sort((a,b)=>(a.start||'')<(b.start||'')?1:-1);
-    if(cat.key==='dpae'){ const seen=new Set(); list=list.filter(f=>{ if(!f.dpaeGroupId) return true; if(seen.has(f.dpaeGroupId)) return false; seen.add(f.dpaeGroupId); return true; }); }
-    lists[cat.key]=list; totalTodo+=list.length;
+    let items;
+    if(cat.key==='dpae'){
+      // DPAE nominative : une entrée par (date × personne dont la DPAE manque)
+      items=[];
+      all.forEach(f=>dpaePersons(f).forEach(p=>{ if(!dpaeDone(f,p)) items.push({f,person:p}); }));
+      const seen=new Set();                              // dédoublonnage par (groupe + personne)
+      items=items.filter(it=>{ if(!it.f.dpaeGroupId) return true; const k=it.f.dpaeGroupId+'|'+it.person; if(seen.has(k)) return false; seen.add(k); return true; });
+    } else {
+      items=all.filter(f=>!(f.steps&&f.steps[cat.key])).map(f=>({f,person:null}));
+    }
+    items.sort((a,b)=>((a.f.start||'')<(b.f.start||'')?1:-1));
+    lists[cat.key]=items; totalTodo+=items.length;
   });
   let html='';
   if(totalTodo===0){
@@ -1016,17 +1043,22 @@ function openBackoffice(){
     });
     html+='</div>';
     // une carte colorée par catégorie
-    BO_CATS.forEach(cat=>{ const list=lists[cat.key];
+    BO_CATS.forEach(cat=>{ const items=lists[cat.key];
       html+=`<div class="bo-card ${cat.key}" id="boCat_${cat.key}">
-        <div class="bo-card-h"><span class="bo-ic">${cat.ic}</span>${cat.label}<span class="bo-cnt">${list.length}</span></div>
+        <div class="bo-card-h"><span class="bo-ic">${cat.ic}</span>${cat.label}<span class="bo-cnt">${items.length}</span></div>
         <div class="bo-cardd">${cat.desc}</div>
         <div class="bo-list">`;
-      html+= list.length
-        ? list.map(f=>`<div class="bo-row" onclick="closeBackoffice();openDetail('${f.id}')" data-tip="Ouvrir cette date">
+      html+= items.length
+        ? items.map(it=>{ const f=it.f;
+            const whoLabel=it.person?it.person:owner(f.owner);
+            const whoCls=cls(it.person||f.owner);
+            const gN=(cat.key==='dpae'&&f.dpaeGroupId)?dpaeGroupCountPerson(f,it.person):1;
+            const groupMark=gN>1?' <span style="color:#c5c9ff;font-weight:700">🔗 +'+(gN-1)+' date(s)</span>':'';
+            return `<div class="bo-row" onclick="closeBackoffice();openDetail('${f.id}')" data-tip="Ouvrir cette date">
             <span class="bo-when">${fmt(f.start)}</span>
-            <span class="bo-who ${cls(f.owner)}">${owner(f.owner)}</span>
-            <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${(cat.key==='dpae'&&f.dpaeGroupId&&dpaeGroupCount(f)>1)?' <span style="color:#c5c9ff;font-weight:700">🔗 +'+(dpaeGroupCount(f)-1)+' date(s)</span>':''}</span>
-            <span class="bo-go">ouvrir ›</span></div>`).join('')
+            <span class="bo-who ${whoCls}">${whoLabel}</span>
+            <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${groupMark}</span>
+            <span class="bo-go">ouvrir ›</span></div>`; }).join('')
         : '<div class="bo-empty">✓ Rien en attente ici</div>';
       html+='</div></div>';
     });
@@ -1049,7 +1081,7 @@ const GUIDE={
     <div class="g-note">💾 Tes données se <b>sauvegardent et se synchronisent automatiquement</b> : David et Iris partagent le même espace, toute modif apparaît chez l'autre en temps réel.</div>`,
   structure:`<div class="g-intro">🛠️ <b>Des Sons et Des Liens</b> — ton tableau de bord pour gérer l'administratif de tous les artistes, sans rien oublier.</div>
     <div class="g-step"><div class="g-num">1</div><div class="gt">Ouvre l'onglet <b>🛠️ Des Sons et Des Liens</b> : tu vois d'un coup d'œil <b>tout ce qui reste à faire</b>, tous artistes confondus.</div></div>
-    <div class="g-step"><div class="g-num">2</div><div class="gt"><b>📋 DPAE à faire</b> : déclare la DPAE, puis ouvre la date et coche <b>« DPAE faite »</b>. Si plusieurs dates tombent dans <b>±7 jours</b>, une seule DPAE peut toutes les couvrir (marqueur <b>🔗</b>) — la cocher coche tout le groupe.</div></div>
+    <div class="g-step"><div class="g-num">2</div><div class="gt"><b>📋 DPAE à faire</b> : déclare la DPAE, puis ouvre la date et coche-la. Sur une <b>date partagée</b>, la DPAE est <b>nominative</b> → 2 cases distinctes (<b>DPAE David</b> et <b>DPAE Iris</b>), avec 2 PDF séparés. Si plusieurs dates tombent dans <b>±7 jours</b>, une seule DPAE <b>par personne</b> peut toutes les couvrir (marqueur <b>🔗</b>).</div></div>
     <div class="g-step"><div class="g-num">3</div><div class="gt"><b>📄 Feuillets GUSO à éditer</b> : une fois la date passée, édite le feuillet puis coche.</div></div>
     <div class="g-step"><div class="g-num">4</div><div class="gt"><b>💸 Factures / virements</b> : édite la facture à Résonances, puis coche quand le virement est fait.</div></div>
     <div class="g-step"><div class="g-num">5</div><div class="gt">Chaque ligne est <b>cliquable</b> → ouvre la date. Dans une date, <b>🔗 Copier le lien</b> te donne un lien direct vers elle (pratique à partager).</div></div>
@@ -1153,7 +1185,7 @@ function exportData(){ const b=new Blob([JSON.stringify(state,null,2)],{type:'ap
   renderSaveStatus(); toast('Sauvegarde téléchargée ✓'); }
 function importData(input){ const file=input.files[0]; if(!file) return;
   const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result);
-    if(d.people&&d.fiches){ d.fiches.forEach(f=>{ if(!f.steps){const all=!!f.num;f.steps={dpae:all,guso:all,paiement:all,recu:all,actu:all};} if(!f.type)f.type=f.cachets>0?'concert':'repet'; });
+    if(d.people&&d.fiches){ d.fiches.forEach(f=>{ if(!f.steps){const all=!!f.num;f.steps={dpae:all,guso:all,paiement:all,recu:all,actu:all};} if(!f.type)f.type=f.cachets>0?'concert':'repet'; }); ensureDpaeIris(d);
       state=d; save(); render(); toast('Données importées ✓'); } else toast('Fichier invalide'); }
     catch(e){ toast('Erreur de lecture'); } }; r.readAsText(file); }
 
@@ -1333,7 +1365,7 @@ function openFromHash(){
   openDetail(f.id);
 }
 window.addEventListener('hashchange',()=>{ _hashOpened=false; openFromHash(); });
-function startApp(){ setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); }
+function startApp(){ ensureDpaeIris(state); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); }
 async function tryUnlock(){ const pw=document.getElementById('unlockCode').value;
   const e=document.getElementById('unlockErr'); e.textContent='Déverrouillage…';
   try{ CRYPTO_KEY=await deriveKey(pw); const seed=await decryptSeed(); /* valide le code */

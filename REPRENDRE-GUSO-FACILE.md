@@ -141,14 +141,14 @@ GUSO**.
 
 ### RESTE À FAIRE (hors grosse étape) — non commencé
 
-> ⭐ **NOUVEAU (2026-06-24, remarque Des Sons et Des Liens) — DPAE nominative par personne sur les
-> dates partagées.** Aujourd'hui une date a **une seule case DPAE** (`steps.dpae`, 1 booléen/fiche).
-> Sur une date `owner:'both'`, cocher la DPAE pour Iris coche aussi celle de David (et inversement).
-> Or la **DPAE est nominative** → il en faut **2 distinctes** (David + Iris) sur une date commune,
-> avec à terme **2 PDF séparés** à déposer. À faire : dissocier la DPAE par personne pour les dates
-> `both` (modèle `dpaeDone(f,personne)` / `setDpae`), 2 cases dans le détail, back-office qui liste
-> la DPAE manquante **par personne**, et adapter le **regroupement DPAE ±7 j** (Phase 4) pour qu'il
-> soit **par personne**. ⚠️ Touche : modèle de données + migration + détail + back-office + grouping.
+> ✅ **FAIT (2026-06-24) — DPAE nominative par personne sur les dates partagées** (remarque Des Sons
+> et Des Liens). Sur une date `owner:'both'`, la DPAE est désormais **dissociée** : `steps.dpae` =
+> David, `steps.dpaeIris` = Iris (helpers `dpaeDone(f,personne)` / `dpaeKey` / `dpaePersons`). Le
+> **détail** affiche **2 cases** (« DPAE David » / « DPAE Iris ») ; le **back-office** liste la DPAE
+> manquante **par personne** (1 ligne par personne, dédoublonnée par groupe+personne) tandis que GUSO
+> et facture restent **1 ligne par date** ; le **regroupement ±7 j** propage la DPAE **par personne**.
+> Migration douce (`ensureDpaeIris` : Iris hérite de l'état existant). **Reste lié = Phase 5** : le
+> **dépôt des 2 PDF** séparés (DPAE David / DPAE Iris) nécessite le backend.
 
 1. **(petit) Auto-remplir la date de fin = date de début** à la saisie (en général 1 seule date par
    GUSO) — gain de temps.
