@@ -47,19 +47,56 @@
   .tabs{display:flex;gap:6px;background:var(--panel);border-radius:12px;padding:6px;margin-bottom:20px}
   .tab{flex:1;text-align:center;padding:11px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;font-size:14px;user-select:none}
   #boTab.active{background:rgba(124,200,255,.16);color:var(--accent2)}
-  .bo-modal{max-width:720px}
-  .bo-cat{margin:16px 0}
-  .bo-cat-h{font-weight:800;font-size:15px;color:var(--txt);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .bo-n{background:var(--warn);color:#1a1400;font-size:12px;font-weight:800;padding:1px 9px;border-radius:999px}
-  .bo-desc{font-weight:400;font-size:12px;color:var(--muted)}
-  .bo-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:13px;flex-wrap:wrap}
-  .bo-row:hover{border-color:var(--accent2);background:rgba(124,200,255,.06)}
-  .bo-when{font-weight:700;min-width:96px}
-  .bo-who{font-weight:700;padding:2px 9px;border-radius:999px;font-size:11.5px}
-  .bo-who.david{background:rgba(59,130,246,.18);color:#7fb0ff} .bo-who.iris{background:rgba(236,72,153,.18);color:#f78fc4}
-  .bo-lieu{flex:1;min-width:120px;color:var(--muted)} .bo-nogus{color:var(--warn)}
-  .bo-go{color:var(--accent2);font-weight:700}
-  .bo-empty{color:var(--ok);font-weight:600;padding:4px 2px}
+  /* ===== Back-office Des Sons et Des Liens — refonte colorée & brandée ===== */
+  .modal.bo-modal{max-width:760px;padding:0;overflow:hidden}
+  .bo-hero{padding:22px 24px 20px;background:linear-gradient(135deg,rgba(123,158,255,.16),rgba(240,114,192,.13) 55%,rgba(255,209,102,.12));border-bottom:1px solid var(--line);position:relative}
+  .bo-hero h2{margin:0;font-size:21px;font-weight:800;letter-spacing:.2px;background:linear-gradient(90deg,#7b9eff,#f072c0 60%,#ffd166);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .bo-sub{color:var(--muted);font-size:12.5px;margin-top:6px;max-width:94%}
+  .bo-x{position:absolute;top:15px;right:15px}
+  .bo-body{padding:18px 22px 24px}
+  .bo-sum{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .bo-chip{flex:1;min-width:108px;border-radius:13px;padding:12px 14px;border:1px solid;cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .bo-chip:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.3)}
+  .bo-chip .num{font-size:27px;font-weight:800;line-height:1}
+  .bo-chip .lab{font-size:11.5px;font-weight:700;margin-top:4px;letter-spacing:.2px;opacity:.92}
+  .bo-chip.dpae{background:rgba(255,209,102,.10);border-color:rgba(255,209,102,.42);color:#ffd166}
+  .bo-chip.guso{background:rgba(76,201,240,.10);border-color:rgba(76,201,240,.42);color:#4cc9f0}
+  .bo-chip.paiement{background:rgba(61,220,151,.10);border-color:rgba(61,220,151,.42);color:#3ddc97}
+  .bo-chip.done{opacity:.65}
+  .bo-card{border-radius:14px;border:1px solid var(--line);background:var(--panel2);margin-bottom:14px;overflow:hidden}
+  .bo-card-h{display:flex;align-items:center;gap:11px;padding:13px 15px 11px;font-weight:800;font-size:14.5px;border-left:4px solid}
+  .bo-card.dpae .bo-card-h{border-color:#ffd166} .bo-card.guso .bo-card-h{border-color:#4cc9f0} .bo-card.paiement .bo-card-h{border-color:#3ddc97}
+  .bo-ic{width:34px;height:34px;flex:0 0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .bo-card.dpae .bo-ic{background:rgba(255,209,102,.16)} .bo-card.guso .bo-ic{background:rgba(76,201,240,.16)} .bo-card.paiement .bo-ic{background:rgba(61,220,151,.16)}
+  .bo-cnt{margin-left:auto;font-size:12px;font-weight:800;padding:2px 11px;border-radius:999px;background:rgba(255,255,255,.08)}
+  .bo-cardd{font-size:11.5px;color:var(--muted);padding:0 15px 6px 30px}
+  .bo-list{padding:2px 12px 12px}
+  .bo-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-top:7px;cursor:pointer;font-size:13px;flex-wrap:wrap;background:var(--panel);transition:border-color .12s,background .12s}
+  .bo-row:hover{border-color:var(--accent2);background:rgba(124,158,255,.08)}
+  .bo-when{font-weight:700;min-width:88px;font-size:12.5px}
+  .bo-who{font-weight:700;padding:2px 9px;border-radius:999px;font-size:11px}
+  .bo-who.david{background:rgba(76,201,240,.18);color:#7fd8ff} .bo-who.iris{background:rgba(240,114,192,.18);color:#f7a6d6}
+  .bo-lieu{flex:1;min-width:120px;color:var(--txt);opacity:.9} .bo-nogus{color:var(--warn)}
+  .bo-go{color:var(--accent2);font-weight:700;font-size:12.5px}
+  .bo-empty{color:var(--ok);font-weight:600;padding:10px 12px;font-size:12.5px;background:rgba(61,220,151,.07);border:1px dashed rgba(61,220,151,.35);border-radius:10px;margin-top:7px}
+  .bo-allclear{text-align:center;padding:34px 16px}
+  .bo-allclear .big{font-size:44px}
+  .bo-allclear .t{font-size:18px;font-weight:800;color:var(--ok);margin-top:10px}
+  .bo-allclear .s{font-size:13px;color:var(--muted);margin-top:6px;max-width:380px;margin-left:auto;margin-right:auto}
+  /* ===== Guide utilisateur (artiste vs structure) ===== */
+  .modal.guide-modal{max-width:680px;padding:0;overflow:hidden}
+  .g-hero{padding:22px 24px 18px;background:linear-gradient(135deg,rgba(76,201,240,.16),rgba(123,158,255,.14) 60%,rgba(240,114,192,.12));border-bottom:1px solid var(--line);position:relative}
+  .g-hero h2{margin:0;font-size:21px;font-weight:800;background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .g-body{padding:18px 22px 24px}
+  .g-toggle{display:flex;gap:8px;background:var(--panel2);border-radius:12px;padding:6px;margin-bottom:18px}
+  .g-tab{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13.5px;padding:11px;border-radius:8px;cursor:pointer}
+  .g-tab.on{background:linear-gradient(135deg,rgba(76,201,240,.2),rgba(240,114,192,.18));color:var(--txt)}
+  .g-intro{font-size:13.5px;color:var(--txt);background:var(--panel2);border-radius:12px;padding:13px 15px;margin-bottom:16px;border-left:4px solid var(--accent2)}
+  .g-step{display:flex;gap:12px;margin-bottom:13px}
+  .g-num{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:linear-gradient(135deg,#7b9eff,#f072c0);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .g-step .gt{font-size:13.5px;color:var(--muted)}
+  .g-step .gt b{color:var(--txt)}
+  .g-note{font-size:12.5px;color:var(--muted);margin-top:14px;padding:11px 13px;border:1px dashed var(--line);border-radius:10px}
   .tab.active{background:var(--panel2);color:var(--txt)}
   .tab .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
   .tab.david .dot{background:var(--david)} .tab.iris .dot{background:var(--iris)}
@@ -282,7 +319,8 @@
       <div class="sub2">créé avec amour ❤️ par David Lesage</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
     <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
     <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
     <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
@@ -397,12 +435,30 @@
   <!-- BACK-OFFICE Des Sons et Des Liens (modale superposée) -->
   <div class="modal-bg" id="boBg" onclick="closeBackoffice(event)">
    <div class="modal bo-modal" onclick="event.stopPropagation()">
-    <div class="add-head">
-      <h2 style="margin:0;font-size:19px">🛠️ Des Sons et Des Liens — à faire</h2>
-      <button class="btn ghost sm" type="button" onclick="closeBackoffice()" data-tip="Fermer" style="flex:0 0 auto">✕</button>
+    <div class="bo-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeBackoffice()" data-tip="Fermer">✕</button>
+      <h2>🛠️ Des Sons et Des Liens</h2>
+      <div class="bo-sub">Ton tableau de bord : tout ce qui reste à traiter, tous artistes confondus. Clique sur une ligne pour ouvrir la date.</div>
     </div>
-    <div class="hint">Tout ce qui reste à traiter, tous artistes confondus. Clique sur une ligne pour ouvrir la date (DPAE, feuillet GUSO, facture).</div>
-    <div id="boContent"></div>
+    <div class="bo-body" id="boContent"></div>
+   </div>
+  </div>
+
+  <!-- GUIDE UTILISATEUR (modale superposée) -->
+  <div class="modal-bg" id="guideBg" onclick="closeGuide(event)">
+   <div class="modal guide-modal" onclick="event.stopPropagation()">
+    <div class="g-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeGuide()" data-tip="Fermer">✕</button>
+      <h2>📖 Guide d'utilisation</h2>
+      <div class="bo-sub">Choisis ton profil : chacun a ses propres actions.</div>
+    </div>
+    <div class="g-body">
+      <div class="g-toggle">
+        <button class="g-tab" id="gTabArt" type="button" onclick="setGuideMode('artiste')">👤 Je suis artiste</button>
+        <button class="g-tab" id="gTabStr" type="button" onclick="setGuideMode('structure')">🛠️ Des Sons et Des Liens</button>
+      </div>
+      <div id="guideContent"></div>
+    </div>
    </div>
   </div>
 
@@ -932,35 +988,79 @@ function dpaeGroupCount(f){ return f.dpaeGroupId ? state.fiches.filter(x=>x.dpae
 
 /* ===== Back-office Des Sons et Des Liens : to-do transversal (tous artistes) ===== */
 const BO_CATS=[
-  {key:'dpae', ic:'📋', label:'DPAE à faire', desc:'à déclarer (priorité aux dates à venir)'},
-  {key:'guso', ic:'📄', label:'Feuillets GUSO à éditer', desc:'feuillet à éditer après la date'},
-  {key:'paiement', ic:'💸', label:'Factures à éditer / virements', desc:'facture à Résonances + paiement'}
+  {key:'dpae', ic:'📋', label:'DPAE à faire', chip:'DPAE', desc:'à déclarer · une seule DPAE peut couvrir un groupe de dates (±7 jours)'},
+  {key:'guso', ic:'📄', label:'Feuillets GUSO à éditer', chip:'GUSO', desc:'feuillet à éditer une fois la date passée'},
+  {key:'paiement', ic:'💸', label:'Factures / virements', chip:'Factures', desc:'facture à Résonances, puis virement'}
 ];
 function openBackoffice(){
   document.getElementById('boTab').classList.add('active');
   const all=state.fiches.filter(f=>!f.hypo);              // dates réelles (les "possibles" pas encore déclarées)
   const owner=o=>o==='both'?'David + Iris':o;
   const cls=o=>o==='Iris'?'iris':'david';
-  let html='';
+  // calcule chaque liste (avec dédoublonnage des DPAE groupées) + total
+  const lists={}; let totalTodo=0;
   BO_CATS.forEach(cat=>{
     let list=all.filter(f=>!(f.steps&&f.steps[cat.key])).sort((a,b)=>(a.start||'')<(b.start||'')?1:-1);
     if(cat.key==='dpae'){ const seen=new Set(); list=list.filter(f=>{ if(!f.dpaeGroupId) return true; if(seen.has(f.dpaeGroupId)) return false; seen.add(f.dpaeGroupId); return true; }); }
-    html+=`<div class="bo-cat"><div class="bo-cat-h">${cat.ic} ${cat.label} <span class="bo-n">${list.length}</span> <span class="bo-desc">${cat.desc}</span></div>`;
-    html+= list.length
-      ? list.map(f=>`<div class="bo-row" onclick="closeBackoffice();openDetail('${f.id}')" data-tip="Ouvrir cette date">
-          <span class="bo-when">${fmt(f.start)}</span>
-          <span class="bo-who ${cls(f.owner)}">${owner(f.owner)}</span>
-          <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${(cat.key==='dpae'&&f.dpaeGroupId&&dpaeGroupCount(f)>1)?' <span style="color:#c5c9ff;font-weight:700">🔗 +'+(dpaeGroupCount(f)-1)+' date(s)</span>':''}</span>
-          <span class="bo-go">ouvrir ›</span></div>`).join('')
-      : '<div class="bo-empty">✓ rien en attente</div>';
-    html+='</div>';
+    lists[cat.key]=list; totalTodo+=list.length;
   });
+  let html='';
+  if(totalTodo===0){
+    html='<div class="bo-allclear"><div class="big">✨</div><div class="t">Tout est à jour !</div><div class="s">Aucune DPAE, aucun feuillet GUSO ni facture en attente. Rien à traiter pour le moment.</div></div>';
+  } else {
+    // compteurs résumés (cliquables → défilent vers la catégorie)
+    html+='<div class="bo-sum">';
+    BO_CATS.forEach(cat=>{ const n=lists[cat.key].length;
+      html+=`<div class="bo-chip ${cat.key}${n===0?' done':''}" onclick="document.getElementById('boCat_${cat.key}').scrollIntoView({behavior:'smooth',block:'start'})" data-tip="Voir « ${cat.label} »">
+        <div class="num">${n===0?'✓':n}</div><div class="lab">${cat.ic} ${cat.chip}</div></div>`;
+    });
+    html+='</div>';
+    // une carte colorée par catégorie
+    BO_CATS.forEach(cat=>{ const list=lists[cat.key];
+      html+=`<div class="bo-card ${cat.key}" id="boCat_${cat.key}">
+        <div class="bo-card-h"><span class="bo-ic">${cat.ic}</span>${cat.label}<span class="bo-cnt">${list.length}</span></div>
+        <div class="bo-cardd">${cat.desc}</div>
+        <div class="bo-list">`;
+      html+= list.length
+        ? list.map(f=>`<div class="bo-row" onclick="closeBackoffice();openDetail('${f.id}')" data-tip="Ouvrir cette date">
+            <span class="bo-when">${fmt(f.start)}</span>
+            <span class="bo-who ${cls(f.owner)}">${owner(f.owner)}</span>
+            <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${(cat.key==='dpae'&&f.dpaeGroupId&&dpaeGroupCount(f)>1)?' <span style="color:#c5c9ff;font-weight:700">🔗 +'+(dpaeGroupCount(f)-1)+' date(s)</span>':''}</span>
+            <span class="bo-go">ouvrir ›</span></div>`).join('')
+        : '<div class="bo-empty">✓ Rien en attente ici</div>';
+      html+='</div></div>';
+    });
+  }
   document.getElementById('boContent').innerHTML=html;
   document.getElementById('boBg').classList.add('show');
 }
 function closeBackoffice(ev){ if(ev&&ev.target!==ev.currentTarget) return;
   document.getElementById('boBg').classList.remove('show');
   document.getElementById('boTab').classList.remove('active'); }
+
+/* ===== Guide utilisateur : 2 profils (artiste vs structure), besoins/actions différents ===== */
+const GUIDE={
+  artiste:`<div class="g-intro">👤 <b>Artiste (David / Iris)</b> — l'appli t'aide à suivre tes <b>507 heures sur 12 mois</b> pour garder tes droits d'intermittent, à partir de tes cachets et répétitions.</div>
+    <div class="g-step"><div class="g-num">1</div><div class="gt">Choisis ton <b>onglet</b> en haut (David ou Iris).</div></div>
+    <div class="g-step"><div class="g-num">2</div><div class="gt">Clique <b>➕ Ajouter une date</b> : concert ou répétition, le lieu, les cachets et les heures. Pour une date pas encore sûre, mets-la en <b>🔮 date possible</b> — elle compte dans la projection sans fausser tes heures validées.</div></div>
+    <div class="g-step"><div class="g-num">3</div><div class="gt">Le <b>tableau de bord</b> te dit où tu en es : heures faites sur 507, ce qu'il reste, le nombre de jours avant ta date anniversaire, le rythme conseillé et un <b>plan mois par mois</b>.</div></div>
+    <div class="g-step"><div class="g-num">4</div><div class="gt">Le <b>bandeau preuve GUSO</b> distingue les heures déjà <b>prouvées</b> (feuillet tamponné) de celles encore <b>à tamponner</b> par Des Sons et Des Liens.</div></div>
+    <div class="g-step"><div class="g-num">5</div><div class="gt">Clique sur une date pour voir le <b>détail</b> : feuillet GUSO, facture, rapprochement (salaire / charges / frais), et l'avancement administratif.</div></div>
+    <div class="g-note">💾 Tes données se <b>sauvegardent et se synchronisent automatiquement</b> : David et Iris partagent le même espace, toute modif apparaît chez l'autre en temps réel.</div>`,
+  structure:`<div class="g-intro">🛠️ <b>Des Sons et Des Liens</b> — ton tableau de bord pour gérer l'administratif de tous les artistes, sans rien oublier.</div>
+    <div class="g-step"><div class="g-num">1</div><div class="gt">Ouvre l'onglet <b>🛠️ Des Sons et Des Liens</b> : tu vois d'un coup d'œil <b>tout ce qui reste à faire</b>, tous artistes confondus.</div></div>
+    <div class="g-step"><div class="g-num">2</div><div class="gt"><b>📋 DPAE à faire</b> : déclare la DPAE, puis ouvre la date et coche <b>« DPAE faite »</b>. Si plusieurs dates tombent dans <b>±7 jours</b>, une seule DPAE peut toutes les couvrir (marqueur <b>🔗</b>) — la cocher coche tout le groupe.</div></div>
+    <div class="g-step"><div class="g-num">3</div><div class="gt"><b>📄 Feuillets GUSO à éditer</b> : une fois la date passée, édite le feuillet puis coche.</div></div>
+    <div class="g-step"><div class="g-num">4</div><div class="gt"><b>💸 Factures / virements</b> : édite la facture à Résonances, puis coche quand le virement est fait.</div></div>
+    <div class="g-step"><div class="g-num">5</div><div class="gt">Chaque ligne est <b>cliquable</b> → ouvre la date. Dans une date, <b>🔗 Copier le lien</b> te donne un lien direct vers elle (pratique à partager).</div></div>
+    <div class="g-note">📧 Bientôt : <b>rappels email automatiques</b> (J-3 « faire la DPAE », J+1 « éditer le GUSO + la facture ») avec un lien direct vers la date concernée.</div>`
+};
+function openGuide(mode){ document.getElementById('guideBg').classList.add('show'); setGuideMode(mode||'artiste'); }
+function closeGuide(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('guideBg').classList.remove('show'); }
+function setGuideMode(mode){ if(mode!=='structure') mode='artiste';
+  document.getElementById('guideContent').innerHTML=GUIDE[mode];
+  document.getElementById('gTabArt').classList.toggle('on',mode==='artiste');
+  document.getElementById('gTabStr').classList.toggle('on',mode==='structure'); }
 
 function addFiche(e){ e.preventDefault();
   const data={ owner:f_owner.value, type:f_type.value, num:f_num.value.trim(),
