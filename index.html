@@ -181,6 +181,8 @@
   .eng .eng-lieu{font-size:13.5px;font-weight:600;color:var(--txt);margin-top:4px;background:rgba(255,255,255,.04);border-radius:6px;padding:3px 8px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .eng .eng-rep{font-size:12.5px;color:var(--c-repet);margin-top:4px}
   .eng .eng-meta{font-size:12px;color:var(--muted);margin-top:5px}
+  .eng .eng-fact{margin-top:10px;padding:8px 11px;background:rgba(224,138,88,.1);border:1px solid rgba(224,138,88,.32);border-radius:9px;font-size:12.5px;color:#f0c9a0;font-weight:600;line-height:1.5}
+  .fdet{font-weight:400;opacity:.82}
   .eng .hrs{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
   .eng .hrs b{display:block;font-size:17px;color:var(--txt)}
   .steps{display:flex;gap:6px;flex-wrap:wrap}
@@ -738,6 +740,7 @@ function renderList(){
           <div class="hrs-sub">${hoursBreak}</div>
         </div>
       </div>
+      ${factureInfo(f)?`<div class="eng-fact">${factureLine(f)}</div>`:''}
       ${foot}
     </div>`;
   }).join('');
@@ -760,8 +763,30 @@ function pdfHref(f){ if(!f.pdf) return '';
 function gusoNum(f){ if(f.num){var n=String(f.num).replace(/\D/g,''); if(n) return n;} var m=(f.pdf||'').match(/(\d{6,})/); return m?m[1]:''; }
 function pdfOnline(f){ if(f.pdf && /^(data:|https?:|blob:)/.test(f.pdf)) return f.pdf; var n=gusoNum(f); if(n && GUSO_DRIVE[n]) return 'https://drive.google.com/file/d/'+GUSO_DRIVE[n]+'/view'; return ''; }
 // Factures Résonances Productions (n° GUSO -> id fichier Drive). Une facture couvre souvent David ET Iris.
-const FACTURE_DRIVE={"6486166189":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489742661":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489967276":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6489968892":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6491075096":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6491078231":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6494558612":"1MACTkb7LzjKC8Hjbn55eMIQSJKERFTJo","6495905696":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6495904989":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6498315037":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6498314027":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6500833401":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6500832690":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6508798010":"15aERoKAgqXK4kddg64M3qNfpua06p89k","6510133778":"1pIFwjkifGxMmIDcW2b6RxbF3Md9eZByj"};
+const FACTURE_DRIVE={"6486166189":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489742661":"1NwbgpTH0aytpPtsmPwTLxMhvdB0qsjbO","6489967276":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6489968892":"1LQKks0bOzqnocNwh1Afxc2WtEReC38Zf","6491075096":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6491078231":"1PTnZsp4ool9NPKMfS2ut1Gl5-wcIExg3","6494558612":"1MACTkb7LzjKC8Hjbn55eMIQSJKERFTJo","6495905696":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6495904989":"1BGnow2tMDhjUYczIGYkmQf447u98ie0G","6498315037":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6498314027":"12umOJ5W_Q7-wZjwCfeLx-23mEk_W2Ayp","6500833401":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6500832690":"1PIaVgNEB83Co6NZDFqNhynH3kNo3PGLe","6508798010":"15aERoKAgqXK4kddg64M3qNfpua06p89k","6510133778":"1pIFwjkifGxMmIDcW2b6RxbF3Md9eZByj","6508800737":"1gnEPoGOK-tdGf5tMBCS-FAYmkk7zqJsO"};
 function factureOnline(f){ var n=gusoNum(f); return (n && FACTURE_DRIVE[n]) ? 'https://drive.google.com/file/d/'+FACTURE_DRIVE[n]+'/view' : ''; }
+// Détail chiffré de chaque facture GUSO (Des Sons et Des Liens -> Résonances) par n° GUSO :
+// s = salaire net, c = charges, a = frais administratifs (part de CETTE personne si la facture est détaillée
+// par personne, sinon montant global) ; t = total de la facture ; who = musiciens couverts.
+const FACTURE_INFO={
+"6489742661":{s:630.16,c:569.84,a:60,t:1260,who:"David + Iris"},"6486166189":{s:630.16,c:569.84,a:60,t:1260,who:"David + Iris"},
+"6491078231":{s:93.87,c:86.13,a:9,t:378,who:"David + Iris"},"6491075096":{s:94.52,c:85.48,a:9,t:378,who:"David + Iris"},
+"6494558612":{s:130.39,c:119.61,a:12.5,t:525,who:"David + Julien"},
+"6489968892":{s:369.44,c:350.56,a:36,t:756,who:"David + Iris"},"6489967276":{s:369.44,c:350.56,a:36,t:756,who:"David + Iris"},
+"6495905696":{s:375.52,c:344.48,a:36,t:1764,who:"David + Iris"},"6495904989":{s:504.16,c:455.85,a:48,t:1764,who:"David + Iris"},
+"6498315037":{s:93.87,c:86.13,a:9,t:378,who:"David + Iris"},"6498314027":{s:94.52,c:85.48,a:9,t:378,who:"David + Iris"},
+"6500833401":{s:312.94,c:287.05,a:30,t:1449,who:"David + Iris"},"6500832690":{s:409.60,c:370.40,a:39,t:1449,who:"David + Iris"},
+"6510133778":{s:93.87,c:86.13,a:9,t:189,who:"David"},"6508798010":{s:445.94,c:409.06,a:45,t:900,who:"David"},
+"6508800737":{s:346.61,c:313.39,a:33,t:693,who:"Iris"}};
+function factureInfo(f){ return FACTURE_INFO[gusoNum(f)]||null; }
+function factureLine(f){ const i=factureInfo(f); if(!i) return '';
+  const part=Math.round((i.s+i.c+i.a)*100)/100, multi=/\+/.test(i.who);
+  const e2=v=>v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €', e0=v=>v.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €';
+  const det='salaire net '+e2(i.s)+' + charges '+e2(i.c)+' + frais admin '+e2(i.a);
+  if(multi && part < i.t-0.5) return '🧾 Part facturée : <b>'+e0(part)+'</b> <span class="fdet">('+det+')</span> · Facture totale <b>'+e0(i.t)+'</b> — couvre '+i.who;
+  if(multi) return '🧾 Facturé <b>'+e0(i.t)+'</b> <span class="fdet">('+det.replace('salaire net','salaires nets')+', global)</span> — couvre '+i.who;
+  return '🧾 Facturé à l\'organisateur : <b>'+e0(i.t)+'</b> <span class="fdet">('+det+')</span>';
+}
 function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
   const href=pdfOnline(f);
@@ -771,6 +796,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     <div class="msub">${f.owner==='both'?'👥 David et Iris':f.owner} · ${per}</div>
     ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}<br><span style="opacity:.85;font-size:12px">Corrige les champs via « Modifier » → l'avertissement disparaîtra et le changement sera noté ci-dessous.</span></div>`:''}
     ${(f.notes&&f.notes.length)?`<div style="background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.4);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#bdf3d8"><b>📝 Historique des corrections</b>${f.notes.map(n=>`<br>• <span style="opacity:.8">${fmt(n.date)} :</span> ${n.text}`).join('')}</div>`:''}
+    ${factureInfo(f)?`<div style="background:rgba(224,138,88,.12);border:1px solid rgba(224,138,88,.55);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#f0c9a0"><b>🧾 Facturation (Des Sons et Des Liens → Résonances)</b><br>${factureLine(f)}${factureOnline(f)?`<br><a href="${factureOnline(f)}" target="_blank" rel="noopener" style="color:#ffd089;font-weight:700">📄 Ouvrir la facture ›</a>`:''}</div>`:''}
     <div class="kv">
       <div class="k">Période</div><div class="v">${per}</div>
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
