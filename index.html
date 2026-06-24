@@ -378,11 +378,9 @@
       <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none"></div>
     <div id="confirmArea"></div>
     <form class="fiche" id="ficheForm" onsubmit="return addFiche(event)">
-      <div><label>Personne</label><select id="f_owner" onchange="updateFormHelp()" data-tip="À qui appartient cette date : David ou Iris"><option>David</option><option>Iris</option></select></div>
+      <div><label>Personne</label><select id="f_owner" onchange="updatePersonFields();updateFormHelp()" data-tip="À qui appartient cette date : David, Iris, ou les deux (date partagée qui apparaît chez les deux et compte pour chacun)"><option value="David">David</option><option value="Iris">Iris</option><option value="both">👥 David et Iris (partagée)</option></select></div>
       <div><label>Type</label><select id="f_type" onchange="updateFormHelp()" data-tip="Concert / spectacle (avec cachets) ou Répétition (heures réelles)"><option value="concert">Concert / spectacle</option><option value="repet">Répétition</option></select></div>
       <div class="full"><label>Statut</label><select id="f_hypo" onchange="updateFormHelp()" data-tip="Confirmée = compte dans tes heures · Possible = compte seulement dans la projection"><option value="non">✅ Confirmée (validée par l'orga)</option><option value="oui">🔮 Possible / hypothétique (non validée)</option></select></div>
-      <div class="full" id="f_bothRow"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche pour créer automatiquement la même date pour David ET pour Iris">
-        <input type="checkbox" id="f_both" onchange="updateFormHelp()" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 👥 Appliquer à David ET Iris (crée la date pour les deux)</label></div>
       <div class="full"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche si ces heures sont déclarées en TECHNICIEN (annexe 8). Elles comptent quand même dans tes 507 h, mais sont suivies à part.">
         <input type="checkbox" id="f_tech" onchange="updateFormHelp()" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 🔧 Heures en tant que technicien (annexe 8)</label></div>
       <div class="full"><div class="form-help" id="formHelp"></div></div>
@@ -393,7 +391,8 @@
       <div><label>Répétition — du (facultatif)</label><input type="date" id="f_repetStart"></div>
       <div><label>Répétition — au</label><input type="date" id="f_repetEnd"></div>
       <div><label>Cachets (représentation)</label><input type="number" id="f_cachets" min="0" step="1" value="0"></div>
-      <div><label>Heures de répétition</label><input type="number" id="f_repet" min="0" step="0.5" value="0"></div>
+      <div><label id="f_repetLabel">Heures de répétition</label><input type="number" id="f_repet" min="0" step="0.5" value="0"></div>
+      <div id="f_repetIrisRow" style="display:none"><label>Heures de répét — Iris</label><input type="number" id="f_repetIris" min="0" step="0.5" placeholder="(idem David si vide)" data-tip="Heures de répétition d'Iris si elles diffèrent de David. Laisse vide pour reprendre le même nombre que David."></div>
       <div><label>N° GUSO (si édité)</label><input id="f_num" placeholder="—"></div>
       <div><label>Brut (€)</label><input type="number" id="f_brut" min="0" step="0.01" value="0"></div>
       <div class="full" style="display:flex;gap:10px;align-items:center">
@@ -487,7 +486,12 @@ function addMonths(d,m){ const x=new Date(d); x.setMonth(x.getMonth()+m); return
 function isoLocal(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
 function today0(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
-function ficheHours(f){ return (Number(f.cachets)||0)*HOURS_PER_CACHET+(Number(f.repet)||0); }
+// heures de répét pour une personne donnée : sur une date partagée (owner 'both'),
+// Iris peut avoir un nombre d'heures différent (repetIris) de David (repet).
+function repetFor(f,p){ p=p||f.owner;
+  if(f.owner==='both' && p==='Iris' && f.repetIris!=null && f.repetIris!=='') return Number(f.repetIris)||0;
+  return Number(f.repet)||0; }
+function ficheHours(f,p){ return (Number(f.cachets)||0)*HOURS_PER_CACHET+repetFor(f,p); }
 
 function currentPeriod(p){
   const a=parseD(state.people[p].anniv); if(!a) return null;
@@ -496,7 +500,7 @@ function currentPeriod(p){
   return {start:addMonths(next,-12), end:next};
 }
 function fichesFor(p,filter){
-  let arr=state.fiches.filter(f=>f.owner===p);
+  let arr=state.fiches.filter(f=>f.owner===p || f.owner==='both');  // 'both' = date partagée David+Iris
   if(filter==='period'||filter==='todo'){
     const pe=currentPeriod(p);
     if(pe&&filter==='period') arr=arr.filter(f=>{const d=parseD(f.start);return d&&d>=pe.start&&d<pe.end;});
@@ -510,8 +514,8 @@ function fichesFor(p,filter){
   return arr.sort((a,b)=>a.start<b.start?1:-1);
 }
 function avgRate(p){
-  const fs=state.fiches.filter(f=>f.owner===p && ficheHours(f)>0 && Number(f.brut)>0);
-  const h=fs.reduce((s,f)=>s+ficheHours(f),0), b=fs.reduce((s,f)=>s+Number(f.brut),0);
+  const fs=state.fiches.filter(f=>(f.owner===p||f.owner==='both') && ficheHours(f,p)>0 && Number(f.brut)>0);
+  const h=fs.reduce((s,f)=>s+ficheHours(f,p),0), b=fs.reduce((s,f)=>s+Number(f.brut),0);
   return h>0 ? b/h : 0;
 }
 
@@ -535,11 +539,11 @@ function render(){
   const allInP=fichesFor(p,'period');
   const inP=allInP.filter(f=>!f.hypo);          // confirmées
   const hypoInP=allInP.filter(f=>f.hypo);       // dates possibles
-  const totalH=inP.reduce((s,f)=>s+ficheHours(f),0);
-  const hypoH=hypoInP.reduce((s,f)=>s+ficheHours(f),0);
+  const totalH=inP.reduce((s,f)=>s+ficheHours(f,p),0);
+  const hypoH=hypoInP.reduce((s,f)=>s+ficheHours(f,p),0);
   const projected=totalH+hypoH;
   const cachets=inP.reduce((s,f)=>s+(Number(f.cachets)||0),0);
-  const repet=inP.reduce((s,f)=>s+(Number(f.repet)||0),0);
+  const repet=inP.reduce((s,f)=>s+repetFor(f,p),0);
   const brut=inP.reduce((s,f)=>s+(Number(f.brut)||0),0);
   const remaining=Math.max(0,THRESHOLD-totalH);
 
@@ -550,7 +554,7 @@ function render(){
   document.getElementById('heroDone').textContent=Math.round(totalH)+' h';
   document.getElementById('heroLeft').textContent= remaining>0 ? Math.round(remaining)+' h' : '0 h ✓';
   document.getElementById('breakdown').textContent=cachets+' cachets · '+repet+' h répét.';
-  const techH=inP.filter(f=>f.tech).reduce((s,f)=>s+ficheHours(f),0);
+  const techH=inP.filter(f=>f.tech).reduce((s,f)=>s+ficheHours(f,p),0);
   document.getElementById('techRow').style.display=techH>0?'flex':'none';
   if(techH>0) document.getElementById('techLine').textContent=techH+' h';
   document.getElementById('brutPeriod').textContent=brut.toFixed(2).replace('.',',')+' €';
@@ -615,7 +619,7 @@ function render(){
         const daysM=Math.max(0,daysBetween(segStart,segEnd)+1);
         if(daysM<=0) return '';
         const targetM=remaining*(daysM/dl);
-        const poss=hypoInP.filter(f=>{const d=parseD(f.start); return d&&d.getFullYear()===mo.getFullYear()&&d.getMonth()===mo.getMonth();}).reduce((s,f)=>s+ficheHours(f),0);
+        const poss=hypoInP.filter(f=>{const d=parseD(f.start); return d&&d.getFullYear()===mo.getFullYear()&&d.getMonth()===mo.getMonth();}).reduce((s,f)=>s+ficheHours(f,p),0);
         const toFind=Math.max(0,targetM-poss), cn=Math.ceil(toFind/HOURS_PER_CACHET);
         const lbl=MN[mo.getMonth()]+' '+mo.getFullYear();
         return '<div class="mp-row"><span class="mp-month">'+lbl+' <span class="mp-sub">('+daysM+' j restants)</span></span>'+
@@ -637,13 +641,13 @@ function render(){
 function renderYearChart(p){
   const el=document.getElementById('yearChart');
   const period=currentPeriod(p);
-  const list=fichesFor(p,'period').filter(f=>parseD(f.start)&&ficheHours(f)>0);
+  const list=fichesFor(p,'period').filter(f=>parseD(f.start)&&ficheHours(f,p)>0);
   if(!period || !list.length){ el.innerHTML='<div class="chart-empty">'+(!period?'Renseigne la date anniversaire pour afficher le graphique.':'Aucune date sur la période.')+'</div>'; return; }
   const W=1000,H=170,padL=8,padR=8,top=12,bottom=30;
   const x0=period.start.getTime(), x1=period.end.getTime();
   const baseline=H-bottom, plotH=baseline-top;
   const X=d=>padL+((parseD(d).getTime()-x0)/(x1-x0))*(W-padL-padR);
-  const maxH=Math.max(48, ...list.map(f=>ficheHours(f)));
+  const maxH=Math.max(48, ...list.map(f=>ficheHours(f,p)));
   const mn=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
   let g='';
   let m=new Date(period.start); m.setDate(1); if(m<period.start) m.setMonth(m.getMonth()+1);
@@ -656,7 +660,7 @@ function renderYearChart(p){
   g+=`<line class="gl" x1="${padL}" y1="${baseline}" x2="${W-padR}" y2="${baseline}" stroke-width="1.5"/>`;
   const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
   let bars='';
-  list.forEach(f=>{ const h=ficheHours(f);
+  list.forEach(f=>{ const h=ficheHours(f,p);
     const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-4.5;
     const col=f.hypo?'var(--hypo)':(f.type==='repet'?'var(--c-repet)':'var(--c-concert)');
     const t=(f.hypo?'🔮 ':'')+(f.type==='repet'?'🎼 Répétition':'🎤 Concert');
@@ -705,16 +709,16 @@ function renderList(){
   document.getElementById('emptyMsg').style.display=arr.length?'none':'block';
   document.getElementById('engList').innerHTML=arr.map(f=>{
     const done=STEPS.filter(s=>f.steps[s.key]).length;
-    const priceVal = Number(f.brut)>0 ? Number(f.brut) : ficheHours(f)*COST_PER_HOUR;
+    const priceVal = Number(f.brut)>0 ? Number(f.brut) : ficheHours(f,currentPerson)*COST_PER_HOUR;
     const priceStr = priceVal>0 ? (Number(f.brut)>0?'':'~')+Math.round(priceVal)+' €' : '—';
     const priceEst = !(Number(f.brut)>0);
     const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${s.key}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
         <span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
     const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
-    const cc=Number(f.cachets)||0, rr=Number(f.repet)||0;
+    const cc=Number(f.cachets)||0, rr=repetFor(f,currentPerson);
     const isConcert=f.type!=='repet';
     const mainLabel=isConcert?'🎤 Prestation':'🎼 Répétition';
-    const hoursBreak=`<b>${ficheHours(f)} h</b>`
+    const hoursBreak=`<b>${ficheHours(f,currentPerson)} h</b>`
       +(cc>0?` · <span style="color:var(--c-concert);font-weight:700">🎤 ${cc} cachet${cc>1?'s':''} = ${cc*12} h</span>`:'')
       +(rr>0?` · <span style="color:var(--c-repet);font-weight:700">🎼 ${rr} h répét.</span>`:'');
     const foot = f.hypo
@@ -727,7 +731,7 @@ function renderList(){
           <div class="eng-titre">${f.lieu||'(sans titre)'}</div>
           ${f.place?`<div class="eng-lieu">📍 ${f.place}</div>`:''}
           ${f.repetStart?`<div class="eng-rep">🎼 Répétitions : ${fmt(f.repetStart)}${f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''}</div>`:(f.repetDates?`<div class="eng-rep">🎼 Répétitions : ${f.repetDates}</div>`:'')}
-          <div class="eng-meta">${f.tech?'<span style="color:#5ec9c9;font-weight:700">🔧 Technicien (annexe 8)</span> · ':''}${f.num?'GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''}${(f.num||f.pdf||f.warn)?' · ':''}<span style="color:var(--accent);font-weight:600">détail ›</span></div>
+          <div class="eng-meta">${f.owner==='both'?'<span style="color:var(--accent2);font-weight:700">👥 partagée</span> · ':''}${f.tech?'<span style="color:#5ec9c9;font-weight:700">🔧 Technicien (annexe 8)</span> · ':''}${f.num?'GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''}${(f.num||f.pdf||f.warn)?' · ':''}<span style="color:var(--accent);font-weight:600">détail ›</span></div>
         </div>
         <div class="hrs">
           <div class="price ${priceEst?'est':''}">${priceStr}</div>
@@ -764,7 +768,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const chips=STEPS.map(s=>`<div class="step ${f.steps[s.key]?'done':''}" onclick="toggleStep('${f.id}','${s.key}');openDetail('${f.id}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative"><span class="box">${f.steps[s.key]?'✓':''}</span>${s.ic} ${s.short}</div>`).join('');
   document.getElementById('modalBox').innerHTML=`
     <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
-    <div class="msub">${f.owner} · ${per}</div>
+    <div class="msub">${f.owner==='both'?'👥 David et Iris':f.owner} · ${per}</div>
     ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}<br><span style="opacity:.85;font-size:12px">Corrige les champs via « Modifier » → l'avertissement disparaîtra et le changement sera noté ci-dessous.</span></div>`:''}
     ${(f.notes&&f.notes.length)?`<div style="background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.4);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#bdf3d8"><b>📝 Historique des corrections</b>${f.notes.map(n=>`<br>• <span style="opacity:.8">${fmt(n.date)} :</span> ${n.text}`).join('')}</div>`:''}
     <div class="kv">
@@ -772,9 +776,9 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
       <div class="k">Régime</div><div class="v" style="font-weight:700">${f.tech?'<span style="color:#5ec9c9">🔧 Technicien (annexe 8)</span>':'🎭 Artiste (annexe 10)'}</div>
       <div class="k">🎤 Cachets (scène)</div><div class="v" style="color:var(--c-concert);font-weight:700">${f.cachets||0} cachet${(f.cachets||0)>1?'s':''} = ${(Number(f.cachets)||0)*12} h</div>
-      <div class="k">🎼 Heures de répétition</div><div class="v" style="color:var(--c-repet);font-weight:700">${f.repet||0} h</div>
+      <div class="k">🎼 Heures de répétition</div><div class="v" style="color:var(--c-repet);font-weight:700">${f.owner==='both'?('David : '+(f.repet||0)+' h · Iris : '+((f.repetIris!=null&&f.repetIris!=='')?f.repetIris:(f.repet||0))+' h'):((f.repet||0)+' h')}</div>
       <div class="k">Période de répét.</div><div class="v">${f.repetStart?fmt(f.repetStart)+(f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''):(f.repetDates||'—')}</div>
-      <div class="k">Total comptabilisé</div><div class="v">${ficheHours(f)} h</div>
+      <div class="k">Total comptabilisé</div><div class="v">${f.owner==='both'?('David : '+ficheHours(f,'David')+' h · Iris : '+ficheHours(f,'Iris')+' h'):(ficheHours(f)+' h')}</div>
       <div class="k">Salaire brut</div><div class="v">${f.brut?Number(f.brut).toFixed(2).replace('.',',')+' €':'—'}</div>
       <div class="k">N° déclaration GUSO</div><div class="v">${f.num||'—'}</div>
     </div>
@@ -802,6 +806,7 @@ function addFiche(e){ e.preventDefault();
     place:document.getElementById('f_place').value.trim(),
     repetStart:document.getElementById('f_repetStart').value, repetEnd:document.getElementById('f_repetEnd').value,
     cachets:Number(f_cachets.value)||0, repet:Number(f_repet.value)||0, brut:Number(f_brut.value)||0,
+    repetIris: (document.getElementById('f_repetIris').value===''?null:(Number(document.getElementById('f_repetIris').value)||0)),
     tech: document.getElementById('f_tech').checked,
     hypo: document.getElementById('f_hypo').value==='oui' };
   if(editId){                                  // --- modification ---
@@ -810,7 +815,7 @@ function addFiche(e){ e.preventDefault();
     if(f){
       hadWarn=f.warn||'';
       // diff des champs importants pour garder une trace de ce qui change
-      const labels={cachets:'cachets',repet:'h répét',brut:'brut €',start:'date début',end:'date fin',num:'n° GUSO',lieu:'titre',place:'lieu',type:'type',tech:'technicien'};
+      const labels={owner:'personne',cachets:'cachets',repet:'h répét',repetIris:'h répét Iris',brut:'brut €',start:'date début',end:'date fin',num:'n° GUSO',lieu:'titre',place:'lieu',type:'type',tech:'technicien'};
       const show=v=>(v===''||v===false||v===undefined||v===null)?'—':(v===true?'oui':v);
       const changes=[];
       Object.keys(labels).forEach(k=>{ if(String(f[k]??'')!==String(data[k]??'')) changes.push(labels[k]+' : '+show(f[k])+' → '+show(data[k])); });
@@ -824,19 +829,14 @@ function addFiche(e){ e.preventDefault();
     }
     finishEdit(); save(); render(); toast(hadWarn?'✅ Incohérence corrigée — note ajoutée':'Date modifiée ✓'); return false;
   }
-  const both=document.getElementById('f_both').checked;
-  const owners=both?['David','Iris']:[data.owner];
-  owners.forEach((ow,k)=>{
-    const f=Object.assign({}, data, {id:'f'+Date.now()+k+Math.floor(Math.random()*999), owner:ow, steps:emptySteps()});
-    if(f.num && !both) f.steps.guso=true;        // n° GUSO = par personne, on ne le copie pas sur les deux
-    if(both) f.num='';                            // chacun aura son propre n° GUSO
-    state.fiches.push(f);
-  });
+  const f=Object.assign({}, data, {id:'f'+Date.now()+Math.floor(Math.random()*9999), steps:emptySteps()});
+  if(f.num) f.steps.guso=true;
+  state.fiches.push(f);
   save(); resetForm(); closeAdd();
-  toast(both?'Date ajoutée pour David ET Iris ✓':(data.hypo?'Date possible ajoutée 🔮':'Engagement ajouté ✓')); render(); return false;
+  toast(data.owner==='both'?'Date partagée David & Iris ajoutée ✓':(data.hypo?'Date possible ajoutée 🔮':'Engagement ajouté ✓')); render(); return false;
 }
 function resetForm(){ document.getElementById('ficheForm').reset(); f_owner.value=currentPerson;
-  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; updateFormHelp(); }
+  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; updatePersonFields(); updateFormHelp(); }
 function addPossible(){ document.getElementById('f_hypo').value='oui';
   const form=document.getElementById('ficheForm');
   if(form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit',{cancelable:true})); }
@@ -847,12 +847,13 @@ function startEdit(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   document.getElementById('f_place').value=f.place||'';
   document.getElementById('f_repetStart').value=f.repetStart||''; document.getElementById('f_repetEnd').value=f.repetEnd||'';
   f_cachets.value=f.cachets||0; f_repet.value=f.repet||0; f_num.value=f.num||''; f_brut.value=f.brut||0;
+  document.getElementById('f_repetIris').value=(f.repetIris!=null&&f.repetIris!=='')?f.repetIris:'';
   document.getElementById('f_tech').checked=!!f.tech;
+  updatePersonFields();
   document.getElementById('addTitle').textContent='✏️ Modifier la date';
   document.getElementById('submitBtn').textContent='💾 Enregistrer';
   document.getElementById('cancelEditBtn').style.display='inline-block';
   document.getElementById('addPossibleBtn').style.display='none';
-  document.getElementById('f_bothRow').style.display='none';
   updateFormHelp();
   closeDetail(); openAdd();
   toast('Modifie les champs puis « Enregistrer »');
@@ -862,7 +863,7 @@ function finishEdit(){ editId=null; resetForm();
   document.getElementById('submitBtn').textContent='+ Ajouter (confirmée)';
   document.getElementById('cancelEditBtn').style.display='none';
   document.getElementById('addPossibleBtn').style.display='inline-block';
-  document.getElementById('f_bothRow').style.display='block'; closeAdd(); }
+  updatePersonFields(); closeAdd(); }
 function openAdd(){ document.getElementById('addBg').classList.add('show');
   setTimeout(()=>{var s=document.getElementById('f_start'); if(s&&!editId)s.focus();},100); }
 function closeAdd(ev){ if(ev&&ev.target!==ev.currentTarget) return;
@@ -945,6 +946,7 @@ async function parsePdf(file){ toast('Lecture de '+file.name+'…');
 }
 function showConfirm(r,fname){
   if(r.owner)f_owner.value=r.owner;
+  updatePersonFields();
   f_type.value=(r.cachets>0)?'concert':'repet';
   if(r.num)f_num.value=r.num;
   if(r.start)f_start.value=r.start;
@@ -963,7 +965,6 @@ function showConfirm(r,fname){
 function updateFormHelp(){
   const fh=document.getElementById('formHelp'); if(!fh) return;
   const hypo=document.getElementById('f_hypo').value==='oui';
-  const both=document.getElementById('f_both').checked;
   const tech=document.getElementById('f_tech').checked;
   const owner=document.getElementById('f_owner').value;
   const c=Number(document.getElementById('f_cachets').value)||0;
@@ -975,13 +976,18 @@ function updateFormHelp(){
     : '✅ <b>Date confirmée</b> : elle compte tout de suite dans tes heures validées.');
   if(h>0) parts.push('⏱️ <b>'+h+' h</b> comptabilisées'+(c>0?' = '+c+' cachet'+(c>1?'s':'')+' × 12 h':'')+(r>0?((c>0?' + ':' = ')+r+' h de répétition'):'')+'.');
   if(tech) parts.push('🔧 Heures en <b>technicien (annexe 8)</b> : elles comptent dans tes 507 h, mais sont suivies à part.');
-  parts.push(both
-    ? '👥 La date sera créée pour <b>David ET Iris</b>.'
+  parts.push(owner==='both'
+    ? '👥 Date <b>partagée David et Iris</b> : elle apparaît chez les deux et compte pour chacun (répét. réglable séparément pour Iris).'
     : '👤 La date sera créée seulement pour <b>'+owner+'</b>.');
   fh.innerHTML=parts.map(p=>'<div>'+p+'</div>').join('');
 }
+function updatePersonFields(){
+  const both=document.getElementById('f_owner').value==='both';
+  document.getElementById('f_repetIrisRow').style.display=both?'':'none';
+  document.getElementById('f_repetLabel').textContent=both?'Heures de répét — David':'Heures de répétition';
+}
 ['f_cachets','f_repet'].forEach(id=>document.getElementById(id).addEventListener('input',updateFormHelp));
-updateFormHelp();
+updatePersonFields(); updateFormHelp();
 
 /* Infobulles globales : tout élément avec un attribut data-tip */
 (function(){
