@@ -204,6 +204,23 @@ donner la clé au backend, ou backend qui ne voit que le strict nécessaire). **
 
 ---
 
+## 7bis. ✅✅ FAIT (2026-06-24) — Phases 0 à 4 livrées et EN LIGNE
+
+- **Phase 0** ✅ date de fin auto = date début · blocs Projection/À facturer inversés.
+- **Phase 1** ✅ bandeau preuve GUSO (heures prouvées/tamponné vs à tamponner) + badge cohérence.
+- **Phase 2** ✅ 3ᵉ onglet « 🛠️ Des Sons et Des Liens » (`openBackoffice`) : to-do transversal
+  DPAE / feuillets GUSO / factures-virements, tous artistes (clic → ouvre la date).
+- **Phase 3** ✅ deep-links `#date=<id>` (ouvre la fiche, même après synchro cloud) + bouton
+  « 🔗 Copier le lien » dans le détail.
+- **Phase 4** ✅ regroupement DPAE : à l'ajout d'une date confirmée, pop-up détectant les dates
+  dans ±7 j (`maybeDpaeGroup`/`applyDpaeGroup`/`dpaeGroupId`) ; cocher la DPAE d'une date groupée
+  coche tout le groupe ; back-office dédoublonne les DPAE liées (marqueur « 🔗 +N »).
+
+**⇒ RESTE (backend, reporté) : Phase 5 (emails auto) et Phase 6 (multi-comptes/rôles).**
+Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
+
+---
+
 ## 7. ✅ PLAN VALIDÉ PAR DAVID (2026-06-24)
 
 > **DÉCISION : faire « Tout le client d'abord » = Phases 0→4 ci-dessous (côté client, SANS
