@@ -140,6 +140,16 @@ GUSO**.
   graphique annuel, infobulles partout, niveaux non concernés.
 
 ### RESTE À FAIRE (hors grosse étape) — non commencé
+
+> ⭐ **NOUVEAU (2026-06-24, remarque Des Sons et Des Liens) — DPAE nominative par personne sur les
+> dates partagées.** Aujourd'hui une date a **une seule case DPAE** (`steps.dpae`, 1 booléen/fiche).
+> Sur une date `owner:'both'`, cocher la DPAE pour Iris coche aussi celle de David (et inversement).
+> Or la **DPAE est nominative** → il en faut **2 distinctes** (David + Iris) sur une date commune,
+> avec à terme **2 PDF séparés** à déposer. À faire : dissocier la DPAE par personne pour les dates
+> `both` (modèle `dpaeDone(f,personne)` / `setDpae`), 2 cases dans le détail, back-office qui liste
+> la DPAE manquante **par personne**, et adapter le **regroupement DPAE ±7 j** (Phase 4) pour qu'il
+> soit **par personne**. ⚠️ Touche : modèle de données + migration + détail + back-office + grouping.
+
 1. **(petit) Auto-remplir la date de fin = date de début** à la saisie (en général 1 seule date par
    GUSO) — gain de temps.
 2. **(petit) Inverser** le bloc « À facturer aux organisateurs » et le bloc « Projection avec tes
