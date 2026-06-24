@@ -28,10 +28,14 @@ GUSO**.
 
 - **Repo GitHub :** `David-Lesage/intermittence-david-iris` (public), branche `master`.
 - **Hébergement :** **GitHub Pages** (site **statique**, pas de backend serveur).
+- **📁 Dossier de travail local (canonique, depuis 2026-06-24) :**
+  **`/Users/davidlesage/CLAUDE/GUSO FACILE/`** = clone git du dépôt (contient `index.html`, ce doc,
+  `favicon.svg`, `og.png`). On édite et on `git push` ICI désormais. Pour une session Claude Code
+  dédiée : terminal → `cd "/Users/davidlesage/CLAUDE/GUSO FACILE"` → `claude`.
+  ⚠️ `~/CLAUDE/` est synchronisé (iCloud/Drive) : si le `.git` pose souci, mettre la synchro en pause
+  pendant les opérations git.
 - **Workflow de modif :**
-  1. `cd /tmp && git clone https://github.com/David-Lesage/intermittence-david-iris.git intermittence-online`
-     (⚠️ `/tmp` est souvent nettoyé → re-cloner si absent ; tout le code tient dans `index.html`).
-  2. Éditer `index.html`.
+  1. Éditer `index.html` dans `~/CLAUDE/GUSO FACILE/` (tout le code tient dans ce fichier).
   3. Vérifier la syntaxe JS : `node -e "...new Function(scriptBody)..."`.
   4. Tester en local (`python3 -m http.server` + extension Claude-in-Chrome) **sans toucher au
      cloud** (neutraliser `save` pendant les tests : `const realSave=save; window.save=()=>{}` puis
