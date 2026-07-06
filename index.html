@@ -284,6 +284,29 @@
   .modal-actions{display:flex;gap:10px;flex-wrap:wrap}
   .btn.pdf{background:var(--accent);color:#06222e;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
   .btn.pdf.disabled{background:#2a3a4d;color:var(--muted);cursor:not-allowed}
+  /* ===== Récap mensuel (rapprochement France Travail) ===== */
+  .recap-modal{max-width:640px}
+  .r-hero{position:relative;background:linear-gradient(135deg,#1b2740,#25406b);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .r-hero h2{margin:0;font-size:18px;color:#eaf1ff}
+  .r-hero .bo-sub{color:#b9c8e8;font-size:12.5px;margin-top:4px}
+  .r-toggle{display:flex;gap:8px;margin-bottom:14px}
+  .r-tab{flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer}
+  .r-tab.active{background:rgba(124,158,255,.16);border-color:var(--accent2);color:var(--txt)}
+  .r-grandtot{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+  .r-grandtot b{color:var(--txt)}
+  .r-month{margin-bottom:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .r-mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 13px;background:var(--panel2);border-bottom:1px solid var(--line)}
+  .r-mname{font-weight:800;font-size:15px;text-transform:capitalize;color:var(--txt)}
+  .r-mtot{font-weight:700;font-size:12px;color:var(--accent);background:rgba(76,201,240,.12);padding:3px 10px;border-radius:999px}
+  .r-card{padding:10px 13px;border-bottom:1px solid var(--line);cursor:pointer}
+  .r-card:last-child{border-bottom:none}
+  .r-card:hover{background:rgba(124,158,255,.06)}
+  .r-when{font-weight:800;font-size:13.5px;color:var(--txt)}
+  .r-nums{font-size:13.5px;color:var(--txt);margin-top:2px}
+  .r-nums b{color:var(--accent)}
+  .r-meta{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .r-nogus{color:var(--warn);font-weight:600}
+  .r-empty{color:var(--muted);padding:18px;text-align:center}
 </style>
 </head>
 <body>
@@ -321,6 +344,7 @@
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
+    <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
     <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
     <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
     <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
@@ -458,6 +482,24 @@
         <button class="g-tab" id="gTabStr" type="button" onclick="setGuideMode('structure')">🛠️ Des Sons et Des Liens</button>
       </div>
       <div id="guideContent"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- RÉCAP MENSUEL (rapprochement France Travail) -->
+  <div class="modal-bg" id="recapBg" onclick="closeRecap(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeRecap()" data-tip="Fermer">✕</button>
+      <h2>📅 Récap mensuel — France Travail</h2>
+      <div class="bo-sub">Mois par mois : GUSO, cachets, heures et brut. À pointer contre « Mes activités » de France Travail (chaque ligne = 1 déclaration GUSO).</div>
+    </div>
+    <div class="r-body">
+      <div class="r-toggle">
+        <button class="r-tab" id="rTabDavid" type="button" onclick="openRecap('David')">David</button>
+        <button class="r-tab" id="rTabIris" type="button" onclick="openRecap('Iris')">Iris</button>
+      </div>
+      <div id="recapContent"></div>
     </div>
    </div>
   </div>
@@ -1093,6 +1135,52 @@ function setGuideMode(mode){ if(mode!=='structure') mode='artiste';
   document.getElementById('guideContent').innerHTML=GUIDE[mode];
   document.getElementById('gTabArt').classList.toggle('on',mode==='artiste');
   document.getElementById('gTabStr').classList.toggle('on',mode==='structure'); }
+
+/* ===== Récap mensuel — rapprochement France Travail =====
+   Regroupe les dates confirmées PAR n° GUSO (1 déclaration = 1 ligne, comme sur France Travail),
+   puis PAR mois. Chaque ligne : date/période · nb cachets · heures répét · brut. Total par mois. */
+let _recapPerson='David';
+function _recEur(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function _recYM(dstr){ const d=parseD(dstr); return d?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):'0000-00'; }
+function _recMonth(dstr){ const d=parseD(dstr); return d?d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}):'—'; }
+function openRecap(person){ person=person||currentPerson||'David'; _recapPerson=person;
+  document.getElementById('rTabDavid').classList.toggle('active',person==='David');
+  document.getElementById('rTabIris').classList.toggle('active',person==='Iris');
+  document.getElementById('recapContent').innerHTML=buildRecap(person);
+  document.getElementById('recapBg').classList.add('show'); }
+function closeRecap(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('recapBg').classList.remove('show'); }
+function buildRecap(person){
+  const fs=state.fiches.filter(f=>!f.hypo && (f.owner===person||f.owner==='both'));
+  if(!fs.length) return '<div class="r-empty">Aucune date confirmée pour '+person+'.</div>';
+  // regroupe par n° GUSO (fiches sans n° = déclarations séparées, pas encore connues de FT)
+  const groups={};
+  fs.forEach(f=>{ const key=f.num?('g:'+f.num):('x:'+f.id);
+    (groups[key]=groups[key]||{num:f.num||'',fiches:[],lieux:new Set()}).fiches.push(f);
+    if(f.lieu) groups[key].lieux.add(f.lieu); });
+  const rows=Object.values(groups).map(g=>{ let start=null,end=null,cachets=0,heures=0,brut=0,hasGuso=false;
+    g.fiches.forEach(f=>{ const s=f.start||'',e=f.end||f.start||'';
+      if(!start||s<start)start=s; if(!end||e>end)end=e;
+      cachets+=Number(f.cachets)||0; heures+=repetFor(f,person); brut+=Number(f.brut)||0;
+      if(f.steps&&f.steps.guso)hasGuso=true; });
+    return {num:g.num,lieux:[...g.lieux].join(' · '),start,end,cachets,heures,brut,hasGuso,ids:g.fiches.map(f=>f.id)}; });
+  const byMonth={};
+  rows.forEach(r=>{ const ym=_recYM(r.start); (byMonth[ym]=byMonth[ym]||[]).push(r); });
+  const gG=rows.length,gC=rows.reduce((s,r)=>s+r.cachets,0),gH=rows.reduce((s,r)=>s+r.heures,0),gB=rows.reduce((s,r)=>s+r.brut,0);
+  let html='<div class="r-grandtot">Total '+person+' : <b>'+gG+'</b> GUSO · <b>'+gC+'</b> cachet'+(gC>1?'s':'')+(gH>0?' · <b>'+gH+'</b> h':'')+' · <b>'+_recEur(gB)+'</b></div>';
+  Object.keys(byMonth).sort((a,b)=>a<b?1:-1).forEach(ym=>{
+    const list=byMonth[ym].sort((a,b)=>a.start<b.start?1:-1);
+    const mG=list.length,mC=list.reduce((s,r)=>s+r.cachets,0),mH=list.reduce((s,r)=>s+r.heures,0),mB=list.reduce((s,r)=>s+r.brut,0);
+    html+='<div class="r-month"><div class="r-mhead"><span class="r-mname">'+_recMonth(list[0].start)+'</span><span class="r-mtot">'+mG+' GUSO · '+mC+' cachet'+(mC>1?'s':'')+(mH>0?' · '+mH+' h':'')+' · '+_recEur(mB)+'</span></div>';
+    html+=list.map(r=>{ const when=(r.start===r.end)?('Le '+fmt(r.start)):('Du '+fmt(r.start)+' au '+fmt(r.end));
+      const parts=['<b>'+r.cachets+'</b> cachet'+(r.cachets>1?'s':'')];
+      if(r.heures>0) parts.push('<b>'+r.heures+'</b> h');
+      if(r.brut>0) parts.push('<b style="color:var(--money)">'+_recEur(r.brut)+'</b> bruts');
+      const gus=r.num?('GUSO n° '+r.num+(r.hasGuso?' ✓':'')):'<span class="r-nogus">⏳ pas encore de n° GUSO — pas encore connue de France Travail</span>';
+      return '<div class="r-card" onclick="closeRecap();openDetail(\''+r.ids[0]+'\')" data-tip="Ouvrir cette date"><div class="r-when">'+when+'</div><div class="r-nums">'+parts.join(' · ')+'</div><div class="r-meta">'+(r.lieux||'(sans titre)')+' · '+gus+'</div></div>'; }).join('');
+    html+='</div>';
+  });
+  return html;
+}
 
 function addFiche(e){ e.preventDefault();
   const data={ owner:f_owner.value, type:f_type.value, num:f_num.value.trim(),

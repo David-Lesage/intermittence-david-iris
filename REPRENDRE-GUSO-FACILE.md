@@ -230,6 +230,15 @@ donner la clé au backend, ou backend qui ne voit que le strict nécessaire). **
   dans ±7 j (`maybeDpaeGroup`/`applyDpaeGroup`/`dpaeGroupId`) ; cocher la DPAE d'une date groupée
   coche tout le groupe ; back-office dédoublonne les DPAE liées (marqueur « 🔗 +N »).
 
+**Autres livrés (2026-07-06) :**
+- ✅ **DPAE nominative par personne** sur les dates partagées (voir §5).
+- ✅ **Récap mensuel « rapprochement France Travail »** (`openRecap`/`buildRecap`, bouton
+  « 📅 Récap mensuel ») : par personne (David/Iris), regroupe les dates **confirmées par n° GUSO**
+  (1 déclaration = 1 ligne, comme l'écran « Mes activités » de FT) puis **par mois**. Chaque ligne :
+  **date/période · nb cachets · heures répét · brut**. Total par mois + total global. Sert à pointer
+  contre l'actualisation FT. ⚠️ N'affiche **que les dates confirmées** (pas les « possibles ») — une
+  date encore en « possible » mais déjà connue de FT n'apparaît donc pas (à confirmer côté appli).
+
 **⇒ RESTE (backend, reporté) : Phase 5 (emails auto) et Phase 6 (multi-comptes/rôles).**
 Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
 
