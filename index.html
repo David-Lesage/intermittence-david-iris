@@ -342,6 +342,13 @@
   .ev-badge{display:inline-block;font-size:12px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap}
   .ev-detailrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
   .ev-detailhint{font-size:12px;color:var(--muted)}
+  /* Module 3 — Organisateur & suivi de négociation */
+  .og-missgrp{margin-top:9px;font-size:12.5px;color:var(--txt)}
+  .og-missgrp>span{font-weight:700;color:#ffe49b}
+  .og-missgrp ul{margin:4px 0 0;padding-left:20px}
+  .og-missgrp li{margin:2px 0}
+  .og-complete{background:rgba(61,220,151,.10);border:1px solid rgba(61,220,151,.4);border-radius:10px;padding:10px 13px;font-size:12.5px;color:#bdf3d8;margin-bottom:12px}
+  .nego-foot{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -570,6 +577,25 @@
       <div id="condVerdictBox"></div>
       <div id="condFormBox"></div>
       <div class="pf-actions"><button class="btn" type="button" onclick="saveCond()" data-tip="Enregistrer ces conditions réelles pour cette date">💾 Enregistrer</button></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- ORGANISATEUR & SUIVI DE NÉGOCIATION (Module 3) -->
+  <div class="modal-bg" id="orgaBg" style="z-index:80" onclick="closeOrga(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeOrga()" data-tip="Fermer">✕</button>
+      <h2>🏢 Organisateur</h2>
+      <div class="bo-sub" id="orgaSub">Structure qui emploie, suivi de la négociation et infos à réclamer.</div>
+    </div>
+    <div class="r-body">
+      <div id="orgaMissBox"></div>
+      <div id="orgaFormBox"></div>
+      <div class="pf-actions">
+        <button class="btn ghost" type="button" onclick="copyOrgaRequest()" data-tip="Copier un message poli, prêt à envoyer à l'organisateur (mail / WhatsApp), listant les infos manquantes">📋 Copier la demande d'infos</button>
+        <button class="btn" type="button" style="margin-left:8px" onclick="saveOrga()" data-tip="Enregistrer les infos de la structure et l'état de la négociation">💾 Enregistrer</button>
+      </div>
     </div>
    </div>
   </div>
@@ -968,7 +994,7 @@ function renderList(){
       +(rr>0?` · <span style="color:var(--c-repet);font-weight:700">🎼 ${rr} h répét.</span>`:'');
     const foot = f.hypo
       ? `<div style="text-align:right;margin-top:8px"><button class="btn sm" onclick="event.stopPropagation();confirmHypo('${f.id}')" data-tip="Valider cette date possible : elle comptera dans tes heures">✓ Confirmer (validée)</button> <button class="del" onclick="event.stopPropagation();delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">supprimer</button></div>`
-      : `<div class="steps">${chips}</div><div class="progress-mini"><div style="width:${done/STEPS.length*100}%"></div></div><div style="text-align:right;margin-top:6px"><button class="del" onclick="event.stopPropagation();delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">supprimer</button></div>`;
+      : `<div class="steps">${chips}</div><div class="progress-mini"><div style="width:${done/STEPS.length*100}%"></div></div>${negoFootHTML(f)?`<div style="margin-top:6px">${negoFootHTML(f)}</div>`:''}<div style="text-align:right;margin-top:6px"><button class="del" onclick="event.stopPropagation();delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">supprimer</button></div>`;
     return `<div class="eng ${f.hypo?'hypo':''}" onclick="openDetail('${f.id}')" data-tip="Cliquer pour voir le détail, le feuillet GUSO et modifier cette date">
       <div class="top">
         <div style="min-width:0">
@@ -1068,6 +1094,8 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     ${f.type!=='repet'?`<div class="ev-detailrow">
       <button class="btn" onclick="openCond('${f.id}')" data-tip="Saisir les conditions réelles proposées et comparer à tes conditions idéales">🎯 Bon plan ?</button>
       ${condBadgeHTML(f)}
+      <button class="btn" onclick="openOrga('${f.id}')" data-tip="Structure organisatrice, suivi de la négociation et infos manquantes à réclamer">🏢 Organisateur</button>
+      ${negoBadgesHTML(f)}
       <span class="ev-detailhint">Compare l'offre à tes conditions idéales${f.owner==='both'?' (évalué pour '+currentPerson+')':''}</span>
     </div>`:''}
     <div class="modal-actions">
@@ -1468,6 +1496,148 @@ function openCond(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _
 function saveCond(){ const f=state.fiches.find(x=>x.id===_condId); if(!f) return;
   f.cond=readCondForm(); save(); render(); closeCond(); openDetail(f.id); toast('🎯 Évaluation enregistrée'); }
 function closeCond(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('condBg').classList.remove('show'); }
+
+/* ===== Module 3 — Organisateur & suivi de négociation (f.orga + f.nego) ===== */
+let _orgaId=null;
+const NEGO_STATUTS=[
+  ['','— (pas encore renseigné)'],
+  ['contact','📞 Premier contact'],
+  ['negociation','🤝 En négociation'],
+  ['contrat_envoye','📤 Contrat envoyé'],
+  ['signe','✅ Signé'],
+  ['annule','❌ Annulé']
+];
+const NEGO_STYLE={
+  contact:{col:'#4cc9f0',bg:'rgba(76,201,240,.14)'},
+  negociation:{col:'#ffd166',bg:'rgba(255,209,102,.14)'},
+  contrat_envoye:{col:'#a78bfa',bg:'rgba(167,139,250,.16)'},
+  signe:{col:'#3ddc97',bg:'rgba(61,220,151,.15)'},
+  annule:{col:'#ff6b6b',bg:'rgba(255,107,107,.14)'}
+};
+const ORGA_FORMES=[
+  ['','— (à préciser)'],['Association','Association'],['SARL','SARL'],['SAS','SAS'],
+  ['Auto-entrepreneur','Auto-entrepreneur'],['Collectivité / mairie','Collectivité / mairie'],
+  ['Particulier','Particulier'],['Autre','Autre']
+];
+// Les 5 clés minimales pour établir un contrat + leur formulation pour la demande d'infos.
+const ORGA_KEYS=[
+  {k:'structure',label:'Nom de la structure organisatrice',ask:'le nom exact de la structure qui emploie / organise'},
+  {k:'contact',  label:'Nom du contact / référent',        ask:'le nom du référent à contacter'},
+  {k:'email',    label:'Email du contact',                 ask:'une adresse email de contact'},
+  {k:'siret',    label:'Numéro SIRET',                     ask:'votre numéro SIRET'},
+  {k:'forme',    label:'Forme juridique',                  ask:'votre forme juridique (association, SARL, mairie, particulier…)'}
+];
+function _ogInput(label,id,val,type){ return '<div class="pf-row"><label>'+label+'</label><input type="'+(type||'text')+'" id="'+id+'" value="'+_escA(val==null?'':val)+'" oninput="orgaRecalc()"></div>'; }
+function _ogTa(label,id,val){ return '<div class="pf-row"><label>'+label+'</label><textarea id="'+id+'" oninput="orgaRecalc()">'+_esc(val||'')+'</textarea></div>'; }
+function _ogSel(label,id,val,opts){ return '<div class="pf-row"><label>'+label+'</label><select id="'+id+'" onchange="orgaRecalc()">'+opts.map(o=>'<option value="'+_escA(o[0])+'"'+(String(val||'')===o[0]?' selected':'')+'>'+_esc(o[1])+'</option>').join('')+'</select></div>'; }
+function orgaFormHTML(f){ const o=f.orga||{}, n=f.nego||{};
+  let h='<div class="pf-sec">Structure organisatrice</div>';
+  h+=_ogInput('Nom de la structure','og_structure',o.structure);
+  h+=_ogInput('Contact / référent','og_contact',o.contact);
+  h+=_ogInput('Téléphone','og_telephone',o.telephone,'tel');
+  h+=_ogInput('Email','og_email',o.email,'email');
+  h+=_ogInput('Adresse','og_adresse',o.adresse);
+  h+=_ogInput('N° SIRET','og_siret',o.siret);
+  h+=_ogSel('Forme juridique','og_forme',o.forme,ORGA_FORMES);
+  h+=_ogInput('N° licence spectacle','og_licence',o.licence);
+  h+=_ogTa('Notes','og_notes',o.notes);
+  h+='<div class="pf-sec">Négociation</div>';
+  h+=_ogSel('Statut de la négociation','og_statut',n.statut,NEGO_STATUTS);
+  h+=_ogInput('Échéance de signature','og_echeance',n.echeance,'date');
+  return h;
+}
+function readOrgaForm(){ const g=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+  return {
+    orga:{ structure:g('og_structure'), contact:g('og_contact'), telephone:g('og_telephone'), email:g('og_email'),
+      adresse:g('og_adresse'), siret:g('og_siret'), forme:g('og_forme'), licence:g('og_licence'), notes:g('og_notes') },
+    nego:{ statut:g('og_statut'), echeance:g('og_echeance') }
+  };
+}
+// Fusionne les infos manquantes : (a) champs clés de la structure vides, (b) critères « ? » du Module 2.
+function orgaMissing(f, live){
+  const o = live ? live.orga : (f.orga||{});
+  const missOrga = ORGA_KEYS.filter(x=>!_chas(o[x.k]));
+  let condItems=[]; const condEvaluated=!!f.cond;
+  if(condEvaluated){ const r=computeCond(f.cond,currentPerson);
+    condItems=r.crits.filter(c=>c.state==='unknown'&&c.missSide==='orga').map(c=>c.label); }
+  return {missOrga, condItems, condEvaluated};
+}
+function orgaMissHTML(f, live){ const m=orgaMissing(f, live);
+  const hasOrga=m.missOrga.length>0;
+  const condDone=m.condEvaluated && m.condItems.length===0;
+  if(!hasOrga && condDone) return '<div class="og-complete">✅ Toutes les infos clés sont renseignées (structure + conditions). Rien à réclamer.</div>';
+  let h='<div class="ev-missing"><b>❔ Infos manquantes à réclamer</b>';
+  if(hasOrga) h+='<div class="og-missgrp"><span>Côté structure :</span><ul>'+m.missOrga.map(x=>'<li>'+_esc(x.label)+'</li>').join('')+'</ul></div>';
+  if(m.condEvaluated){
+    if(m.condItems.length) h+='<div class="og-missgrp"><span>Côté conditions (technique / logistique) :</span><ul>'+m.condItems.map(l=>'<li>'+_esc(l)+'</li>').join('')+'</ul></div>';
+  } else {
+    h+='<div class="og-missgrp"><span>Conditions pas encore évaluées.</span><br><button class="btn ghost sm" type="button" style="margin-top:6px" onclick="openCondFromOrga(\''+f.id+'\')" data-tip="Ouvrir l\'évaluateur « Bon plan ? » pour lister précisément les conditions à demander">🎯 Évaluer le bon plan</button></div>';
+  }
+  h+='<div class="ev-missing-note">« 📋 Copier la demande d\'infos » génère un message prêt à envoyer listant exactement ces points.</div></div>';
+  return h;
+}
+// État de l'échéance de signature (null si pas d'échéance, ou statut signé/annulé).
+function negoEcheanceInfo(f){ const n=f.nego||{};
+  if(!n.echeance || n.statut==='signe' || n.statut==='annule') return null;
+  const d=parseD(n.echeance); if(!d) return null;
+  const days=daysBetween(today0(),d);
+  const dstr=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+  if(days<0)   return {col:'var(--bad)', bg:'rgba(255,107,107,.14)', txt:'⚠️ échéance dépassée ('+dstr+')'};
+  if(days<=7)  return {col:'var(--warn)',bg:'rgba(255,209,102,.14)', txt:'⏳ à signer avant le '+dstr};
+  return {col:'var(--muted)', bg:'rgba(159,178,198,.10)', txt:'🗓️ à signer avant le '+dstr};
+}
+function negoStatutBadgeHTML(f){ const n=f.nego||{}; if(!n.statut) return '';
+  const lbl=(NEGO_STATUTS.find(o=>o[0]===n.statut)||['',''])[1];
+  const st=NEGO_STYLE[n.statut]||{col:'var(--muted)',bg:'rgba(159,178,198,.1)'};
+  return '<span class="ev-badge" style="background:'+st.bg+';color:'+st.col+';border:1px solid '+st.col+'" data-tip="État de la négociation — clique « 🏢 Organisateur » pour modifier">'+lbl+'</span>';
+}
+function negoBadgesHTML(f){ let h=negoStatutBadgeHTML(f); const e=negoEcheanceInfo(f);
+  if(e) h+='<span class="ev-badge" style="background:'+e.bg+';color:'+e.col+';border:1px solid '+e.col+'" data-tip="Échéance de signature">'+e.txt+'</span>';
+  return h;
+}
+function negoFootHTML(f){ const e=negoEcheanceInfo(f); if(!e) return '';
+  return '<span class="nego-foot" style="color:'+e.col+';border:1px solid '+e.col+';background:'+e.bg+'">'+e.txt+'</span>';
+}
+function openOrga(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _orgaId=id;
+  document.getElementById('orgaSub').innerHTML='Date : <b>'+_esc(f.lieu||fmt(f.start))+'</b>'+(f.owner==='both'?' <span style="opacity:.85">(date partagée)</span>':'');
+  document.getElementById('orgaFormBox').innerHTML=orgaFormHTML(f);
+  orgaRecalc();
+  document.getElementById('orgaBg').classList.add('show');
+}
+function orgaRecalc(){ const f=state.fiches.find(x=>x.id===_orgaId); if(!f) return;
+  document.getElementById('orgaMissBox').innerHTML=orgaMissHTML(f, readOrgaForm()); }
+function openCondFromOrga(id){ closeOrga(); openCond(id); }
+function saveOrga(){ const f=state.fiches.find(x=>x.id===_orgaId); if(!f) return;
+  const d=readOrgaForm(); f.orga=d.orga; f.nego=d.nego; save(); render(); closeOrga(); openDetail(f.id); toast('🏢 Organisateur enregistré'); }
+function closeOrga(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('orgaBg').classList.remove('show'); }
+// Génère un message poli listant EXACTEMENT les infos manquantes, à coller dans un mail / WhatsApp.
+// ⚠️ SÉCURITÉ : ne JAMAIS insérer le lien de l'app ni un deep-link #date= — le code d'accès est COMMUN
+// et donnerait accès à TOUTES les données de David & Iris. Le partage externe sécurisé viendra avec
+// le backend (Phase 6). On ne partage donc que du texte : les questions, rien d'autre.
+function buildOrgaRequest(f){ const live=readOrgaForm(); const m=orgaMissing(f, live);
+  const lieu=f.lieu||fmt(f.start); const dateTxt=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
+  let msg='Bonjour,\n\n';
+  msg+='Merci pour cette proposition de date à '+lieu+' ('+dateTxt+'). ';
+  msg+='Pour préparer la déclaration GUSO et le contrat, pourriez-vous me communiquer les éléments suivants :\n';
+  if(m.missOrga.length){ msg+='\nConcernant votre structure :\n';
+    m.missOrga.forEach(x=>{ msg+='• '+x.ask+'\n'; }); }
+  let condQ;
+  if(m.condEvaluated) condQ=m.condItems.slice();
+  else condQ=['Le cachet proposé (montant par cachet)','Qui fournit la sono et le matériel son ?',
+    'Y a-t-il un ingénieur du son sur place ?','Une scène est-elle prévue (et ses dimensions) ?',
+    'Une loge est-elle prévue ?','Le trajet et/ou l\'hébergement sont-ils pris en charge ?'];
+  if(condQ.length){ msg+='\nConcernant les conditions de la prestation, pourriez-vous préciser :\n';
+    condQ.forEach(q=>{ msg+='• '+q+'\n'; }); }
+  if(!m.missOrga.length && !condQ.length) msg+='\n(Toutes les informations habituelles semblent déjà en ma possession — merci !)\n';
+  msg+='\nMerci d\'avance pour votre retour.\nBien cordialement,\n'+currentPerson;
+  return msg;
+}
+function copyOrgaRequest(){ const f=state.fiches.find(x=>x.id===_orgaId); if(!f) return;
+  const msg=buildOrgaRequest(f);
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(msg).then(()=>toast('📋 Demande d\'infos copiée'),()=>prompt('Copie ce message :',msg));
+  else prompt('Copie ce message :',msg);
+}
 
 function addFiche(e){ e.preventDefault();
   const data={ owner:f_owner.value, type:f_type.value, num:f_num.value.trim(),

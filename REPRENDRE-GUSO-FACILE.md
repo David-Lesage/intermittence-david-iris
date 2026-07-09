@@ -265,8 +265,18 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
   **verdict/score** 🟢 bon plan (≥75 %) / 🟡 à négocier (45–74 %) / 🔴 à éviter (<45 %) / ℹ️ gris si
   < 3 critères comparables. Liste ✅/❌ avec détail des écarts + **« infos manquantes à demander à
   l'organisateur »** (brique du Module 3). Badge du verdict affiché dans le détail. **LIVRÉ 2026-07-09.**
-- **Module 3 — Infos organisateur + suivi négociation** : champs organisateur (contact, structure
-  juridique, SIRET…), **infos manquantes mises en valeur** + **date d'échéance de signature**.
+- ✅ **Module 3 — Organisateur & suivi de négociation** (`openOrga`, bouton « 🏢 Organisateur » à côté
+  de « 🎯 Bon plan ? » dans le détail d'un **concert**) : par date, saisir la **structure qui emploie**
+  (`f.orga` : structure, contact, téléphone, email, adresse, SIRET, forme juridique, n° licence
+  spectacle, notes) + l'**état de la négociation** (`f.nego` : statut 📞 contact / 🤝 négociation /
+  📤 contrat envoyé / ✅ signé / ❌ annulé, et **échéance de signature**). **Badges** dans le détail
+  (statut + « ⏳ à signer avant le JJ mois » en jaune ≤ 7 j, « ⚠️ échéance dépassée » en rouge) et
+  **mini-marqueur d'échéance** dans le pied des cartes de la liste. Cœur = bloc **« ❔ Infos
+  manquantes »** qui fusionne les 5 champs orga clés vides (structure, contact, email, SIRET, forme)
+  + les critères « ? » du Module 2 (`computeCond`), et bouton **« 📋 Copier la demande d'infos »** qui
+  génère un message poli prêt à envoyer (mail/WhatsApp) listant exactement ces manques, signé du
+  prénom de l'artiste. ⚠️ Ne partage **jamais** de lien de l'app / deep-link (code d'accès commun) —
+  partage externe sécurisé = Phase 6/backend. **LIVRÉ 2026-07-09.**
 - **Module 4 — Section structure « Mes artistes »** : dans le back-office Des Sons et Des Liens,
   liste des artistes + accès **1 clic** à leur profil ; **édition croisée** (la structure complète
   les infos manquantes d'un artiste, et inversement). Cloisonnement (Myriam ≠ David) = Phase 6.
