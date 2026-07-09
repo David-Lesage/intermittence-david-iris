@@ -277,9 +277,13 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
   génère un message poli prêt à envoyer (mail/WhatsApp) listant exactement ces manques, signé du
   prénom de l'artiste. ⚠️ Ne partage **jamais** de lien de l'app / deep-link (code d'accès commun) —
   partage externe sécurisé = Phase 6/backend. **LIVRÉ 2026-07-09.**
-- **Module 4 — Section structure « Mes artistes »** : dans le back-office Des Sons et Des Liens,
-  liste des artistes + accès **1 clic** à leur profil ; **édition croisée** (la structure complète
-  les infos manquantes d'un artiste, et inversement). Cloisonnement (Myriam ≠ David) = Phase 6.
+- ✅ **Module 4 — Section structure « 👥 Mes artistes »** (`boArtistsHtml`/`openArtistCard`, en haut
+  du back-office) : une carte par personne de `state.people` (photo → fallback 🎤, nom complet
+  `FULL_NAMES`, qualification, instruments) → **fiche administrative** dépliée (état civil,
+  **n° sécu masqué par défaut** + bascule 👁, n° GUSO, congés spectacles, adresse, tél, email,
+  régime/qualification), bouton **📋 Copier les infos** (bloc texte complet pour DPAE/GUSO, sécu en
+  clair) + **👤 Ouvrir le profil complet** (`openProfile`) + retour liste sans fermer le back-office.
+  Cloisonnement (Myriam ≠ David) = Phase 6. **LIVRÉ 2026-07-09.**
 - **Module 5 — Signature de l'artiste** : canvas pour dessiner sa signature (petit dataURL),
   intégrable aux contrats.
 
