@@ -311,6 +311,18 @@
   .r-mtot-poss{color:var(--hypo)}
   .r-gt-note{color:var(--muted);font-weight:400;font-size:11px}
   .r-empty{color:var(--muted);padding:18px;text-align:center}
+  /* ===== Profil artiste ===== */
+  .pf-photo{text-align:center;margin-bottom:12px}
+  .pf-photo img{max-width:120px;max-height:120px;border-radius:12px;border:1px solid var(--line);object-fit:cover}
+  .pf-sec{font-weight:800;font-size:12.5px;color:var(--accent2);margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.4px}
+  .pf-row{margin-bottom:10px}
+  .pf-row label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .pf-row input,.pf-row select,.pf-row textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit}
+  .pf-row textarea{min-height:64px;resize:vertical}
+  .pf-check{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--txt);margin-bottom:10px;cursor:pointer}
+  .pf-check input{width:auto;transform:scale(1.15)}
+  .pf-note{font-size:11.5px;color:var(--muted);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:9px 11px;margin:12px 0}
+  .pf-actions{margin-top:14px;text-align:right}
 </style>
 </head>
 <body>
@@ -349,6 +361,7 @@
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
     <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
+    <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
     <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
     <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
     <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
@@ -504,6 +517,24 @@
         <button class="r-tab" id="rTabIris" type="button" onclick="openRecap('Iris')">Iris</button>
       </div>
       <div id="recapContent"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PROFIL ARTISTE (Module 1) -->
+  <div class="modal-bg" id="profileBg" onclick="closeProfile(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeProfile()" data-tip="Fermer">✕</button>
+      <h2 id="pfTitle">👤 Profil</h2>
+      <div class="bo-sub">Identité, instruments, conditions idéales et modèles de contrats. À partager avec une structure (ex. Des Sons et Des Liens).</div>
+    </div>
+    <div class="r-body">
+      <div class="r-toggle">
+        <button class="r-tab" id="pfTabDavid" type="button" onclick="openProfile('David')">David</button>
+        <button class="r-tab" id="pfTabIris" type="button" onclick="openProfile('Iris')">Iris</button>
+      </div>
+      <div id="profileContent"></div>
     </div>
    </div>
   </div>
@@ -1196,6 +1227,62 @@ function buildRecap(person){
   });
   return html;
 }
+
+/* ===== Profil artiste (Module 1) — identité, instruments, conditions idéales, contrats ===== */
+let _profilePerson='David';
+const PROFILE_FIELDS=[
+  {sec:'Identité & administratif'},
+  {k:'regime',l:'Régime',type:'select',opts:['','Artiste (annexe 10)','Technicien (annexe 8)']},
+  {k:'naissance',l:'Date de naissance',type:'date'},
+  {k:'secu',l:'N° sécurité sociale',sensitive:true},
+  {k:'numGuso',l:'N° GUSO / identifiant'},
+  {k:'conges',l:'N° Congés Spectacles'},
+  {k:'adresse',l:'Adresse'},
+  {sec:'Artistique'},
+  {k:'instruments',l:'Instruments joués'},
+  {k:'photo',l:'Photo (lien Drive / URL)'},
+  {k:'bio',l:'Bio / détails (bonus)',type:'textarea'},
+  {sec:'Mes conditions idéales (base pour évaluer une date)'},
+  {k:'prixMin',l:'Prix minimum (€ / cachet)',type:'number'},
+  {k:'visibilite',l:'Visibilité recherchée'},
+  {k:'trajetPris',l:'Trajet pris en charge exigé ?',type:'check'},
+  {k:'distanceMax',l:'Distance max acceptable (km)',type:'number'},
+  {k:'logement',l:'Logement requis (aucun / sur place / hôtel)'},
+  {k:'loge',l:'Loge requise ?',type:'check'},
+  {k:'scene',l:'Scène requise ?',type:'check'},
+  {k:'ingeSon',l:'Ingé son requis ?',type:'check'},
+  {k:'sono',l:"Sono (fournie par l'orga / à amener)"}
+];
+function _esc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function _escA(s){ return _esc(s).replace(/"/g,'&quot;'); }
+function ensureProfile(p){ if(!state.people[p]) return {}; if(!state.people[p].profile) state.people[p].profile={}; return state.people[p].profile; }
+function openProfile(person){ person=(person&&state.people[person])?person:currentPerson; _profilePerson=person;
+  const pr=ensureProfile(person);
+  document.getElementById('pfTabDavid').classList.toggle('active',person==='David');
+  document.getElementById('pfTabIris').classList.toggle('active',person==='Iris');
+  document.getElementById('pfTitle').textContent='👤 Profil — '+person;
+  let h = pr.photo?('<div class="pf-photo"><img src="'+_escA(pr.photo)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'):'';
+  PROFILE_FIELDS.forEach(f=>{
+    if(f.sec){ h+='<div class="pf-sec">'+f.sec+'</div>'; return; }
+    const v=pr[f.k]==null?'':pr[f.k];
+    if(f.type==='check') h+='<label class="pf-check"><input type="checkbox" id="pf_'+f.k+'"'+(v?' checked':'')+'> '+f.l+'</label>';
+    else if(f.type==='textarea') h+='<div class="pf-row"><label>'+f.l+'</label><textarea id="pf_'+f.k+'">'+_esc(v)+'</textarea></div>';
+    else if(f.type==='select') h+='<div class="pf-row"><label>'+f.l+'</label><select id="pf_'+f.k+'">'+f.opts.map(o=>'<option'+(v===o?' selected':'')+'>'+(o||'—')+'</option>').join('')+'</select></div>';
+    else h+='<div class="pf-row"><label>'+f.l+(f.sensitive?' 🔒':'')+'</label><input type="'+(f.type||'text')+'" id="pf_'+f.k+'" value="'+_escA(v)+'"></div>';
+  });
+  h+='<div class="pf-sec">Modèles de contrats (liens Drive, un par ligne)</div><div class="pf-row"><textarea id="pf_contrats" placeholder="https://drive.google.com/...">'+_esc(pr.contrats||'')+'</textarea></div>';
+  h+='<div class="pf-note">🔒 Les infos sensibles (n° sécu…) sont chiffrées et stockées dans tes données synchronisées — jamais dans le code public du site.</div>';
+  h+='<div class="pf-actions"><button class="btn" type="button" onclick="saveProfile()">💾 Enregistrer</button></div>';
+  document.getElementById('profileContent').innerHTML=h;
+  document.getElementById('profileBg').classList.add('show');
+}
+function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
+  PROFILE_FIELDS.forEach(f=>{ if(f.sec) return; const el=document.getElementById('pf_'+f.k); if(!el) return;
+    pr[f.k]=(f.type==='check')?el.checked:el.value; });
+  const ct=document.getElementById('pf_contrats'); if(ct) pr.contrats=ct.value;
+  state.people[p].profile=pr; save(); toast('✓ Profil enregistré'); closeProfile();
+}
+function closeProfile(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('profileBg').classList.remove('show'); }
 
 function addFiche(e){ e.preventDefault();
   const data={ owner:f_owner.value, type:f_type.value, num:f_num.value.trim(),
