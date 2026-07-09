@@ -257,9 +257,14 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
   conditions idéales »** (prix min, visibilité, trajet, distance, logement, loge, scène, ingé son,
   sono), modèles de contrats (liens Drive). Stocké `state.people[p].profile` (chiffré, jamais dans
   le repo public). **LIVRÉ 2026-07-09.**
-- **Module 2 — Évaluateur de date « bon plan ? »** : par date, saisir les **conditions réelles**
-  (mêmes critères) → **comparaison avec les conditions idéales** du profil → **indicateur/score**
-  (bon plan / à négocier / à éviter). Aide à décider si la date vaut le coup.
+- ✅ **Module 2 — Évaluateur de date « bon plan ? »** (`openCond`/`computeCond`, bouton « 🎯 Bon
+  plan ? » dans le détail d'un **concert**) : par date, saisir les **conditions réelles** proposées
+  par l'orga (`f.cond` : prix, distance, trajet, logement, loge, scène + dimensions, ingé son, sono
+  à amener, visibilité, notes ; selects oui/non/« ? » pour distinguer « non » de « non renseigné »)
+  → **comparaison en direct** avec les conditions idéales du profil de la personne de l'onglet →
+  **verdict/score** 🟢 bon plan (≥75 %) / 🟡 à négocier (45–74 %) / 🔴 à éviter (<45 %) / ℹ️ gris si
+  < 3 critères comparables. Liste ✅/❌ avec détail des écarts + **« infos manquantes à demander à
+  l'organisateur »** (brique du Module 3). Badge du verdict affiché dans le détail. **LIVRÉ 2026-07-09.**
 - **Module 3 — Infos organisateur + suivi négociation** : champs organisateur (contact, structure
   juridique, SIRET…), **infos manquantes mises en valeur** + **date d'échéance de signature**.
 - **Module 4 — Section structure « Mes artistes »** : dans le back-office Des Sons et Des Liens,

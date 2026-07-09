@@ -323,6 +323,25 @@
   .pf-check input{width:auto;transform:scale(1.15)}
   .pf-note{font-size:11.5px;color:var(--muted);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:9px 11px;margin:12px 0}
   .pf-actions{margin-top:14px;text-align:right}
+  /* ===== Module 2 : évaluateur « Bon plan ? » ===== */
+  .ev-verdict{border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1.5px solid}
+  .ev-vhead{font-size:19px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .ev-vscore{font-size:13px;font-weight:800;padding:2px 10px;border-radius:999px}
+  .ev-vsub{font-size:12.5px;color:var(--txt);margin-top:6px;opacity:.92}
+  .ev-vsub b{opacity:1}
+  .ev-crits{margin-top:11px;display:flex;flex-direction:column;gap:5px}
+  .ev-crit{font-size:13px;display:flex;gap:8px;align-items:baseline;color:var(--txt)}
+  .ev-crit .ic{flex:0 0 auto}
+  .ev-missing{background:rgba(255,209,102,.10);border:1px solid var(--warn);border-radius:10px;padding:10px 13px;font-size:12.5px;color:var(--txt);margin-bottom:12px}
+  .ev-missing.prof{background:rgba(167,139,250,.09);border-color:rgba(167,139,250,.45)}
+  .ev-missing b{color:#ffe49b}
+  .ev-missing.prof b{color:#d7c9ff}
+  .ev-missing ul{margin:6px 0 0;padding-left:20px}
+  .ev-missing li{margin:2px 0}
+  .ev-missing-note{margin-top:7px;font-size:11px;color:var(--muted)}
+  .ev-badge{display:inline-block;font-size:12px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap}
+  .ev-detailrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+  .ev-detailhint{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -535,6 +554,22 @@
         <button class="r-tab" id="pfTabIris" type="button" onclick="openProfile('Iris')">Iris</button>
       </div>
       <div id="profileContent"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- ÉVALUATEUR « BON PLAN ? » (Module 2) -->
+  <div class="modal-bg" id="condBg" style="z-index:80" onclick="closeCond(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeCond()" data-tip="Fermer">✕</button>
+      <h2>🎯 Bon plan ?</h2>
+      <div class="bo-sub" id="condSub">Compare les conditions proposées à tes conditions idéales.</div>
+    </div>
+    <div class="r-body">
+      <div id="condVerdictBox"></div>
+      <div id="condFormBox"></div>
+      <div class="pf-actions"><button class="btn" type="button" onclick="saveCond()" data-tip="Enregistrer ces conditions réelles pour cette date">💾 Enregistrer</button></div>
     </div>
    </div>
   </div>
@@ -1030,6 +1065,11 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     </div>
     <div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
     <div class="steps">${chips}</div>
+    ${f.type!=='repet'?`<div class="ev-detailrow">
+      <button class="btn" onclick="openCond('${f.id}')" data-tip="Saisir les conditions réelles proposées et comparer à tes conditions idéales">🎯 Bon plan ?</button>
+      ${condBadgeHTML(f)}
+      <span class="ev-detailhint">Compare l'offre à tes conditions idéales${f.owner==='both'?' (évalué pour '+currentPerson+')':''}</span>
+    </div>`:''}
     <div class="modal-actions">
       ${href
         ? `<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le feuillet GUSO (PDF) de cette date dans un nouvel onglet">📄 Ouvrir le GUSO</a>`
@@ -1283,6 +1323,146 @@ function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
   state.people[p].profile=pr; save(); toast('✓ Profil enregistré'); closeProfile();
 }
 function closeProfile(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('profileBg').classList.remove('show'); }
+
+/* ===== Module 2 : évaluateur « Bon plan ? » — conditions réelles vs conditions idéales du profil ===== */
+let _condId=null;
+const COND_STYLE={
+  green:{col:'#3ddc97',bg:'rgba(61,220,151,.13)',emoji:'🟢',label:'Bon plan'},
+  yellow:{col:'#ffd166',bg:'rgba(255,209,102,.13)',emoji:'🟡',label:'À négocier'},
+  red:{col:'#ff6b6b',bg:'rgba(255,107,107,.13)',emoji:'🔴',label:"À éviter en l'état"},
+  grey:{col:'#9fb2c6',bg:'rgba(159,178,198,.10)',emoji:'ℹ️',label:'Renseigne plus de critères'}
+};
+function _cnum(v){ v=String(v==null?'':v).trim().replace(',','.'); if(v==='') return null; const n=Number(v); return isNaN(n)?null:n; }
+function _chas(v){ return v!=null && String(v).trim()!==''; }
+// Compare les conditions proposées (cond) aux conditions idéales du profil de <person>.
+function computeCond(cond, person){
+  cond=cond||{};
+  const pr=(state.people[person]&&state.people[person].profile)||{};
+  const crits=[];   // {label,state:'ok'|'ko'|'unknown'|'info',detail,missSide:'orga'|'profil'} — les 'na' sont exclus
+  const push=(label,st,detail,missSide)=>{ if(st==='na') return; crits.push({label,state:st,detail:detail||'',missSide:missSide||''}); };
+  // Prix / cachet
+  (function(){ const c=_cnum(cond.prix), m=_cnum(pr.prixMin);
+    if(c!=null&&m!=null){ const ok=c>=m; push('Prix / cachet',ok?'ok':'ko', ok?(c+' € ≥ minimum '+m+' €'):('prix '+c+' € < minimum '+m+' €')); }
+    else if(c==null&&m!=null) push('Prix proposé par cachet','unknown','','orga');
+    else if(c!=null&&m==null) push('Ton prix minimum','unknown','','profil');
+  })();
+  // Distance
+  (function(){ const c=_cnum(cond.distanceKm), m=_cnum(pr.distanceMax);
+    if(c!=null&&m!=null){ const ok=c<=m; push('Distance',ok?'ok':'ko', ok?(c+' km ≤ maximum '+m+' km'):('distance '+c+' km > maximum '+m+' km')); }
+    else if(c==null&&m!=null) push('Distance du lieu (km)','unknown','','orga');
+    else if(c!=null&&m==null) push('Ta distance maximale','unknown','','profil');
+  })();
+  // Critères oui/non « exigés » du profil : trajet, loge, ingé son
+  const boolCrit=(label,required,condVal,koDetail)=>{ condVal=String(condVal||'').trim();
+    if(required){
+      if(condVal==='oui') push(label,'ok',label+' : oui');
+      else if(condVal==='non') push(label,'ko',koDetail);
+      else push(label,'unknown','','orga');
+    } else if(condVal==='oui'||condVal==='non') push(label,'ok',label+' : '+condVal+' — non exigé');
+    // non exigé + non renseigné → na (exclu)
+  };
+  boolCrit('Trajet pris en charge', !!pr.trajetPris, cond.trajetPris, "trajet non pris en charge (tu l'exiges)");
+  boolCrit('Loge', !!pr.loge, cond.loge, "pas de loge (tu l'exiges)");
+  boolCrit('Ingé son', !!pr.ingeSon, cond.ingeSon, "pas d'ingé son (tu l'exiges)");
+  // Scène (avec dimensions éventuelles)
+  (function(){ const req=!!pr.scene, cv=String(cond.scene||'').trim(), dim=String(cond.sceneDim||'').trim();
+    if(req){
+      if(cv==='oui') push('Scène','ok', dim?('scène fournie ('+dim+')'):'scène fournie');
+      else if(cv==='non') push('Scène','ko',"pas de scène (tu l'exiges)");
+      else push('Scène','unknown','','orga');
+    } else if(cv==='oui'||cv==='non') push('Scène','ok', (cv==='oui'?('scène'+(dim?' ('+dim+')':'')):'pas de scène')+' — non exigé');
+  })();
+  // Logement : profil vide / « aucun » = pas d'exigence
+  (function(){ const reqLodge=_chas(pr.logement)&&String(pr.logement).trim().toLowerCase()!=='aucun';
+    const cl=String(cond.logement||'').trim();
+    if(reqLodge){
+      if(cl && cl.toLowerCase()!=='aucun') push('Logement','ok','logement : '+cl);
+      else if(cl.toLowerCase()==='aucun') push('Logement','ko','aucun logement proposé (tu demandes : '+pr.logement+')');
+      else push('Logement proposé','unknown','','orga');
+    } else if(cl) push('Logement','ok','logement : '+cl+' — non exigé');
+  })();
+  // Sono : OK si l'orga la fournit (cond='non') ou si le profil dit que l'artiste l'amène
+  (function(){ const brings=/am[eè]n|apport/i.test(String(pr.sono||'')); const cs=String(cond.sonoAmener||'').trim();
+    if(cs==='non') push('Sono','ok',"sono fournie par l'orga");
+    else if(cs==='oui') push('Sono', brings?'ok':'ko', brings?'tu amènes ta sono (prévu au profil)':'sono à amener (non prévu dans ton profil)');
+    else push('Qui fournit la sono ?','unknown','','orga');
+  })();
+  // Visibilité : informatif (non chiffré dans le score)
+  (function(){ const cv=String(cond.visibilite||'').trim(), pv=String(pr.visibilite||'').trim();
+    if(cv) push('Visibilité proposée','info',cv);
+    else if(pv) push('Visibilité proposée','unknown','','orga');
+  })();
+  const ok=crits.filter(c=>c.state==='ok').length;
+  const ko=crits.filter(c=>c.state==='ko').length;
+  const unknown=crits.filter(c=>c.state==='unknown').length;
+  const counted=ok+ko;
+  const score=counted>0?Math.round(ok/counted*100):null;
+  let level;
+  if(counted<3) level='grey';
+  else if(score>=75) level='green';
+  else if(score>=45) level='yellow';
+  else level='red';
+  return {crits,ok,ko,unknown,counted,score,level,style:COND_STYLE[level],person};
+}
+function condBadgeHTML(f){ if(!f.cond) return '';
+  const r=computeCond(f.cond,currentPerson), s=r.style;
+  const txt=(r.score==null)?'à compléter':(s.label+' '+r.score+' %');
+  return '<span class="ev-badge" style="background:'+s.bg+';color:'+s.col+';border:1px solid '+s.col+'" data-tip="Évaluation « bon plan ? » — clique « 🎯 Bon plan ? » pour revoir le détail">🎯 '+txt+'</span>';
+}
+function condVerdictHTML(r){ const s=r.style;
+  const scoreTxt=(r.score==null)?'':'<span class="ev-vscore" style="background:'+s.col+';color:#0f1419">'+r.score+' %</span>';
+  const sub=(r.counted<3)
+    ? 'Seulement <b>'+r.counted+'</b> critère'+(r.counted>1?'s':'')+' comparable'+(r.counted>1?'s':'')+'. Renseigne le prix, la distance et les conditions pour obtenir un verdict.'
+    : '<b>'+r.ok+'</b> critère'+(r.ok>1?'s':'')+' OK sur <b>'+r.counted+'</b> comparé'+(r.counted>1?'s':'')+(r.unknown?(' · <b>'+r.unknown+'</b> à préciser'):'');
+  let html='<div class="ev-verdict" style="border-color:'+s.col+';background:'+s.bg+'">';
+  html+='<div class="ev-vhead" style="color:'+s.col+'">'+s.emoji+' '+s.label+' '+scoreTxt+'</div>';
+  html+='<div class="ev-vsub">'+sub+'</div>';
+  const okko=r.crits.filter(c=>c.state==='ok'||c.state==='ko');
+  const infos=r.crits.filter(c=>c.state==='info');
+  if(okko.length){ html+='<div class="ev-crits">';
+    okko.forEach(c=>{ const ic=c.state==='ok'?'✅':'❌'; const col=c.state==='ok'?'#bdf3d8':'#ffc9c9';
+      html+='<div class="ev-crit"><span class="ic">'+ic+'</span><span><b>'+_esc(c.label)+'</b>'+(c.detail?' — <span style="color:'+col+'">'+_esc(c.detail)+'</span>':'')+'</span></div>'; });
+    html+='</div>'; }
+  if(infos.length){ html+='<div class="ev-crits">';
+    infos.forEach(c=>{ html+='<div class="ev-crit"><span class="ic">ℹ️</span><span><b>'+_esc(c.label)+'</b>'+(c.detail?' — '+_esc(c.detail):'')+'</span></div>'; });
+    html+='</div>'; }
+  html+='</div>';
+  const orgaMiss=r.crits.filter(c=>c.state==='unknown'&&c.missSide==='orga');
+  const profMiss=r.crits.filter(c=>c.state==='unknown'&&c.missSide==='profil');
+  if(orgaMiss.length) html+='<div class="ev-missing"><b>❔ Infos manquantes à demander à l\'organisateur</b><ul>'+orgaMiss.map(c=>'<li>'+_esc(c.label)+'</li>').join('')+'</ul><div class="ev-missing-note">Ce sont les points à clarifier avant de décider — la future aide à la négociation partira de là.</div></div>';
+  if(profMiss.length) html+='<div class="ev-missing prof"><b>👤 À compléter dans ton profil</b><ul>'+profMiss.map(c=>'<li>'+_esc(c.label)+'</li>').join('')+'</ul></div>';
+  return html;
+}
+function _condSel(id,val,opts){ return '<select id="'+id+'" onchange="condRecalc()">'+opts.map(o=>'<option value="'+_escA(o[0])+'"'+(String(val||'')===o[0]?' selected':'')+'>'+_esc(o[1])+'</option>').join('')+'</select>'; }
+function condFormHTML(c){ const ON=[['','? (à demander)'],['oui','Oui'],['non','Non']];
+  let h='<div class="pf-sec">Conditions proposées par l\'organisateur</div>';
+  h+='<div class="pf-row"><label>Prix proposé (€ / cachet)</label><input type="number" id="cd_prix" min="0" step="1" value="'+_escA(c.prix==null?'':c.prix)+'" oninput="condRecalc()"></div>';
+  h+='<div class="pf-row"><label>Distance du lieu (km)</label><input type="number" id="cd_distanceKm" min="0" step="1" value="'+_escA(c.distanceKm==null?'':c.distanceKm)+'" oninput="condRecalc()"></div>';
+  h+='<div class="pf-row"><label>Trajet pris en charge par l\'orga ?</label>'+_condSel('cd_trajetPris',c.trajetPris,ON)+'</div>';
+  h+='<div class="pf-row"><label>Logement proposé</label>'+_condSel('cd_logement',c.logement,[['','? (à demander)'],['aucun','Aucun'],['sur place','Sur place'],['hôtel','Hôtel']])+'</div>';
+  h+='<div class="pf-row"><label>Loge fournie ?</label>'+_condSel('cd_loge',c.loge,ON)+'</div>';
+  h+='<div class="pf-row"><label>Scène fournie ?</label>'+_condSel('cd_scene',c.scene,ON)+'</div>';
+  h+='<div class="pf-row"><label>Dimensions de la scène</label><input type="text" id="cd_sceneDim" value="'+_escA(c.sceneDim||'')+'" placeholder="ex. 6 × 4 m" oninput="condRecalc()"></div>';
+  h+='<div class="pf-row"><label>Ingé son fourni ?</label>'+_condSel('cd_ingeSon',c.ingeSon,ON)+'</div>';
+  h+='<div class="pf-row"><label>Sono à amener par l\'artiste ?</label>'+_condSel('cd_sonoAmener',c.sonoAmener,ON)+'</div>';
+  h+='<div class="pf-row"><label>Visibilité proposée</label><input type="text" id="cd_visibilite" value="'+_escA(c.visibilite||'')+'" placeholder="ex. festival, presse, jauge…" oninput="condRecalc()"></div>';
+  h+='<div class="pf-row"><label>Notes / autres conditions</label><textarea id="cd_notes" placeholder="ex. cachet supplémentaire répétition, repas fourni…">'+_esc(c.notes||'')+'</textarea></div>';
+  return h;
+}
+function readCondForm(){ const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  return { prix:g('cd_prix'), distanceKm:g('cd_distanceKm'), trajetPris:g('cd_trajetPris'),
+    logement:g('cd_logement'), loge:g('cd_loge'), scene:g('cd_scene'), sceneDim:g('cd_sceneDim'),
+    ingeSon:g('cd_ingeSon'), sonoAmener:g('cd_sonoAmener'), visibilite:g('cd_visibilite'), notes:g('cd_notes') }; }
+function condRecalc(){ document.getElementById('condVerdictBox').innerHTML=condVerdictHTML(computeCond(readCondForm(),currentPerson)); }
+function openCond(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _condId=id;
+  document.getElementById('condSub').innerHTML='Date : <b>'+_esc(f.lieu||fmt(f.start))+'</b> — évalué pour <b>'+currentPerson+'</b>'+(f.owner==='both'?' <span style="opacity:.85">(date partagée)</span>':'');
+  document.getElementById('condFormBox').innerHTML=condFormHTML(f.cond||{});
+  condRecalc();
+  document.getElementById('condBg').classList.add('show');
+}
+function saveCond(){ const f=state.fiches.find(x=>x.id===_condId); if(!f) return;
+  f.cond=readCondForm(); save(); render(); closeCond(); openDetail(f.id); toast('🎯 Évaluation enregistrée'); }
+function closeCond(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('condBg').classList.remove('show'); }
 
 function addFiche(e){ e.preventDefault();
   const data={ owner:f_owner.value, type:f_type.value, num:f_num.value.trim(),
