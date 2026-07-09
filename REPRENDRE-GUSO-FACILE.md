@@ -245,6 +245,46 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
 
 ---
 
+## 9. 🚀 VISION ÉTENDUE (2026-07-09) — gestionnaire de contrats / « bon plan » / signature
+
+> Demande de David : faire de Guso Facile un vrai **gestionnaire pour musiciens ET structures**
+> (profils, éditeur de contrats sur-mesure, évaluateur de « bon plan », négociation, signature).
+> Découpage en modules, du **client-side (faisable sans backend)** au **backend requis**.
+
+**Client-side (sans backend) :**
+- ✅ **Module 1 — Espace Profil** par artiste (`openProfile`, bouton « 👤 Profil ») : identité/admin
+  (régime, n° sécu 🔒, n° GUSO, congés spectacles…), instruments, photo (lien), bio, **« mes
+  conditions idéales »** (prix min, visibilité, trajet, distance, logement, loge, scène, ingé son,
+  sono), modèles de contrats (liens Drive). Stocké `state.people[p].profile` (chiffré, jamais dans
+  le repo public). **LIVRÉ 2026-07-09.**
+- **Module 2 — Évaluateur de date « bon plan ? »** : par date, saisir les **conditions réelles**
+  (mêmes critères) → **comparaison avec les conditions idéales** du profil → **indicateur/score**
+  (bon plan / à négocier / à éviter). Aide à décider si la date vaut le coup.
+- **Module 3 — Infos organisateur + suivi négociation** : champs organisateur (contact, structure
+  juridique, SIRET…), **infos manquantes mises en valeur** + **date d'échéance de signature**.
+- **Module 4 — Section structure « Mes artistes »** : dans le back-office Des Sons et Des Liens,
+  liste des artistes + accès **1 clic** à leur profil ; **édition croisée** (la structure complète
+  les infos manquantes d'un artiste, et inversement). Cloisonnement (Myriam ≠ David) = Phase 6.
+- **Module 5 — Signature de l'artiste** : canvas pour dessiner sa signature (petit dataURL),
+  intégrable aux contrats.
+
+**Backend requis (Phase 5/6, à cadrer/budgéter à part) :**
+- **Module 6 — Lien à l'organisateur** : l'orga remplit SA partie à distance (contact/SIRET/signe)
+  via un lien → un tiers écrit des données **sans le code commun** ⇒ backend.
+- **Module 7 — Signature électronique 2 parties + génération du contrat PDF signé** ⇒ backend + stockage.
+- **Module 8 — Partage sécurisé/cloisonné** (vrais comptes) = Phase 6.
+- **Emails auto** (rappels DPAE/GUSO/paiement) = Phase 5.
+
+**Données sensibles :** le **n° sécu** (et le Google Sheet fourni par David :
+`docs.google.com/spreadsheets/d/1hJkZECxTeBoxU1yasma0AHq7rinK6vBQrXqEaRGEOII`) vont dans la **LIVE
+data chiffrée** (Firestore), **jamais** dans `ENC_SEED`/le repo public. David a demandé de lire le
+Sheet pour pré-remplir les profils (à faire dans un flux contrôlé, écriture dans les données live).
+
+**Contrainte technique récurrente :** tout `state` tient dans **1 document Firestore (~1 Mo max)** →
+photos/PDF = **liens Drive** (pas de fichiers en base64), pas de vrai upload sans backend.
+
+---
+
 ## 7. ✅ PLAN VALIDÉ PAR DAVID (2026-06-24)
 
 > **DÉCISION : faire « Tout le client d'abord » = Phases 0→4 ci-dessous (côté client, SANS
