@@ -306,6 +306,10 @@
   .r-nums b{color:var(--accent)}
   .r-meta{font-size:11.5px;color:var(--muted);margin-top:3px}
   .r-nogus{color:var(--warn);font-weight:600}
+  .r-card-poss{opacity:.72;background:rgba(167,139,250,.05)}
+  .r-poss{color:var(--hypo);font-weight:600}
+  .r-mtot-poss{color:var(--hypo)}
+  .r-gt-note{color:var(--muted);font-weight:400;font-size:11px}
   .r-empty{color:var(--muted);padding:18px;text-align:center}
 </style>
 </head>
@@ -1150,11 +1154,13 @@ function openRecap(person){ person=person||currentPerson||'David'; _recapPerson=
   document.getElementById('recapBg').classList.add('show'); }
 function closeRecap(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('recapBg').classList.remove('show'); }
 function buildRecap(person){
-  const fs=state.fiches.filter(f=>!f.hypo && (f.owner===person||f.owner==='both'));
-  if(!fs.length) return '<div class="r-empty">Aucune date confirmée pour '+person+'.</div>';
-  // regroupe par n° GUSO (fiches sans n° = déclarations séparées, pas encore connues de FT)
+  const involves=f=>(f.owner===person||f.owner==='both');
+  const confirmed=state.fiches.filter(f=>!f.hypo && involves(f));
+  const possibles=state.fiches.filter(f=>f.hypo && involves(f));
+  if(!confirmed.length && !possibles.length) return '<div class="r-empty">Aucune date pour '+person+'.</div>';
+  // regroupe les CONFIRMÉES par n° GUSO (fiches sans n° = déclarations séparées, pas encore connues de FT)
   const groups={};
-  fs.forEach(f=>{ const key=f.num?('g:'+f.num):('x:'+f.id);
+  confirmed.forEach(f=>{ const key=f.num?('g:'+f.num):('x:'+f.id);
     (groups[key]=groups[key]||{num:f.num||'',fiches:[],lieux:new Set()}).fiches.push(f);
     if(f.lieu) groups[key].lieux.add(f.lieu); });
   const rows=Object.values(groups).map(g=>{ let start=null,end=null,cachets=0,heures=0,brut=0,hasGuso=false;
@@ -1162,21 +1168,30 @@ function buildRecap(person){
       if(!start||s<start)start=s; if(!end||e>end)end=e;
       cachets+=Number(f.cachets)||0; heures+=repetFor(f,person); brut+=Number(f.brut)||0;
       if(f.steps&&f.steps.guso)hasGuso=true; });
-    return {num:g.num,lieux:[...g.lieux].join(' · '),start,end,cachets,heures,brut,hasGuso,ids:g.fiches.map(f=>f.id)}; });
+    return {num:g.num,lieux:[...g.lieux].join(' · '),start,end,cachets,heures,brut,hasGuso,ids:g.fiches.map(f=>f.id),hypo:false}; });
+  // POSSIBLES : 1 carte par fiche (souvent pas de n° GUSO), non comptées dans les totaux
+  const posRows=possibles.map(f=>({num:f.num||'',lieux:f.lieu||'',start:f.start,end:f.end||f.start,
+    cachets:Number(f.cachets)||0,heures:repetFor(f,person),brut:Number(f.brut)||0,hasGuso:false,ids:[f.id],hypo:true}));
   const byMonth={};
-  rows.forEach(r=>{ const ym=_recYM(r.start); (byMonth[ym]=byMonth[ym]||[]).push(r); });
+  rows.forEach(r=>{ const ym=_recYM(r.start); (byMonth[ym]=byMonth[ym]||{conf:[],pos:[]}).conf.push(r); });
+  posRows.forEach(r=>{ const ym=_recYM(r.start); (byMonth[ym]=byMonth[ym]||{conf:[],pos:[]}).pos.push(r); });
   const gG=rows.length,gC=rows.reduce((s,r)=>s+r.cachets,0),gH=rows.reduce((s,r)=>s+r.heures,0),gB=rows.reduce((s,r)=>s+r.brut,0);
-  let html='<div class="r-grandtot">Total '+person+' : <b>'+gG+'</b> GUSO · <b>'+gC+'</b> cachet'+(gC>1?'s':'')+(gH>0?' · <b>'+gH+'</b> h':'')+' · <b>'+_recEur(gB)+'</b></div>';
+  let html='<div class="r-grandtot">Total '+person+' : <b>'+gG+'</b> GUSO · <b>'+gC+'</b> cachet'+(gC>1?'s':'')+(gH>0?' · <b>'+gH+'</b> h':'')+' · <b>'+_recEur(gB)+'</b> <span class="r-gt-note">(dates confirmées)</span></div>';
+  const card=r=>{ const when=(r.start===r.end)?('Le '+fmt(r.start)):('Du '+fmt(r.start)+' au '+fmt(r.end));
+    const parts=['<b>'+r.cachets+'</b> cachet'+(r.cachets>1?'s':'')];
+    if(r.heures>0) parts.push('<b>'+r.heures+'</b> h');
+    if(r.brut>0) parts.push('<b style="color:var(--money)">'+_recEur(r.brut)+'</b> bruts');
+    const meta=r.hypo?'<span class="r-poss">🔮 possible — à confirmer si déjà déclarée à France Travail</span>'
+      :(r.num?('GUSO n° '+r.num+(r.hasGuso?' ✓':'')):'<span class="r-nogus">⏳ pas encore de n° GUSO — pas encore connue de France Travail</span>');
+    return '<div class="r-card'+(r.hypo?' r-card-poss':'')+'" onclick="closeRecap();openDetail(\''+r.ids[0]+'\')" data-tip="Ouvrir cette date"><div class="r-when">'+when+'</div><div class="r-nums">'+parts.join(' · ')+'</div><div class="r-meta">'+(r.lieux||'(sans titre)')+' · '+meta+'</div></div>'; };
   Object.keys(byMonth).sort((a,b)=>a<b?1:-1).forEach(ym=>{
-    const list=byMonth[ym].sort((a,b)=>a.start<b.start?1:-1);
-    const mG=list.length,mC=list.reduce((s,r)=>s+r.cachets,0),mH=list.reduce((s,r)=>s+r.heures,0),mB=list.reduce((s,r)=>s+r.brut,0);
-    html+='<div class="r-month"><div class="r-mhead"><span class="r-mname">'+_recMonth(list[0].start)+'</span><span class="r-mtot">'+mG+' GUSO · '+mC+' cachet'+(mC>1?'s':'')+(mH>0?' · '+mH+' h':'')+' · '+_recEur(mB)+'</span></div>';
-    html+=list.map(r=>{ const when=(r.start===r.end)?('Le '+fmt(r.start)):('Du '+fmt(r.start)+' au '+fmt(r.end));
-      const parts=['<b>'+r.cachets+'</b> cachet'+(r.cachets>1?'s':'')];
-      if(r.heures>0) parts.push('<b>'+r.heures+'</b> h');
-      if(r.brut>0) parts.push('<b style="color:var(--money)">'+_recEur(r.brut)+'</b> bruts');
-      const gus=r.num?('GUSO n° '+r.num+(r.hasGuso?' ✓':'')):'<span class="r-nogus">⏳ pas encore de n° GUSO — pas encore connue de France Travail</span>';
-      return '<div class="r-card" onclick="closeRecap();openDetail(\''+r.ids[0]+'\')" data-tip="Ouvrir cette date"><div class="r-when">'+when+'</div><div class="r-nums">'+parts.join(' · ')+'</div><div class="r-meta">'+(r.lieux||'(sans titre)')+' · '+gus+'</div></div>'; }).join('');
+    const m=byMonth[ym], conf=m.conf.sort((a,b)=>a.start<b.start?1:-1), pos=m.pos.sort((a,b)=>a.start<b.start?1:-1);
+    const anchor=conf[0]||pos[0];
+    const mG=conf.length,mC=conf.reduce((s,r)=>s+r.cachets,0),mH=conf.reduce((s,r)=>s+r.heures,0),mB=conf.reduce((s,r)=>s+r.brut,0);
+    let tot=mG+' GUSO · '+mC+' cachet'+(mC>1?'s':'')+(mH>0?' · '+mH+' h':'')+' · '+_recEur(mB);
+    if(pos.length) tot+=' · <span class="r-mtot-poss">🔮 +'+pos.length+' poss.</span>';
+    html+='<div class="r-month"><div class="r-mhead"><span class="r-mname">'+_recMonth(anchor.start)+'</span><span class="r-mtot">'+tot+'</span></div>';
+    html+=conf.map(card).join('')+pos.map(card).join('');
     html+='</div>';
   });
   return html;
