@@ -202,8 +202,20 @@
   .hero-l b{font-weight:800}
   .hn{font-size:31px;font-weight:800}
   .hn.done{color:var(--accent)} .hn.left{color:var(--warn)} .hn.days{color:var(--money)}
-  .hero-anniv{font-size:15px;font-weight:500;color:var(--muted)}
+  .hero-anniv{display:inline-block;margin-top:10px;font-size:15px;font-weight:700;color:#fff;background:rgba(255,107,107,.14);border:1px solid rgba(255,107,107,.55);border-radius:10px;padding:6px 13px}
+  .hero-anniv .anniv-date{color:#ff5b5b;font-weight:800}
   .hero-rhythm{margin-top:12px;font-size:15.5px;color:var(--accent2);font-weight:700}
+  /* --- Lisibilité mobile : hero compact --- */
+  @media(max-width:560px){
+    .wrap{padding:14px}
+    .hero{gap:14px;margin:2px 0 12px}
+    .hero .ring svg{width:104px;height:104px}
+    .hero-text{min-width:180px}
+    .hero-l{font-size:15.5px;line-height:1.25}
+    .hn{font-size:21px}
+    .hero-anniv{font-size:14px;margin-top:8px;padding:5px 11px}
+    .hero-rhythm{margin-top:8px;font-size:13.5px}
+  }
   .proof-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:4px 0 16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:13.5px}
   .proof-strip .pb{font-weight:800;padding:3px 11px;border-radius:999px;font-size:13px}
   .proof-strip .pb.ok{background:rgba(61,220,151,.18);color:var(--ok);border:1px solid rgba(61,220,151,.5)}
@@ -445,7 +457,8 @@
       <div class="hero-text">
         <div class="hero-l">J'ai effectué <b class="hn done" id="heroDone">—</b> sur <b>507 h</b></div>
         <div class="hero-l">Il m'en reste <b class="hn left" id="heroLeft">—</b> à effectuer</div>
-        <div class="hero-l">dans <b class="hn days" id="heroDays">—</b> <span class="hero-anniv" id="heroAnniv"></span></div>
+        <div class="hero-l">dans <b class="hn days" id="heroDays">—</b></div>
+        <div class="hero-anniv" id="heroAnniv"></div>
         <div class="hero-rhythm" id="heroRhythm"></div>
       </div>
     </div>
@@ -898,7 +911,7 @@ function render(){
     document.getElementById('periodHint').textContent='Du '+fmt(isoLocal(period.start))+' au '+fmt(isoLocal(period.end));
     document.getElementById('mpAnniv').textContent=fmt(isoLocal(period.end));
     const t=today0(), dl=Math.max(0,daysBetween(t,period.end));
-    hd.textContent=dl+' jour'+(dl>1?'s':''); ha.textContent='avant le '+fmt(isoLocal(period.end))+' (date anniversaire)';
+    hd.textContent=dl+' jour'+(dl>1?'s':''); ha.innerHTML='🎯 Date anniversaire : <span class="anniv-date">'+fmt(isoLocal(period.end))+'</span>';
     if(remaining>0 && dl>0){
       const realMonths=dl/30.44, perMonth=remaining/realMonths, cpm=Math.ceil(perMonth/HOURS_PER_CACHET);
       const MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -925,7 +938,7 @@ function render(){
     } else { hr.textContent=''; mp.innerHTML='<div class="mp-ok">🎉 Les 507 h sont atteintes pour cette période.</div>'; }
   } else {
     document.getElementById('periodHint').textContent='Renseigne la date anniversaire pour activer le décompte.';
-    hd.textContent='—'; ha.textContent='(date anniversaire manquante)'; hr.textContent=''; mp.innerHTML='';
+    hd.textContent='—'; ha.innerHTML='⚠️ <span class="anniv-date">Date anniversaire manquante</span>'; hr.textContent=''; mp.innerHTML='';
     document.getElementById('mpAnniv').textContent='—';
   }
 
