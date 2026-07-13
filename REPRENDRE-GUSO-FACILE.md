@@ -258,6 +258,11 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
   conditions idéales »** (prix min, visibilité, trajet, distance, logement, loge, scène, ingé son,
   sono), modèles de contrats (liens Drive). Stocké `state.people[p].profile` (chiffré, jamais dans
   le repo public). **LIVRÉ 2026-07-09.**
+  - **+ Date anniversaire** modifiable dans le profil (`special:'anniv'` → `state.people[p].anniv`). **2026-07-13.**
+  - **+ Coordonnées bancaires (2026-07-13)** : IBAN / banque / BIC + **RIB officiel** en glisser-déposer
+    (`_pfRib`, dataURL embarqué, plafond `RIB_MAX` 300 Ko sinon lien Drive `ribLink`) ; bouton « 👁 Afficher »
+    (`openDataUrl` → blob). Exposé aussi dans la fiche « Mes artistes » (Module 4) + le « Copier les infos »
+    (l'IBAN/BIC servent aux virements ; certaines structures exigent le RIB officiel de la banque).
 - ✅ **Module 2 — Évaluateur de date « bon plan ? »** (`openCond`/`computeCond`, bouton « 🎯 Bon
   plan ? » dans le détail d'un **concert**) : par date, saisir les **conditions réelles** proposées
   par l'orga (`f.cond` : prix, distance, trajet, logement, loge, scène + dimensions, ingé son, sono

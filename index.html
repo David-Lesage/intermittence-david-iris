@@ -359,6 +359,14 @@
   .pf-check input{width:auto;transform:scale(1.15)}
   .pf-note{font-size:11.5px;color:var(--muted);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:9px 11px;margin:12px 0}
   .pf-actions{margin-top:14px;text-align:right}
+  .pf-drop{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;background:var(--panel2);cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:6px}
+  .pf-drop:hover{border-color:var(--accent2)}
+  .pf-drop.drag{border-color:var(--accent);background:rgba(76,201,240,.10)}
+  .pf-drop.has{cursor:default;border-style:solid}
+  .pf-drop-txt{font-size:13.5px;color:var(--txt)} .pf-drop-txt span{font-size:11.5px;color:var(--muted)}
+  .pf-rib-file{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--txt);justify-content:center}
+  .pf-rib-sz{font-size:11.5px;color:var(--muted)}
+  .pf-rib-btns{display:flex;gap:6px;flex-wrap:wrap}
   /* ===== Module 2 : évaluateur « Bon plan ? » ===== */
   .ev-verdict{border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1.5px solid}
   .ev-vhead{font-size:19px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
@@ -1308,6 +1316,12 @@ function renderArtistFiche(){
   add('Email',val(pr.email));
   add('Régime',val(pr.regime));
   add('Qualification',val(pr.qualification));
+  add('IBAN',val(pr.iban));
+  add('Banque',val(pr.banque));
+  add('BIC',val(pr.bic));
+  const ribBtn = pr.rib ? '<button class="btn ghost sm" type="button" onclick="showArtistRib(\''+p+'\')" data-tip="Ouvrir le RIB officiel de la banque">📎 Afficher le RIB officiel</button>'
+    : (pr.ribLink ? '<a class="btn ghost sm" href="'+_escA(pr.ribLink)+'" target="_blank" rel="noopener" data-tip="Ouvrir le RIB (lien Drive)">📎 Ouvrir le RIB (Drive)</a>' : '');
+  if(ribBtn) add('RIB officiel',ribBtn);
   box.innerHTML='<div class="ba-fiche '+cls+'">'
     +'<button class="btn ghost sm" type="button" onclick="closeArtistCard()" data-tip="Revenir à la liste des artistes (sans fermer le back-office)">‹ Retour aux artistes</button>'
     +'<div class="ba-fh">'+_baAvatar(pr)
@@ -1331,8 +1345,12 @@ function buildArtistInfoText(p){ const pr=_baProfile(p); const v=x=>(x!=null&&St
     'Téléphone : '+v(pr.telephone),
     'Email : '+v(pr.email),
     'Régime : '+v(pr.regime),
-    'Qualification : '+v(pr.qualification)].join('\n');
+    'Qualification : '+v(pr.qualification),
+    'IBAN : '+v(pr.iban),
+    'Banque : '+v(pr.banque),
+    'BIC : '+v(pr.bic)].join('\n');
 }
+function showArtistRib(p){ const r=_baProfile(p).rib; if(r&&r.data) openDataUrl(r.data,r.type); }
 function copyArtistInfo(){ const p=_baPerson; if(!p) return; const txt=buildArtistInfoText(p);
   if(navigator.clipboard&&navigator.clipboard.writeText)
     navigator.clipboard.writeText(txt).then(()=>toast('📋 Infos de '+fullName(p)+' copiées'),()=>prompt('Copie ces infos :',txt));
@@ -1437,6 +1455,12 @@ const PROFILE_FIELDS=[
   {k:'lieuNaissance',l:'Lieu de naissance'},
   {k:'nationalite',l:'Nationalité'},
   {k:'qualification',l:'Qualification (ex. Artiste Musicien Chanteur)'},
+  {sec:'Coordonnées bancaires (pour les paiements)'},
+  {k:'iban',l:'IBAN'},
+  {k:'banque',l:'Nom de la banque'},
+  {k:'bic',l:'BIC / SWIFT'},
+  {k:'rib',special:'rib'},
+  {k:'ribLink',l:'…ou lien Drive du RIB officiel (si le fichier est trop lourd)'},
   {sec:'Artistique'},
   {k:'instruments',l:'Instruments joués'},
   {k:'photo',l:'Photo (lien Drive / URL)'},
@@ -1455,8 +1479,40 @@ const PROFILE_FIELDS=[
 function _esc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function _escA(s){ return _esc(s).replace(/"/g,'&quot;'); }
 function ensureProfile(p){ if(!state.people[p]) return {}; if(!state.people[p].profile) state.people[p].profile={}; return state.people[p].profile; }
+/* --- Fichier RIB officiel : glisser-déposer, embarqué en dataURL (léger, cf. limite ~1 Mo du doc chiffré) --- */
+let _pfRib=null;
+const RIB_MAX=300*1024;   // fichier brut max embarqué ; au-delà → lien Drive
+function _dataKo(dataUrl){ const c=dataUrl.length-(dataUrl.indexOf(',')+1); const b=Math.round(c*3/4);
+  return b>1048576?(b/1048576).toFixed(1)+' Mo':Math.max(1,Math.round(b/1024))+' Ko'; }
+function pfRibInner(){ const r=_pfRib;
+  const inner = r
+    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> <span class="pf-rib-sz">'+_dataKo(r.data)+'</span>'
+       +'<span class="pf-rib-btns"><button type="button" class="btn ghost sm" onclick="showPfRib()" data-tip="Ouvrir le fichier RIB">👁 Afficher</button>'
+       +'<button type="button" class="btn ghost sm" onclick="removePfRib()" data-tip="Retirer ce fichier">🗑 Retirer</button></span></div>'
+    : '<div class="pf-drop-txt">📎 Glisse ton <b>RIB / IBAN officiel</b> ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div>';
+  return '<div class="pf-sec">RIB / IBAN officiel de la banque</div>'
+    +'<div id="pfRibZone" class="pf-drop'+(r?' has':'')+'" ondragover="pfDragOver(event)" ondragleave="pfDragLeave(event)" ondrop="pfDrop(event)"'
+    +(r?'':' onclick="document.getElementById(\'pf_ribfile\').click()"')+'>'+inner+'</div>'
+    +'<input type="file" id="pf_ribfile" accept="application/pdf,image/*" style="display:none" onchange="pfPickRib(this.files)">';
+}
+function _pfRerenderRib(){ const b=document.getElementById('pfRibBlock'); if(b) b.innerHTML=pfRibInner(); }
+function pfDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag'); }
+function pfDragLeave(e){ e.currentTarget.classList.remove('drag'); }
+function pfDrop(e){ e.preventDefault(); e.currentTarget.classList.remove('drag'); pfPickRib(e.dataTransfer.files); }
+function pfPickRib(files){ const f=files&&files[0]; if(!f) return;
+  if(!(f.type==='application/pdf'||f.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
+  if(f.size>RIB_MAX){ toast('⚠️ Fichier trop lourd ('+Math.round(f.size/1024)+' Ko, max '+(RIB_MAX/1024)+' Ko). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
+  const rd=new FileReader(); rd.onload=()=>{ _pfRib={name:f.name,type:f.type,data:rd.result}; _pfRerenderRib(); toast('📎 RIB ajouté — enregistre le profil pour le conserver'); };
+  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(f);
+}
+function removePfRib(){ _pfRib=null; _pfRerenderRib(); }
+function showPfRib(){ if(_pfRib) openDataUrl(_pfRib.data,_pfRib.type); }
+function openDataUrl(dataUrl,type){ try{ const c=dataUrl.split(','); const bin=atob(c[1]); const a=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); const url=URL.createObjectURL(new Blob([a],{type:type||'application/octet-stream'}));
+  window.open(url,'_blank'); setTimeout(()=>URL.revokeObjectURL(url),60000); }catch(e){ window.open(dataUrl,'_blank'); } }
 function openProfile(person){ person=(person&&state.people[person])?person:currentPerson; _profilePerson=person;
   const pr=ensureProfile(person);
+  _pfRib = pr.rib ? {name:pr.rib.name,type:pr.rib.type,data:pr.rib.data} : null;   // fichier RIB : copie de travail
   document.getElementById('pfTabDavid').classList.toggle('active',person==='David');
   document.getElementById('pfTabIris').classList.toggle('active',person==='Iris');
   document.getElementById('pfTitle').textContent='👤 Profil — '+person;
@@ -1465,6 +1521,7 @@ function openProfile(person){ person=(person&&state.people[person])?person:curre
     if(f.sec){ h+='<div class="pf-sec">'+f.sec+'</div>'; return; }
     if(f.special==='anniv'){ // stockée sur state.people[p].anniv (pas dans profile) : pilote le calcul des 507 h
       h+='<div class="pf-row"><label>'+f.l+'</label><input type="date" id="pf_anniv" value="'+_escA(state.people[person].anniv||'')+'"></div>'; return; }
+    if(f.special==='rib'){ h+='<div id="pfRibBlock">'+pfRibInner()+'</div>'; return; }
     const v=pr[f.k]==null?'':pr[f.k];
     if(f.type==='check') h+='<label class="pf-check"><input type="checkbox" id="pf_'+f.k+'"'+(v?' checked':'')+'> '+f.l+'</label>';
     else if(f.type==='textarea') h+='<div class="pf-row"><label>'+f.l+'</label><textarea id="pf_'+f.k+'">'+_esc(v)+'</textarea></div>';
@@ -1478,7 +1535,9 @@ function openProfile(person){ person=(person&&state.people[person])?person:curre
   document.getElementById('profileBg').classList.add('show');
 }
 function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
-  PROFILE_FIELDS.forEach(f=>{ if(f.sec) return; const el=document.getElementById('pf_'+f.k); if(!el) return;
+  PROFILE_FIELDS.forEach(f=>{ if(f.sec) return;
+    if(f.special==='rib'){ if(_pfRib) pr.rib=_pfRib; else delete pr.rib; return; }
+    const el=document.getElementById('pf_'+f.k); if(!el) return;
     if(f.special==='anniv'){ if(el.value) state.people[p].anniv=el.value; return; }  // garde-fou : champ vidé = date conservée
     pr[f.k]=(f.type==='check')?el.checked:el.value; });
   const ct=document.getElementById('pf_contrats'); if(ct) pr.contrats=ct.value;
