@@ -106,6 +106,9 @@
   .ba-empty{color:var(--muted);opacity:.75;font-size:12.5px}
   .ba-empty i{opacity:.85;font-size:11px}
   .ba-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .ba-structbtn{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--accent2);border-radius:12px;background:var(--panel2);cursor:pointer;margin-bottom:16px;font-size:13.5px;color:var(--txt)}
+  .ba-structbtn:hover{border-color:var(--accent2);background:rgba(124,158,255,.07)}
+  .ba-structbtn .ba-go{color:var(--accent2);font-weight:700;white-space:nowrap}
   @media(max-width:520px){ .ba-tab{grid-template-columns:1fr} .ba-k{padding-bottom:0} }
   /* ===== Guide utilisateur (artiste vs structure) ===== */
   .modal.guide-modal{max-width:680px;padding:0;overflow:hidden}
@@ -607,6 +610,18 @@
       </div>
       <div id="profileContent"></div>
     </div>
+   </div>
+  </div>
+
+  <!-- FICHE STRUCTURE (Des Sons et Des Liens) -->
+  <div class="modal-bg" id="structBg" style="z-index:80" onclick="closeStructure(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeStructure()" data-tip="Fermer">✕</button>
+      <h2>🏢 Ma structure</h2>
+      <div class="bo-sub">Infos de la structure employeuse (SIRET, licence spectacle, contact) et coordonnées bancaires — pour les contrats et les paiements.</div>
+    </div>
+    <div class="r-body"><div id="structContent"></div></div>
    </div>
   </div>
 
@@ -1275,7 +1290,8 @@ function maskSecu(v){ v=String(v||'').replace(/\s+/g,''); if(!v) return '';
   return head+' ••• ••• •••'; }
 // Section en tête du back-office : une carte cliquable par personne de state.people (générique).
 function boArtistsHtml(){
-  let h='<div class="ba-sec">👥 Mes artistes</div><div class="ba-grid" id="baGrid">';
+  let h='<div class="ba-structbtn" onclick="openStructure()" data-tip="Infos de la structure : SIRET, licence spectacle, contact, IBAN, RIB officiel"><span>🏢 <b>Ma structure</b> — SIRET, licence, coordonnées bancaires</span><span class="ba-go">ouvrir ›</span></div>';
+  h+='<div class="ba-sec">👥 Mes artistes</div><div class="ba-grid" id="baGrid">';
   Object.keys(state.people).forEach(p=>{
     const pr=_baProfile(p), cls=p==='Iris'?'iris':'david';
     const meta=[pr.qualification,pr.instruments].filter(x=>x&&String(x).trim()!=='').map(_esc).join(' · ')||'profil à compléter';
@@ -1544,6 +1560,71 @@ function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
   state.people[p].profile=pr; save(); render(); toast('✓ Profil enregistré'); closeProfile();
 }
 function closeProfile(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('profileBg').classList.remove('show'); }
+
+/* ===== Fiche « Ma structure » (Des Sons et Des Liens) — identité employeur + coordonnées bancaires ===== */
+const STRUCT_FIELDS=[
+  {sec:'Structure employeuse'},
+  {k:'nom',l:'Nom de la structure'},
+  {k:'forme',l:'Forme juridique',type:'select',opts:['','Association','SARL','SAS','Auto-entrepreneur','Collectivité / mairie','Autre']},
+  {k:'siret',l:'N° SIRET'},
+  {k:'licence',l:'N° licence spectacle'},
+  {k:'adresse',l:'Adresse'},
+  {k:'contact',l:'Contact / référent'},
+  {k:'telephone',l:'Téléphone',type:'tel'},
+  {k:'email',l:'Email',type:'email'},
+  {sec:'Coordonnées bancaires (pour les paiements)'},
+  {k:'iban',l:'IBAN'},
+  {k:'banque',l:'Nom de la banque'},
+  {k:'bic',l:'BIC / SWIFT'},
+  {k:'rib',special:'rib'},
+  {k:'ribLink',l:'…ou lien Drive du RIB officiel (si le fichier est trop lourd)'}
+];
+let _stRib=null;
+function ensureStructure(){ if(!state.structure) state.structure={}; return state.structure; }
+function stRibInner(){ const r=_stRib;
+  const inner = r
+    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> <span class="pf-rib-sz">'+_dataKo(r.data)+'</span>'
+       +'<span class="pf-rib-btns"><button type="button" class="btn ghost sm" onclick="showStRib()" data-tip="Ouvrir le fichier RIB">👁 Afficher</button>'
+       +'<button type="button" class="btn ghost sm" onclick="removeStRib()" data-tip="Retirer ce fichier">🗑 Retirer</button></span></div>'
+    : '<div class="pf-drop-txt">📎 Glisse le <b>RIB officiel de la structure</b> ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div>';
+  return '<div class="pf-sec">RIB officiel de la structure</div>'
+    +'<div id="stRibZone" class="pf-drop'+(r?' has':'')+'" ondragover="pfDragOver(event)" ondragleave="pfDragLeave(event)" ondrop="stDrop(event)"'
+    +(r?'':' onclick="document.getElementById(\'st_ribfile\').click()"')+'>'+inner+'</div>'
+    +'<input type="file" id="st_ribfile" accept="application/pdf,image/*" style="display:none" onchange="stPickRib(this.files)">';
+}
+function _stRerenderRib(){ const b=document.getElementById('stRibBlock'); if(b) b.innerHTML=stRibInner(); }
+function stDrop(e){ e.preventDefault(); e.currentTarget.classList.remove('drag'); stPickRib(e.dataTransfer.files); }
+function stPickRib(files){ const f=files&&files[0]; if(!f) return;
+  if(!(f.type==='application/pdf'||f.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
+  if(f.size>RIB_MAX){ toast('⚠️ Fichier trop lourd ('+Math.round(f.size/1024)+' Ko, max '+(RIB_MAX/1024)+' Ko). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
+  const rd=new FileReader(); rd.onload=()=>{ _stRib={name:f.name,type:f.type,data:rd.result}; _stRerenderRib(); toast('📎 RIB ajouté — enregistre pour le conserver'); };
+  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(f);
+}
+function removeStRib(){ _stRib=null; _stRerenderRib(); }
+function showStRib(){ if(_stRib) openDataUrl(_stRib.data,_stRib.type); }
+function openStructure(){ const s=ensureStructure();
+  if(!s.nom) s.nom='Des Sons et Des Liens';
+  _stRib = s.rib ? {name:s.rib.name,type:s.rib.type,data:s.rib.data} : null;
+  let h='';
+  STRUCT_FIELDS.forEach(f=>{
+    if(f.sec){ h+='<div class="pf-sec">'+f.sec+'</div>'; return; }
+    if(f.special==='rib'){ h+='<div id="stRibBlock">'+stRibInner()+'</div>'; return; }
+    const v=s[f.k]==null?'':s[f.k];
+    if(f.type==='select') h+='<div class="pf-row"><label>'+f.l+'</label><select id="st_'+f.k+'">'+f.opts.map(o=>'<option'+(v===o?' selected':'')+'>'+(o||'—')+'</option>').join('')+'</select></div>';
+    else h+='<div class="pf-row"><label>'+f.l+'</label><input type="'+(f.type||'text')+'" id="st_'+f.k+'" value="'+_escA(v)+'"></div>';
+  });
+  h+='<div class="pf-note">🔒 Ces infos sont chiffrées et synchronisées comme le reste — jamais dans le code public du site.</div>';
+  h+='<div class="pf-actions"><button class="btn" type="button" onclick="saveStructure()">💾 Enregistrer</button></div>';
+  document.getElementById('structContent').innerHTML=h;
+  document.getElementById('structBg').classList.add('show');
+}
+function saveStructure(){ const s=ensureStructure();
+  STRUCT_FIELDS.forEach(f=>{ if(f.sec) return;
+    if(f.special==='rib'){ if(_stRib) s.rib=_stRib; else delete s.rib; return; }
+    const el=document.getElementById('st_'+f.k); if(el) s[f.k]=el.value; });
+  save(); toast('✓ Fiche structure enregistrée'); closeStructure();
+}
+function closeStructure(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('structBg').classList.remove('show'); }
 
 /* ===== Module 2 : évaluateur « Bon plan ? » — conditions réelles vs conditions idéales du profil ===== */
 let _condId=null;

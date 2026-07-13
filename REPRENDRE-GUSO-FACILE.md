@@ -263,6 +263,9 @@ Détails inchangés ci-dessous (§6-A et §6-D + §7 historique).
     (`_pfRib`, dataURL embarqué, plafond `RIB_MAX` 300 Ko sinon lien Drive `ribLink`) ; bouton « 👁 Afficher »
     (`openDataUrl` → blob). Exposé aussi dans la fiche « Mes artistes » (Module 4) + le « Copier les infos »
     (l'IBAN/BIC servent aux virements ; certaines structures exigent le RIB officiel de la banque).
+  - **+ Fiche « Ma structure » (2026-07-13)** : `state.structure` (SIRET, forme, licence spectacle,
+    contact, IBAN/banque/BIC + RIB officiel en glisser-déposer, `_stRib`). `openStructure`/`saveStructure`,
+    modale `#structBg`, accès via bouton « 🏢 Ma structure » en tête du back-office Des Sons et Des Liens.
 - ✅ **Module 2 — Évaluateur de date « bon plan ? »** (`openCond`/`computeCond`, bouton « 🎯 Bon
   plan ? » dans le détail d'un **concert**) : par date, saisir les **conditions réelles** proposées
   par l'orga (`f.cond` : prix, distance, trajet, logement, loge, scène + dimensions, ingé son, sono
