@@ -1412,6 +1412,7 @@ function buildRecap(person){
 let _profilePerson='David';
 const PROFILE_FIELDS=[
   {sec:'Identité & administratif'},
+  {k:'anniv',l:'Date anniversaire intermittence (renouvellement des 507 h)',type:'date',special:'anniv'},
   {k:'regime',l:'Régime',type:'select',opts:['','Artiste (annexe 10)','Technicien (annexe 8)']},
   {k:'naissance',l:'Date de naissance',type:'date'},
   {k:'secu',l:'N° sécurité sociale',sensitive:true},
@@ -1449,6 +1450,8 @@ function openProfile(person){ person=(person&&state.people[person])?person:curre
   let h = pr.photo?('<div class="pf-photo"><img src="'+_escA(pr.photo)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'):'';
   PROFILE_FIELDS.forEach(f=>{
     if(f.sec){ h+='<div class="pf-sec">'+f.sec+'</div>'; return; }
+    if(f.special==='anniv'){ // stockée sur state.people[p].anniv (pas dans profile) : pilote le calcul des 507 h
+      h+='<div class="pf-row"><label>'+f.l+'</label><input type="date" id="pf_anniv" value="'+_escA(state.people[person].anniv||'')+'"></div>'; return; }
     const v=pr[f.k]==null?'':pr[f.k];
     if(f.type==='check') h+='<label class="pf-check"><input type="checkbox" id="pf_'+f.k+'"'+(v?' checked':'')+'> '+f.l+'</label>';
     else if(f.type==='textarea') h+='<div class="pf-row"><label>'+f.l+'</label><textarea id="pf_'+f.k+'">'+_esc(v)+'</textarea></div>';
@@ -1463,9 +1466,10 @@ function openProfile(person){ person=(person&&state.people[person])?person:curre
 }
 function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
   PROFILE_FIELDS.forEach(f=>{ if(f.sec) return; const el=document.getElementById('pf_'+f.k); if(!el) return;
+    if(f.special==='anniv'){ if(el.value) state.people[p].anniv=el.value; return; }  // garde-fou : champ vidé = date conservée
     pr[f.k]=(f.type==='check')?el.checked:el.value; });
   const ct=document.getElementById('pf_contrats'); if(ct) pr.contrats=ct.value;
-  state.people[p].profile=pr; save(); toast('✓ Profil enregistré'); closeProfile();
+  state.people[p].profile=pr; save(); render(); toast('✓ Profil enregistré'); closeProfile();
 }
 function closeProfile(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('profileBg').classList.remove('show'); }
 

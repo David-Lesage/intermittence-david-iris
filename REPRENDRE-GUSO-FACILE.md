@@ -17,8 +17,9 @@ GUSO**.
 
 - **En ligne (source de vérité) :** https://david-lesage.github.io/intermittence-david-iris/
 - **Code d'accès :** `gusofacile` (déverrouille les données chiffrées).
-- **Dates anniversaire :** David = **23 août**, Iris = **3 septembre** (le seuil 507 h se calcule
-  sur les 12 mois précédents).
+- **Dates anniversaire :** David = **23 août**, Iris = **16 août** (corrigée le 2026-07-13, avant :
+  3 septembre). Le seuil 507 h se calcule sur les 12 mois précédents. Modifiable dans le dashboard
+  ET dans le profil (champ « Date anniversaire intermittence », stocké sur `state.people[p].anniv`).
 - Contexte humain : ils sont **en stress pour trouver assez de dates cet été** (charge mentale
   administrative énorme — c'est le sens même de l'app : simplifier).
 
