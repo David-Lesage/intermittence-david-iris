@@ -27,7 +27,7 @@
     --txt:#e8eef5; --muted:#8aa0b8; --accent:#4cc9f0; --accent2:#7b9eff;
     --ok:#3ddc97; --warn:#ffd166; --bad:#ff6b6b; --money:#ffd166;
     --david:#4cc9f0; --iris:#f072c0; --hypo:#a78bfa;
-    --c-concert:#4cc9f0; --c-repet:#ffd166;
+    --c-concert:#4cc9f0; --c-repet:#ffd166; --c-tech:#5ec9c9; --c-studio:#ff8a65;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -536,6 +536,8 @@
     <div class="chart-legend">
       <span><i style="background:var(--c-concert)"></i>🎤 Concert / spectacle</span>
       <span><i style="background:var(--c-repet)"></i>🎼 Répétition</span>
+      <span><i style="background:var(--c-tech)"></i>🔧 Technicien</span>
+      <span><i style="background:var(--c-studio)"></i>🎙️ Studio</span>
       <span><i style="background:var(--hypo)"></i>🔮 Date possible</span>
     </div>
   </div>
@@ -687,7 +689,7 @@
     <div id="confirmArea"></div>
     <form class="fiche" id="ficheForm" onsubmit="return addFiche(event)">
       <div><label>Personne</label><select id="f_owner" onchange="updatePersonFields();updateFormHelp()" data-tip="À qui appartient cette date : David, Iris, ou les deux (date partagée qui apparaît chez les deux et compte pour chacun)"><option value="David">David</option><option value="Iris">Iris</option><option value="both">👥 David et Iris (partagée)</option></select></div>
-      <div><label>Type</label><select id="f_type" onchange="updateFormHelp()" data-tip="Concert / spectacle (avec cachets) ou Répétition (heures réelles)"><option value="concert">Concert / spectacle</option><option value="repet">Répétition</option></select></div>
+      <div><label>Type</label><select id="f_type" onchange="updateFormHelp()" data-tip="Concert/spectacle ou Studio (avec cachets) · Répétition (heures réelles)"><option value="concert">🎤 Concert / spectacle</option><option value="studio">🎙️ Studio (musicien · chèque-intermittents)</option><option value="repet">🎼 Répétition</option></select></div>
       <div class="full"><label>Statut</label><select id="f_hypo" onchange="updateFormHelp()" data-tip="Confirmée = compte dans tes heures · Possible = compte seulement dans la projection"><option value="non">✅ Confirmée (validée par l'orga)</option><option value="oui">🔮 Possible / hypothétique (non validée)</option></select></div>
       <div class="full"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche si ces heures sont déclarées en TECHNICIEN (annexe 8). Elles comptent quand même dans tes 507 h, mais sont suivies à part.">
         <input type="checkbox" id="f_tech" onchange="updateFormHelp()" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 🔧 Heures en tant que technicien (annexe 8)</label></div>
@@ -968,6 +970,14 @@ function render(){
   renderTodo(p); renderList(); renderYearChart(p);
 }
 
+// Catégorie d'une date pour le graphique/les libellés (le technicien prime, puis studio, répét, concert).
+// NB : côté heures, studio & technicien comptent comme un concert (cachets × 12 h) — voir ficheHours.
+function ficheCat(f){
+  if(f.tech) return {c:'var(--c-tech)', l:'🔧 Technicien'};
+  if(f.type==='studio') return {c:'var(--c-studio)', l:'🎙️ Studio'};
+  if(f.type==='repet') return {c:'var(--c-repet)', l:'🎼 Répétition'};
+  return {c:'var(--c-concert)', l:'🎤 Concert'};
+}
 function renderYearChart(p){
   const el=document.getElementById('yearChart');
   const period=currentPeriod(p);
@@ -992,8 +1002,9 @@ function renderYearChart(p){
   let bars='';
   list.forEach(f=>{ const h=ficheHours(f,p);
     const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-4.5;
-    const col=f.hypo?'var(--hypo)':(f.type==='repet'?'var(--c-repet)':'var(--c-concert)');
-    const t=(f.hypo?'🔮 ':'')+(f.type==='repet'?'🎼 Répétition':'🎤 Concert');
+    const cat=ficheCat(f);
+    const col=f.hypo?'var(--hypo)':cat.c;
+    const t=(f.hypo?'🔮 ':'')+cat.l;
     bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="9" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-id="${f.id}" data-t="${esc(t)}" data-d="${esc(fmt(f.start))}" data-l="${esc(f.lieu||'')}" data-h="${h}"/>`;
   });
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}${bars}</svg><div class="chart-tip" id="chartTip"></div>`;
@@ -1019,7 +1030,7 @@ function renderTodo(p){
   const box=document.getElementById('todo');
   // engagements pertinents : période en cours + à venir, étape non faite
   const pe=currentPeriod(p);
-  const rel=state.fiches.filter(f=>{ if(f.owner!==p||f.hypo) return false; const d=parseD(f.start);
+  const rel=state.fiches.filter(f=>{ if(f.owner!==p||f.hypo||f.type==='studio') return false; const d=parseD(f.start);
     if(!d) return false; return !pe || d>=pe.start; });
   const warns=rel.filter(f=>f.warn);
   const warnHtml=warns.map(f=>`<div class="row" style="border-left-color:var(--bad)" onclick="openDetail('${f.id}')" title="Voir le détail">
@@ -1048,7 +1059,7 @@ function renderList(){
     const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
     const cc=Number(f.cachets)||0, rr=repetFor(f,currentPerson);
     const isConcert=f.type!=='repet';
-    const mainLabel=isConcert?'🎤 Prestation':'🎼 Répétition';
+    const mainLabel=f.tech?'🔧 Technicien':(f.type==='studio'?'🎙️ Studio':(f.type==='repet'?'🎼 Répétition':'🎤 Prestation'));
     const hoursBreak=`<b>${ficheHours(f,currentPerson)} h</b>`
       +(cc>0?` · <span style="color:var(--c-concert);font-weight:700">🎤 ${cc} cachet${cc>1?'s':''} = ${cc*12} h</span>`:'')
       +(rr>0?` · <span style="color:var(--c-repet);font-weight:700">🎼 ${rr} h répét.</span>`:'');
@@ -1132,7 +1143,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     return stepChip(s.key,s.ic,s.short,s.label);
   }).join('');
   document.getElementById('modalBox').innerHTML=`
-    <h3>${f.type==='repet'?'🎼 Répétition':'🎤 Concert'} · ${f.lieu||'—'}</h3>
+    <h3>${f.tech?'🔧 Technicien':(f.type==='studio'?'🎙️ Studio':(f.type==='repet'?'🎼 Répétition':'🎤 Concert'))} · ${f.lieu||'—'}</h3>
     <div class="msub">${f.owner==='both'?'👥 David et Iris':f.owner} · ${per}</div>
     ${(f.dpaeGroupId&&dpaeGroupCount(f)>1)?`<div style="background:rgba(124,131,255,.12);border:1px solid rgba(124,131,255,.45);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#c5c9ff">🔗 <b>DPAE commune</b> avec ${dpaeGroupCount(f)-1} autre(s) date(s) — 1 seule déclaration <b>par personne</b> couvre tout le groupe (cocher une DPAE ici coche la même personne sur tout le groupe).</div>`:''}
     ${f.warn?`<div style="background:rgba(255,209,102,.12);border:1px solid var(--warn);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:#ffe49b"><b>⚠️ À vérifier</b><br>${f.warn}<br><span style="opacity:.85;font-size:12px">Corrige les champs via « Modifier » → l'avertissement disparaîtra et le changement sera noté ci-dessous.</span></div>`:''}
@@ -1142,7 +1153,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       <div class="k">Période</div><div class="v">${per}</div>
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
       <div class="k">Régime</div><div class="v" style="font-weight:700">${f.tech?'<span style="color:#5ec9c9">🔧 Technicien (annexe 8)</span>':'🎭 Artiste (annexe 10)'}</div>
-      <div class="k">🎤 Cachets (scène)</div><div class="v" style="color:var(--c-concert);font-weight:700">${f.cachets||0} cachet${(f.cachets||0)>1?'s':''} = ${(Number(f.cachets)||0)*12} h</div>
+      <div class="k">🎤 Cachets${f.type==='studio'?' (studio)':''}</div><div class="v" style="color:var(--c-concert);font-weight:700">${f.cachets||0} cachet${(f.cachets||0)>1?'s':''} = ${(Number(f.cachets)||0)*12} h</div>
       <div class="k">🎼 Heures de répétition</div><div class="v" style="color:var(--c-repet);font-weight:700">${f.owner==='both'?('David : '+(f.repet||0)+' h · Iris : '+((f.repetIris!=null&&f.repetIris!=='')?f.repetIris:(f.repet||0))+' h'):((f.repet||0)+' h')}</div>
       <div class="k">Période de répét.</div><div class="v">${f.repetStart?fmt(f.repetStart)+(f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''):(f.repetDates||'—')}</div>
       <div class="k">Total comptabilisé</div><div class="v">${f.owner==='both'?('David : '+ficheHours(f,'David')+' h · Iris : '+ficheHours(f,'Iris')+' h'):(ficheHours(f)+' h')}</div>
@@ -1217,7 +1228,7 @@ const BO_CATS=[
 ];
 function openBackoffice(){
   document.getElementById('boTab').classList.add('active');
-  const all=state.fiches.filter(f=>!f.hypo);              // dates réelles (les "possibles" pas encore déclarées)
+  const all=state.fiches.filter(f=>!f.hypo && f.type!=='studio');  // dates réelles GUSO (studio = chèque-intermittents, pas géré par Des Sons et Des Liens)
   const owner=o=>o==='both'?'David + Iris':o;
   const cls=o=>o==='Iris'?'iris':'david';
   // calcule chaque liste + total. Items = {f, person} (person = null hors DPAE).

@@ -66,8 +66,13 @@ GUSO**.
 - **Rafraîchissement auto à la date du jour** (`refreshIfNewDay`, visibilitychange + intervalle).
 
 ### Modèle d'une fiche (date)
+> **Types :** `concert` · `repet` · **`studio`** (musicien de studio, contrat « chèque-intermittents »,
+> conv. coll. **2121 édition phonographique**, PAS un GUSO — Audiens/Congés Spectacles/France Travail).
+> Un cachet studio compte **comme un cachet concert : 1 cachet = 12 h** (annexe 10). Le studio est
+> **exclu du back-office & du to-do artiste** (pas géré par Des Sons et Des Liens). Le flag `tech` (annexe 8)
+> reste orthogonal. Le graphique annuel a 4 catégories via `ficheCat()` : Concert / Répét / Technicien / Studio.
 ```
-{ id, owner:'David'|'Iris'|'both', type:'concert'|'repet', num (n° GUSO),
+{ id, owner:'David'|'Iris'|'both', type:'concert'|'repet'|'studio', num (n° GUSO),
   start, end, lieu (titre/objet), place (salle/ville),
   repetStart, repetEnd, cachets, repet (h répét David), repetIris (h répét Iris si owner='both'),
   brut, tech (bool, technicien annexe 8), hypo (bool, date "possible" non validée),
