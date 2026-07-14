@@ -39,6 +39,11 @@
     background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent}
   header .sub{color:var(--txt);font-size:13px;margin-top:4px;opacity:.9}
   header .sub2{color:var(--muted);font-size:11.5px;margin-top:2px;font-style:italic}
+  .hdr-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:relative}
+  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hdr-menu-btn{display:none}
+  .fab{display:none}
+  #yearChart svg{width:100%;height:auto;display:block}
   .wrap{max-width:1000px;margin:0 auto;padding:22px;display:flex;flex-direction:column}
   .action-bar{margin-bottom:16px}
   .btn.add-big{font-size:16px;font-weight:800;padding:15px 22px;width:100%;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -235,6 +240,51 @@
     .hn{font-size:21px}
     .hero-anniv{font-size:14px;margin-top:8px;padding:5px 11px}
     .hero-rhythm{margin-top:8px;font-size:13.5px}
+  }
+  /* ===== Navigation mobile : en-tête compact, onglets tactiles, FAB, modales plein écran ===== */
+  @media(max-width:640px){
+    html,body{overflow-x:hidden}
+    header{padding:14px 16px}
+    header h1{font-size:21px}
+    .brand .logo{width:42px;height:42px}
+    /* En-tête : Accueil visible + menu ☰ regroupant les actions secondaires */
+    .hdr-menu-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;font-size:14px;font-weight:700}
+    .hdr-home{min-height:44px;display:inline-flex;align-items:center}
+    .hdr-actions{display:none;position:absolute;top:calc(100% + 8px);left:0;right:auto;flex-direction:column;
+      background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:8px;gap:6px;
+      z-index:140;box-shadow:0 14px 34px rgba(0,0,0,.55);width:min(240px,calc(100vw - 32px))}
+    .hdr-actions.open{display:flex}
+    .hdr-actions .btn{width:100%;text-align:left;justify-content:flex-start;min-height:44px;padding:11px 14px;font-size:14px;border-radius:10px}
+    /* FAB « Ajouter une date » toujours accessible au pouce */
+    .action-bar{display:none}
+    .fab{display:flex;position:fixed;right:16px;bottom:16px;z-index:130;width:60px;height:60px;border-radius:50%;
+      align-items:center;justify-content:center;font-size:28px;line-height:1;border:0;padding:0;cursor:pointer;
+      background:linear-gradient(135deg,#4cc9f0,#7b9eff 55%,#f072c0);color:#06222e;
+      box-shadow:0 8px 24px rgba(76,201,240,.45)}
+    .fab:active{transform:scale(.94)}
+    body:has(.modal-bg.show) .fab{display:none}
+    .wrap{padding-bottom:88px}
+  }
+  @media(max-width:560px){
+    /* Onglets confortables au doigt */
+    .tabs{gap:5px;padding:5px;margin-bottom:16px}
+    .tab{padding:12px 8px;min-height:48px;display:flex;align-items:center;justify-content:center;gap:6px;
+      font-size:13px;line-height:1.15}
+    /* Modales quasi plein écran, croix grande et fixe */
+    .modal-bg{padding:0;align-items:stretch}
+    .modal{max-width:100%;width:100%;min-height:100vh;border-radius:0;padding:18px 15px}
+    .modal.bo-modal,.modal.guide-modal,.modal.recap-modal,.modal.add-modal{max-width:100%}
+    .bo-x{position:fixed;top:8px;right:8px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+      font-size:19px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+    .bo-hero,.g-hero{padding-right:60px}
+    /* Formulaire d'ajout : 1 colonne + croix accessible */
+    form.fiche{grid-template-columns:1fr}
+    .add-modal .add-head{position:sticky;top:0;z-index:20;background:var(--panel);padding-top:2px;margin:-2px 0 6px}
+    .add-modal .add-head .btn{min-width:44px;min-height:44px;font-size:18px}
+    /* Tableaux / grilles clé-valeur : pas de débordement */
+    .kv{grid-template-columns:1fr}
+    .kv .k{margin-top:6px}
+    .ba-tab{grid-template-columns:1fr}
   }
   .proof-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:4px 0 16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:13.5px}
   .proof-strip .pb{font-weight:800;padding:3px 11px;border-radius:999px;font-size:13px}
@@ -471,14 +521,17 @@
       <div class="sub2">créé avec amour ❤️ par David Lesage</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn ghost sm" onclick="openWelcome()" data-tip="Revenir à l'accueil : choisir l'espace artiste ou l'espace structure">🏠 Accueil</button>
-    <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
-    <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
-    <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
-    <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
-    <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
-    <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
+  <div class="hdr-tools">
+    <button class="btn ghost sm hdr-home" onclick="openWelcome()" data-tip="Revenir à l'accueil : choisir l'espace artiste ou l'espace structure">🏠 Accueil</button>
+    <button class="btn ghost sm hdr-menu-btn" type="button" onclick="toggleHdrMenu(event)" aria-label="Menu" aria-expanded="false" data-tip="Ouvrir le menu">☰ Menu</button>
+    <div class="hdr-actions" id="hdrActions">
+      <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
+      <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
+      <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
+      <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
+      <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
+      <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
+    </div>
   </div>
 </header>
 
@@ -492,6 +545,7 @@
   <div class="action-bar" style="order:1">
     <button class="btn add-big" onclick="openAdd()" data-tip="Ouvrir le formulaire pour ajouter un concert, une répétition ou une date possible (en superposition)">➕ Ajouter une date</button>
   </div>
+  <button class="fab" type="button" onclick="openAdd()" aria-label="Ajouter une date" data-tip="Ajouter une date">➕</button>
 
   <!-- DASHBOARD -->
   <div class="card" style="order:2">
@@ -2353,6 +2407,18 @@ function openFromHash(){
 }
 window.addEventListener('hashchange',()=>{ _hashOpened=false; openFromHash(); });
 function startApp(){ ensureDpaeIris(state); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); if(!/date=/.test(location.hash||'')) openWelcome(); }
+/* ===== Menu compact de l'en-tête (mobile) ===== */
+function toggleHdrMenu(ev){ if(ev) ev.stopPropagation();
+  const a=document.getElementById('hdrActions'); if(!a) return;
+  const open=a.classList.toggle('open');
+  const b=document.querySelector('.hdr-menu-btn'); if(b) b.setAttribute('aria-expanded',open?'true':'false');
+}
+document.addEventListener('click',function(e){
+  const a=document.getElementById('hdrActions'); if(!a||!a.classList.contains('open')) return;
+  if(e.target.closest('.hdr-menu-btn')) return;
+  a.classList.remove('open');
+  const b=document.querySelector('.hdr-menu-btn'); if(b) b.setAttribute('aria-expanded','false');
+});
 /* ===== Écran d'accueil : choix Espace artiste / Espace structure ===== */
 function openWelcome(){
   const last=localStorage.getItem('gf_space');
