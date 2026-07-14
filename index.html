@@ -1053,7 +1053,8 @@ function renderList(){
     const priceVal = Number(f.brut)>0 ? Number(f.brut) : ficheHours(f,currentPerson)*COST_PER_HOUR;
     const priceStr = priceVal>0 ? (Number(f.brut)>0?'':'~')+Math.round(priceVal)+' €' : '—';
     const priceEst = !(Number(f.brut)>0);
-    const chips=STEPS.map(s=>{ const k=s.key==='dpae'?dpaeKey(f,currentPerson):s.key; const on=!!f.steps[k];
+    const chips=f.type==='studio' ? '<div class="step" style="opacity:.8;cursor:default" data-tip="Contrat chèque-intermittents : déclaration gérée par l\'employeur, hors circuit GUSO Des Sons et Des Liens">🎙️ Chèque-intermittents</div>'
+      : STEPS.map(s=>{ const k=s.key==='dpae'?dpaeKey(f,currentPerson):s.key; const on=!!f.steps[k];
       return `<div class="step ${on?'done':''}" onclick="event.stopPropagation();toggleStep('${f.id}','${k}')" data-tip="${s.label} — clique pour cocher/décocher cette étape administrative">
         <span class="box">${on?'✓':''}</span>${s.ic} ${s.short}</div>`; }).join('');
     const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
@@ -1158,10 +1159,12 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       <div class="k">Période de répét.</div><div class="v">${f.repetStart?fmt(f.repetStart)+(f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''):(f.repetDates||'—')}</div>
       <div class="k">Total comptabilisé</div><div class="v">${f.owner==='both'?('David : '+ficheHours(f,'David')+' h · Iris : '+ficheHours(f,'Iris')+' h'):(ficheHours(f)+' h')}</div>
       <div class="k">Salaire brut</div><div class="v">${f.brut?Number(f.brut).toFixed(2).replace('.',',')+' €':'—'}</div>
-      <div class="k">N° déclaration GUSO</div><div class="v">${f.num||'—'}</div>
+      <div class="k">${f.type==='studio'?'Type de contrat':'N° déclaration GUSO'}</div><div class="v">${f.type==='studio'?'Chèque-intermittents (conv. 2121)':(f.num||'—')}</div>
     </div>
-    <div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
-    <div class="steps">${chips}</div>
+    ${f.type==='studio'
+      ? `<div class="mini" style="margin-bottom:6px">Démarches</div><div style="background:rgba(255,138,101,.10);border:1px solid rgba(255,138,101,.45);border-radius:10px;padding:10px 13px;font-size:12.5px;color:#ffcbb4">🎙️ <b>Contrat chèque-intermittents</b> (employeur ${f.orga&&f.orga.structure?_esc(f.orga.structure):'externe'}) — DPAE, déclaration et paiement gérés par l'employeur via Audiens, <b>hors circuit GUSO Des Sons et Des Liens</b>.</div>`
+      : `<div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
+    <div class="steps">${chips}</div>`}
     ${f.type!=='repet'?`<div class="ev-detailrow">
       <button class="btn" onclick="openCond('${f.id}')" data-tip="Saisir les conditions réelles proposées et comparer à tes conditions idéales">🎯 Bon plan ?</button>
       ${condBadgeHTML(f)}
@@ -1171,9 +1174,9 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     </div>`:''}
     <div class="modal-actions">
       ${href
-        ? `<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le feuillet GUSO (PDF) de cette date dans un nouvel onglet">📄 Ouvrir le GUSO</a>`
+        ? `<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le ${f.type==='studio'?'contrat':'feuillet GUSO'} (PDF) de cette date dans un nouvel onglet">📄 Ouvrir ${f.type==='studio'?'le contrat':'le GUSO'}</a>`
         : (f.pdf||f.num)
-          ? `<span class="btn pdf disabled" data-tip="Le feuillet GUSO est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 Feuillet ${f.num?('n° '+f.num):'GUSO'} · hors ligne</span>`
+          ? `<span class="btn pdf disabled" data-tip="Le document est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 ${f.type==='studio'?'Contrat':('Feuillet '+(f.num?'n° '+f.num:'GUSO'))} · hors ligne</span>`
           : ''}
       ${factureOnline(f)?`<a class="btn pdf" style="background:#e0a458;color:#2a1a06" href="${factureOnline(f)}" target="_blank" rel="noopener" data-tip="Ouvrir la facture Résonances Productions liée à cette date (Google Drive)">🧾 Ouvrir la facture</a>`:''}
       <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
