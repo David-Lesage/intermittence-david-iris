@@ -883,10 +883,7 @@
       <div class="bo-sub">Mois par mois : GUSO, cachets, heures et brut. À pointer contre « Mes activités » de France Travail (chaque ligne = 1 déclaration GUSO).</div>
     </div>
     <div class="r-body">
-      <div class="r-toggle">
-        <button class="r-tab" id="rTabDavid" type="button" onclick="openRecap('David')">David</button>
-        <button class="r-tab" id="rTabIris" type="button" onclick="openRecap('Iris')">Iris</button>
-      </div>
+      <div class="r-toggle" id="recapToggle"></div>
       <div id="recapContent"></div>
     </div>
    </div>
@@ -901,10 +898,7 @@
       <div class="bo-sub">Contrôle de cohérence de ta période en cours (DPAE, feuillets GUSO, factures) + récapitulatif imprimable.</div>
     </div>
     <div class="r-body">
-      <div class="r-toggle">
-        <button class="r-tab" id="blTabDavid" type="button" onclick="openBilan('David')">David</button>
-        <button class="r-tab" id="blTabIris" type="button" onclick="openBilan('Iris')">Iris</button>
-      </div>
+      <div class="r-toggle" id="bilanToggle"></div>
       <div id="bilanContent"></div>
     </div>
    </div>
@@ -919,10 +913,7 @@
       <div class="bo-sub">Identité, instruments, conditions idéales et modèles de contrats. À partager avec une structure (ex. Des Sons et Des Liens).</div>
     </div>
     <div class="r-body">
-      <div class="r-toggle">
-        <button class="r-tab" id="pfTabDavid" type="button" onclick="openProfile('David')">David</button>
-        <button class="r-tab" id="pfTabIris" type="button" onclick="openProfile('Iris')">Iris</button>
-      </div>
+      <div class="r-toggle" id="profileToggle"></div>
       <div id="profileContent"></div>
     </div>
    </div>
@@ -1001,7 +992,7 @@
       <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none"></div>
     <div id="confirmArea"></div>
     <form class="fiche" id="ficheForm" onsubmit="return addFiche(event)">
-      <div><label>Personne</label><select id="f_owner" onchange="updatePersonFields();updateFormHelp()" data-tip="À qui appartient cette date : David, Iris, ou les deux (date partagée qui apparaît chez les deux et compte pour chacun)"><option value="David">David</option><option value="Iris">Iris</option><option value="both">👥 David et Iris (partagée)</option></select></div>
+      <div><label>Personne</label><select id="f_owner" onchange="updatePersonFields();updateFormHelp()" data-tip="À qui appartient cette date : David, Iris, ou les deux (date partagée qui apparaît chez les deux et compte pour chacun)"><option value="David">David</option><option value="Iris">Iris</option><option value="both">👥 David et Iris (partagée)</option></select></div><!-- options régénérées par renderOwnerOptions() -->
       <div><label>Type</label><select id="f_type" onchange="updateFormHelp()" data-tip="Concert/spectacle ou Studio (avec cachets) · Répétition (heures réelles)"><option value="concert">🎤 Concert / spectacle</option><option value="studio">🎙️ Studio (musicien · chèque-intermittents)</option><option value="repet">🎼 Répétition</option></select></div>
       <div class="full"><label>Statut</label><select id="f_hypo" onchange="updateFormHelp()" data-tip="Confirmée = compte dans tes heures · Possible = compte seulement dans la projection"><option value="non">✅ Confirmée (validée par l'orga)</option><option value="oui">🔮 Possible / hypothétique (non validée)</option></select></div>
       <div class="full"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche si ces heures sont déclarées en TECHNICIEN (annexe 8). Elles comptent quand même dans tes 507 h, mais sont suivies à part.">
@@ -1051,6 +1042,24 @@
 
 <div class="modal-bg" id="modalBg" onclick="closeDetail(event)">
   <div class="modal" id="modalBox" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- AJOUTER UN ARTISTE -->
+<div class="modal-bg" id="addArtistBg" style="z-index:80" onclick="closeAddArtist(event)">
+ <div class="modal" onclick="event.stopPropagation()" style="max-width:440px">
+   <div class="add-head">
+     <h2 style="margin:0;font-size:19px">➕ Ajouter un artiste</h2>
+     <button class="btn ghost sm" type="button" onclick="closeAddArtist()" data-tip="Fermer" style="flex:0 0 auto">✕</button>
+   </div>
+   <div class="hint">Nouvel artiste dans l'espace partagé : il aura son propre onglet et son suivi des 507 h. (Le cloisonnement par compte viendra en Phase 6.)</div>
+   <div class="pf-row"><label>Nom complet *</label><input id="aa_name" placeholder="ex. Marius Dupont" autocomplete="off"></div>
+   <div class="pf-row"><label>Date anniversaire intermittence</label><input type="date" id="aa_anniv"></div>
+   <div class="hint" style="margin-top:2px">La date anniversaire sert au calcul des 507 h sur 12 mois. Modifiable ensuite dans le profil.</div>
+   <div class="pf-actions" style="display:flex;gap:10px;margin-top:14px">
+     <button class="btn" type="button" onclick="submitAddArtist()">✓ Créer l'artiste</button>
+     <button class="btn ghost" type="button" onclick="closeAddArtist()">Annuler</button>
+   </div>
+ </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1159,8 +1168,10 @@ function currentPeriod(p){
   if(next<t) next=new Date(t.getFullYear()+1,a.getMonth(),a.getDate());
   return {start:addMonths(next,-12), end:next};
 }
+// Une date appartient à p si elle est à son nom, OU si c'est une date partagée 'both' (réservée à David+Iris).
+function belongsTo(f,p){ return f.owner===p || (f.owner==='both' && (p==='David'||p==='Iris')); }
 function fichesFor(p,filter){
-  let arr=state.fiches.filter(f=>f.owner===p || f.owner==='both');  // 'both' = date partagée David+Iris
+  let arr=state.fiches.filter(f=>belongsTo(f,p));  // 'both' = date partagée David+Iris uniquement
   if(filter==='period'||filter==='todo'){
     const pe=currentPeriod(p);
     if(pe&&filter==='period') arr=arr.filter(f=>{const d=parseD(f.start);return d&&d>=pe.start&&d<pe.end;});
@@ -1174,14 +1185,14 @@ function fichesFor(p,filter){
   return arr.sort((a,b)=>a.start<b.start?1:-1);
 }
 function avgRate(p){
-  const fs=state.fiches.filter(f=>(f.owner===p||f.owner==='both') && ficheHours(f,p)>0 && Number(f.brut)>0);
+  const fs=state.fiches.filter(f=>belongsTo(f,p) && ficheHours(f,p)>0 && Number(f.brut)>0);
   const h=fs.reduce((s,f)=>s+ficheHours(f,p),0), b=fs.reduce((s,f)=>s+Number(f.brut),0);
   return h>0 ? b/h : 0;
 }
 
 function setPerson(p){ currentPerson=p;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p===p));
-  document.documentElement.style.setProperty('--accent', p==='David'?'var(--david)':'var(--iris)');
+  document.documentElement.style.setProperty('--accent', personColor(p));
   document.getElementById('f_owner').value=p; render();
 }
 function setFilter(f){ listFilter=f;
@@ -1196,6 +1207,7 @@ function render(){
   { const _e=document.getElementById('encourageText'); if(_e && !_e.textContent) pickEncouragement(); } // phrase d'encouragement (une par chargement)
   let p=currentPerson;
   if(!state.people[p]){ p=state.people['David']?'David':Object.keys(state.people)[0]; currentPerson=p; }
+  renderTabs(); renderOwnerOptions();   // garde onglets + select propriétaire synchronisés avec state.people (utile après sync/import)
   const period=currentPeriod(p);
   const allInP=fichesFor(p,'period');
   const inP=allInP.filter(f=>!f.hypo);          // confirmées
@@ -1332,7 +1344,7 @@ function render(){
 function renderTodoNow(p){
   const box=document.getElementById('todoNow'); if(!box) return;
   const t=today0(), pe=currentPeriod(p);
-  const mine=state.fiches.filter(f=>(f.owner===p||f.owner==='both')&&!f.hypo);
+  const mine=state.fiches.filter(f=>belongsTo(f,p)&&!f.hypo);
   const items=[];
   mine.forEach(f=>{
     const d=parseD(f.start); if(!d) return;
@@ -1781,7 +1793,46 @@ function closeBackoffice(ev){ if(ev&&ev.target!==ev.currentTarget) return;
 
 /* ===== Module 4 : « 👥 Mes artistes » — fiche administrative côté structure (DPAE / GUSO) ===== */
 const FULL_NAMES={David:'David Lesage',Iris:'Iris Chasles'};
-function fullName(p){ return FULL_NAMES[p]||p; }
+function fullName(p){ return (state&&state.people&&state.people[p]&&state.people[p].fullName)||FULL_NAMES[p]||p; }
+// Couleur d'accent d'un artiste : David/Iris = leurs couleurs dédiées ; les autres tournent sur une palette.
+const PERSON_PALETTE=['#f0a24c','#4cf0a2','#c04cf0','#f04c6b','#5c8cff','#f0d24c'];
+function personColor(p){ if(p==='David') return 'var(--david)'; if(p==='Iris') return 'var(--iris)';
+  const extra=Object.keys(state.people).filter(k=>k!=='David'&&k!=='Iris'); const i=extra.indexOf(p);
+  return PERSON_PALETTE[(i<0?0:i)%PERSON_PALETTE.length]; }
+// (Re)génère les onglets artistes depuis state.people + bouton « ➕ Artiste » + onglet back-office.
+function renderTabs(){ const el=document.getElementById('tabs'); if(!el) return;
+  let h='';
+  Object.keys(state.people).forEach(p=>{
+    h+='<div class="tab'+(p===currentPerson?' active':'')+'" data-p="'+_escA(p)+'" onclick="setPerson(\''+p+'\')" data-tip="Afficher le suivi des heures de '+_escA(fullName(p))+'"><span class="dot" style="background:'+personColor(p)+'"></span>'+_esc(p)+'</div>';
+  });
+  h+='<div class="tab tab-addart" onclick="openAddArtist()" data-tip="Ajouter un nouvel artiste à l\'espace partagé">➕ Artiste</div>';
+  h+='<div class="tab" id="boTab" onclick="openBackoffice()" data-tip="Tableau de bord Des Sons et Des Liens : tout ce qui reste à faire (DPAE, feuillets GUSO, factures)">🛠️ Des Sons et Des Liens</div>';
+  el.innerHTML=h;
+}
+// Génère un toggle de personnes (récap / bilan / profil) pointant vers la fonction fn.
+function renderPersonToggle(containerId,active,fn){ const el=document.getElementById(containerId); if(!el) return;
+  el.innerHTML=Object.keys(state.people).map(p=>'<button class="r-tab'+(p===active?' active':'')+'" type="button" onclick="'+fn+'(\''+p+'\')">'+_esc(p)+'</button>').join(''); }
+// Régénère les options du select propriétaire du formulaire : tous les artistes + « David + Iris » (partagée).
+function renderOwnerOptions(){ const sel=document.getElementById('f_owner'); if(!sel) return; const cur=sel.value;
+  let h=Object.keys(state.people).map(p=>'<option value="'+_escA(p)+'">'+_esc(p)+'</option>').join('');
+  h+='<option value="both">👥 David et Iris (partagée)</option>';
+  sel.innerHTML=h; if(cur&&(state.people[cur]||cur==='both')) sel.value=cur; }
+function openAddArtist(){ document.getElementById('aa_name').value=''; document.getElementById('aa_anniv').value='';
+  document.getElementById('addArtistBg').classList.add('show');
+  setTimeout(()=>{var n=document.getElementById('aa_name'); if(n)n.focus();},100); }
+function closeAddArtist(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('addArtistBg').classList.remove('show'); }
+// Dérive une clé (prénom, unique) à partir du nom complet.
+function artistKey(name){ let base=String(name).trim().split(/\s+/)[0]||'Artiste';
+  base=base.charAt(0).toUpperCase()+base.slice(1);
+  base=base.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]/g,'')||'Artiste';
+  let k=base, n=2; while(state.people[k]){ k=base+n; n++; } return k; }
+function submitAddArtist(){ const name=document.getElementById('aa_name').value.trim();
+  if(!name){ toast('⚠️ Indique un nom complet'); document.getElementById('aa_name').focus(); return; }
+  const anniv=document.getElementById('aa_anniv').value||'';
+  const key=artistKey(name);
+  state.people[key]={anniv:anniv, profile:{}, fullName:name};
+  save(); renderTabs(); renderOwnerOptions(); setPerson(key);
+  closeAddArtist(); toast('✓ Artiste « '+key+' » ajouté'); }
 let _baPerson=null, _baSecuShown=false;
 function _baProfile(p){ return (state.people[p]&&state.people[p].profile)||{}; }
 function _baAvatar(pr){ return '<span class="ba-av">🎤'+(pr.photo?'<img src="'+_escA(pr.photo)+'" alt="" onerror="this.remove()">':'')+'</span>'; }
@@ -1909,13 +1960,12 @@ function _recEur(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFracti
 function _recYM(dstr){ const d=parseD(dstr); return d?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):'0000-00'; }
 function _recMonth(dstr){ const d=parseD(dstr); return d?d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}):'—'; }
 function openRecap(person){ person=person||currentPerson||'David'; _recapPerson=person;
-  document.getElementById('rTabDavid').classList.toggle('active',person==='David');
-  document.getElementById('rTabIris').classList.toggle('active',person==='Iris');
+  renderPersonToggle('recapToggle',person,'openRecap');
   document.getElementById('recapContent').innerHTML=buildRecap(person);
   document.getElementById('recapBg').classList.add('show'); }
 function closeRecap(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('recapBg').classList.remove('show'); }
 function buildRecap(person){
-  const involves=f=>(f.owner===person||f.owner==='both');
+  const involves=f=>belongsTo(f,person);
   const confirmed=state.fiches.filter(f=>!f.hypo && involves(f));
   const possibles=state.fiches.filter(f=>f.hypo && involves(f));
   if(!confirmed.length && !possibles.length) return '<div class="r-empty">Aucune date pour '+person+'.</div>';
@@ -2005,8 +2055,7 @@ function _blDateStatus(f,person){
   return {txt:'⏳ '+miss.join(', '),cls:'warn'};
 }
 function openBilan(person){ person=person||currentPerson||'David'; _bilanPerson=person;
-  document.getElementById('blTabDavid').classList.toggle('active',person==='David');
-  document.getElementById('blTabIris').classList.toggle('active',person==='Iris');
+  renderPersonToggle('bilanToggle',person,'openBilan');
   document.getElementById('bilanContent').innerHTML=buildBilan(person);
   document.getElementById('bilanBg').classList.add('show'); }
 function closeBilan(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('bilanBg').classList.remove('show'); }
@@ -2163,8 +2212,7 @@ function openDataUrl(dataUrl,type){ try{ const c=dataUrl.split(','); const bin=a
 function openProfile(person){ person=(person&&state.people[person])?person:currentPerson; _profilePerson=person;
   const pr=ensureProfile(person);
   _pfRib = pr.rib ? {name:pr.rib.name,type:pr.rib.type,data:pr.rib.data} : null;   // fichier RIB : copie de travail
-  document.getElementById('pfTabDavid').classList.toggle('active',person==='David');
-  document.getElementById('pfTabIris').classList.toggle('active',person==='Iris');
+  renderPersonToggle('profileToggle',person,'openProfile');
   document.getElementById('pfTitle').textContent='👤 Profil — '+person;
   let h = pr.photo?('<div class="pf-photo"><img src="'+_escA(pr.photo)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'):'';
   PROFILE_FIELDS.forEach(f=>{
@@ -2831,7 +2879,7 @@ function openFromHash(){
   openDetail(f.id);
 }
 window.addEventListener('hashchange',()=>{ _hashOpened=false; openFromHash(); });
-function startApp(){ ensureDpaeIris(state); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); if(!/date=/.test(location.hash||'')) openWelcome(); }
+function startApp(){ ensureDpaeIris(state); renderTabs(); renderOwnerOptions(); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); if(!/date=/.test(location.hash||'')) openWelcome(); }
 /* ===== Menu compact de l'en-tête (mobile) ===== */
 function toggleHdrMenu(ev){ if(ev) ev.stopPropagation();
   const a=document.getElementById('hdrActions'); if(!a) return;
