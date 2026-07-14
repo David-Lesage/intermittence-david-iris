@@ -620,6 +620,12 @@
   .mt-row .btn{padding:7px 11px;font-size:13px}
   .mt-actions{display:flex;gap:6px;flex-wrap:wrap}
   .mt-actions .btn{padding:6px 11px;font-size:12.5px}
+  .place-ac{position:fixed;z-index:400;max-height:236px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:4px;font-size:13px;-webkit-overflow-scrolling:touch}
+  .place-ac-item{padding:8px 10px;border-radius:7px;cursor:pointer}
+  .place-ac-item:hover,.place-ac-item.active{background:rgba(124,158,255,.20)}
+  .place-ac-item .pa-main{color:var(--txt);font-weight:600;line-height:1.25}
+  .place-ac-item .pa-sub{color:var(--muted);font-size:11.5px;margin-top:1px}
+  .place-ac-empty{padding:8px 10px;color:var(--muted);font-size:12px}
   .leaflet-popup-content{font-size:12.5px;line-height:1.45}
 </style>
 </head>
@@ -629,7 +635,7 @@
   <h2 style="margin:0 0 6px;font-size:28px;font-weight:800;background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent">Guso Facile</h2>
   <div style="color:var(--txt);font-size:14px;opacity:.92;max-width:340px;margin:0 auto 6px">Une gestion claire et simplifiée pour te concentrer sur ton art</div>
   <div style="color:var(--muted);font-size:12.5px;margin-bottom:10px;font-style:italic">créé avec amour ❤️ par David Lesage</div>
-  <p style="color:var(--muted);font-size:13.5px;max-width:320px">Entre le code d'accès pour afficher les données de David &amp; Iris.</p>
+  <p style="color:var(--muted);font-size:13.5px;max-width:320px">Entre ton code d'accès pour ouvrir ton espace Guso Facile.</p>
   <input id="unlockCode" type="password" placeholder="Code d'accès" autocomplete="off" style="margin-top:10px;max-width:280px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:12px;font-size:15px;text-align:center" onkeydown="if(event.key==='Enter')tryUnlock()">
   <button class="btn" style="margin-top:12px;max-width:280px;width:100%" onclick="tryUnlock()">Déverrouiller</button>
   <div id="unlockErr" style="margin-top:10px;font-size:13px;color:var(--bad)"></div>
@@ -3364,6 +3370,125 @@ function _mapQuickGeoBtn(btn){
   const inp=btn.parentNode.querySelector('input');
   _mapQuickGeo(btn.getAttribute('data-id'), inp?inp.value:'');
 }
+// ---- Autocomplétion des lieux (Nominatim) pour les champs de la carte ----
+var _placeAC={box:null,input:null,items:[],idx:-1,timer:null,seq:0,lastReq:0,ctrl:null};
+function _placeACClose(){
+  if(_placeAC.box){ try{_placeAC.box.remove();}catch(e){} }
+  _placeAC.box=null; _placeAC.input=null; _placeAC.items=[]; _placeAC.idx=-1;
+  if(_placeAC.ctrl){ try{_placeAC.ctrl.abort();}catch(e){} _placeAC.ctrl=null; }
+}
+function _placeLabel(it){
+  const a=it.address||{};
+  const city=a.city||a.town||a.village||a.municipality||a.hamlet||a.county||'';
+  const road=a.road||a.pedestrian||a.neighbourhood||a.suburb||a.attraction||a.name||'';
+  const pc=a.postcode||'';
+  const country=a.country||'';
+  const dn0=String(it.display_name||'').split(',')[0].trim();
+  let main = road ? (road+(city?', '+city:'')) : (city||dn0);
+  if(!main) main=dn0||String(it.display_name||'');
+  const sub=[pc, (road?city:''), country].filter(Boolean).join(' · ');
+  const full=[main, pc&&('('+pc+')'), country&&(', '+country)].filter(Boolean).join(' ').replace(' ,',',');
+  return {main:main, sub:sub, full:full};
+}
+function _placeACHi(){
+  if(!_placeAC.box) return;
+  const els=_placeAC.box.querySelectorAll('.place-ac-item');
+  els.forEach((el,i)=>el.classList.toggle('active',i===_placeAC.idx));
+  const cur=els[_placeAC.idx]; if(cur&&cur.scrollIntoView) cur.scrollIntoView({block:'nearest'});
+}
+function _placeACPosition(){
+  if(!_placeAC.box||!_placeAC.input) return;
+  const r=_placeAC.input.getBoundingClientRect(), box=_placeAC.box;
+  box.style.left=r.left+'px';
+  box.style.top=(r.bottom+4)+'px';
+  const maxW=window.innerWidth-r.left-8;
+  const want=Math.max(r.width,240);
+  box.style.width=Math.min(want,maxW)+'px';
+}
+function _placeACShow(input, results){
+  _placeACClose();
+  const box=document.createElement('div'); box.className='place-ac';
+  _placeAC.box=box; _placeAC.input=input; _placeAC.items=results; _placeAC.idx=-1;
+  if(!results.length){
+    const e=document.createElement('div'); e.className='place-ac-empty';
+    e.textContent='Aucune suggestion'; box.appendChild(e);
+  } else {
+    results.forEach((it,i)=>{
+      const lab=_placeLabel(it);
+      const el=document.createElement('div'); el.className='place-ac-item';
+      el.innerHTML='<div class="pa-main">'+_esc(lab.main)+'</div>'+(lab.sub?'<div class="pa-sub">'+_esc(lab.sub)+'</div>':'');
+      el.addEventListener('mousedown',ev=>{ ev.preventDefault(); _placeACPick(i); });
+      box.appendChild(el);
+    });
+  }
+  document.body.appendChild(box);
+  _placeACPosition();
+}
+function _placeACPick(i){
+  const input=_placeAC.input, it=_placeAC.items[i];
+  if(!input||!it) return;
+  const id=input.getAttribute('data-id');
+  const lab=_placeLabel(it);
+  const lat=parseFloat(it.lat), lng=parseFloat(it.lon);
+  input.value=lab.full;
+  _placeACClose();
+  const f=state.fiches.find(x=>x.id===id); if(!f) return;
+  if(isFinite(lat)&&isFinite(lng)){
+    f.geo={lat:lat,lng:lng,q:lab.full,manual:true,mq:lab.full};
+    save(); toast('📍 Lieu placé : '+lab.full); _refreshMap();
+  } else {
+    _mapQuickGeo(id, lab.full);
+  }
+}
+async function _placeACFetch(input){
+  const q=String(input.value||'').trim();
+  if(q.length<3){ _placeACClose(); return; }
+  const seq=++_placeAC.seq;
+  const wait=Math.max(0,1000-(Date.now()-_placeAC.lastReq)); // Nominatim ≤ 1 req/s
+  if(wait){ await new Promise(r=>setTimeout(r,wait)); if(seq!==_placeAC.seq) return; }
+  _placeAC.lastReq=Date.now();
+  let ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
+  _placeAC.ctrl=ctrl;
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q='+encodeURIComponent(q);
+    const opt={headers:{'Accept':'application/json'}}; if(ctrl) opt.signal=ctrl.signal;
+    const r=await fetch(url,opt);
+    if(!r.ok) throw new Error('http');
+    const j=await r.json();
+    if(seq!==_placeAC.seq) return;                 // saisie obsolète
+    if(document.activeElement!==input) return;      // champ plus focus
+    _placeACShow(input, Array.isArray(j)?j:[]);
+  }catch(e){
+    if(e&&e.name==='AbortError') return;
+    if(seq===_placeAC.seq) _placeACClose();         // fallback réseau KO : pas de menu
+  }
+}
+function _initPlaceAC(){
+  if(window._placeACInit) return; window._placeACInit=true;
+  document.addEventListener('input',function(e){
+    const t=e.target;
+    if(!(t&&t.classList&&t.classList.contains('map-place-input'))) return;
+    if(_placeAC.timer) clearTimeout(_placeAC.timer);
+    if(String(t.value||'').trim().length<3){ _placeAC.seq++; _placeACClose(); return; }
+    _placeAC.timer=setTimeout(function(){ _placeACFetch(t); },400); // debounce ~400 ms
+  });
+  document.addEventListener('keydown',function(e){
+    const t=e.target;
+    if(!(t&&t.classList&&t.classList.contains('map-place-input'))) return;
+    if(!_placeAC.box || _placeAC.input!==t){ if(e.key==='Escape') _placeACClose(); return; }
+    if(e.key==='ArrowDown'){ e.preventDefault(); _placeAC.idx=Math.min(_placeAC.items.length-1,_placeAC.idx+1); _placeACHi(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); _placeAC.idx=Math.max(0,_placeAC.idx-1); _placeACHi(); }
+    else if(e.key==='Enter'){ if(_placeAC.idx>=0 && _placeAC.items[_placeAC.idx]){ e.preventDefault(); e.stopImmediatePropagation(); _placeACPick(_placeAC.idx); } }
+    else if(e.key==='Escape'){ e.preventDefault(); _placeACClose(); }
+  },true);
+  document.addEventListener('click',function(e){
+    if(_placeAC.box && !_placeAC.box.contains(e.target) && e.target!==_placeAC.input) _placeACClose();
+  });
+  window.addEventListener('resize',_placeACPosition);
+  document.addEventListener('scroll',function(){ if(_placeAC.box) _placeACPosition(); },true);
+}
+_initPlaceAC();
+
 function _mapConfirmGuess(id){
   const f=state.fiches.find(x=>x.id===id); if(!f||!f.geo) return;
   f.geo.guessed=false; f.geo.confirmed=true; save(); toast('✅ Lieu confirmé'); _refreshMap();
@@ -3510,7 +3635,7 @@ async function _refreshMap(){
             '<button class="btn ghost sm" type="button" onclick="_mapConfirmGuess(\''+idA+'\')">✓ Confirmer</button>'+
             '<button class="btn ghost sm" type="button" onclick="_mapCorrectGuess(this)">✏️ Corriger</button>'+
           '</div>'+
-          '<div class="mt-correct mt-row" hidden><input type="text" placeholder="ville / lieu exact…" '+
+          '<div class="mt-correct mt-row" hidden><input type="text" class="map-place-input" data-id="'+idA+'" autocomplete="off" placeholder="ville / lieu exact…" '+
             'onkeydown="if(event.key===\'Enter\'){event.preventDefault();_mapQuickGeo(\''+idA+'\',this.value);}">'+
             '<button class="btn sm" type="button" data-id="'+idA+'" onclick="_mapQuickGeoBtn(this)">✓</button></div>'+
         '</div>';
@@ -3523,7 +3648,7 @@ async function _refreshMap(){
         const idA=_escA(f.id);
         return '<div class="mt-item"><div class="mt-lbl">'+_esc(f.lieu||'—')+
           '<span class="mt-date">'+fmt(f.start)+'</span></div>'+
-          '<div class="mt-row"><input type="text" placeholder="ville / lieu…" value="'+_escA(f.place||'')+'" '+
+          '<div class="mt-row"><input type="text" class="map-place-input" data-id="'+idA+'" autocomplete="off" placeholder="ville / lieu…" value="'+_escA(f.place||'')+'" '+
             'onkeydown="if(event.key===\'Enter\'){event.preventDefault();_mapQuickGeo(\''+idA+'\',this.value);}">'+
             '<button class="btn sm" type="button" data-id="'+idA+'" onclick="_mapQuickGeoBtn(this)">✓</button></div>'+
         '</div>';
