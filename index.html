@@ -490,6 +490,33 @@
   .r-toggle{display:flex;gap:8px;margin-bottom:14px}
   .r-tab{flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer}
   .r-tab.active{background:rgba(124,158,255,.16);border-color:var(--accent2);color:var(--txt)}
+  /* ---- Préparation de tournée ---- */
+  .tour-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tour-tab{flex:1 1 auto;min-width:90px;padding:9px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  .tour-tab.active{background:rgba(124,158,255,.16);border-color:var(--accent2);color:var(--txt)}
+  .tour-empty{color:var(--muted);font-size:13px;padding:16px 4px;text-align:center}
+  .tour-card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:10px}
+  .tour-card h4{margin:0 0 4px;font-size:14.5px;color:var(--txt);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tour-card .tc-tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(124,158,255,.16);color:var(--accent2)}
+  .tour-card .tc-tag.man{background:rgba(129,199,132,.16);color:#81c784}
+  .tour-card .tc-meta{font-size:12.5px;color:var(--muted);margin:2px 0;word-break:break-word}
+  .tour-card .tc-meta b{color:var(--txt)}
+  .tour-hist{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+  .tour-hist .th-line{font-size:12px;color:var(--muted);padding:3px 0;cursor:pointer}
+  .tour-hist .th-line:hover{color:var(--txt)}
+  .tour-hist .th-last{color:var(--txt);font-weight:600}
+  .tc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .tc-actions .btn{font-size:12px;padding:6px 10px}
+  .tour-search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .tour-search input,.tour-search select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:13.5px;font-family:inherit;flex:1 1 120px}
+  .tour-pastrow{display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-size:13px}
+  .tour-pastrow:hover{border-color:var(--accent2);background:rgba(124,158,255,.08)}
+  .tour-pastrow .pr-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .tour-pastrow .pr-date{font-weight:700;color:var(--txt)}
+  .tour-pastrow .pr-cachet{color:#81c784;font-weight:700;white-space:nowrap}
+  .tour-pastrow .pr-sub{color:var(--muted);font-size:12px}
+  .tour-mailbox .pf-row{margin-bottom:10px}
+  .tour-mailbox textarea#tourMailBody{min-height:220px}
   .r-grandtot{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:14px;font-size:13px;color:var(--muted)}
   .r-grandtot b{color:var(--txt)}
   .r-month{margin-bottom:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -729,6 +756,7 @@
       <button class="btn ghost sm" onclick="openBilan()" data-tip="Vérifier que tout est en ordre (DPAE, feuillets GUSO, factures) sur la période en cours et sortir un bilan imprimable">🔍 Bilan</button>
       <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
       <button class="btn ghost sm" onclick="openMap()" data-tip="Carte de tous tes plans géolocalisés + kilomètres parcourus depuis chez toi">🗺️ Carte</button>
+      <button class="btn ghost sm" onclick="openTour()" data-tip="Préparation de tournée : carnet de contacts organisateurs, concerts passés et mails types pour relancer / démarcher">🎪 Tournée</button>
       <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
       <!-- Actions données (rarement utilisées) : visibles uniquement dans le menu mobile ☰ -->
       <div class="hdr-data-mob">
@@ -955,6 +983,26 @@
     <div class="r-body">
       <div class="r-toggle" id="profileToggle"></div>
       <div id="profileContent"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- PRÉPARATION DE TOURNÉE -->
+  <div class="modal-bg" id="tourBg" onclick="closeTour(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeTour()" data-tip="Fermer">✕</button>
+      <h2>🎪 Préparation de tournée</h2>
+      <div class="bo-sub">Ton carnet de contacts, tes concerts passés et des mails prêts à envoyer pour relancer et démarcher.</div>
+    </div>
+    <div class="r-body">
+      <div class="r-toggle" id="tourToggle"></div>
+      <div class="tour-tabs">
+        <button class="tour-tab" type="button" data-tt="contacts" onclick="tourSetTab('contacts')">📇 Contacts</button>
+        <button class="tour-tab" type="button" data-tt="past" onclick="tourSetTab('past')">📜 Concerts passés</button>
+        <button class="tour-tab" type="button" data-tt="mails" onclick="tourSetTab('mails')">✉️ Mails types</button>
+      </div>
+      <div id="tourContent"></div>
     </div>
    </div>
   </div>
@@ -1750,6 +1798,228 @@ function closeDetail(){ document.getElementById('modalBg').classList.remove('sho
 function copyDateLink(id){ const url=location.origin+location.pathname+'#date='+id;
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>toast('🔗 Lien de la date copié'),()=>prompt('Copie ce lien :',url));
   else prompt('Copie ce lien :',url); }
+
+/* ============================================================
+   🎪 PRÉPARATION DE TOURNÉE — carnet contacts / concerts passés / mails types
+   ============================================================ */
+let _tourPerson=null, _tourTab='contacts', _tourEditId=null;
+let _tourFilterYear='', _tourSearch='';
+let _tourMailContactKey='', _tourMailTpl='relance';
+
+function _tourKey(structure,email){
+  const s=String(structure||'').trim().toLowerCase();
+  const e=String(email||'').trim().toLowerCase();
+  return s||e||'?';
+}
+// Agrège les organisateurs des dates de l'artiste + contacts manuels (dédoublonné par structure/email).
+function tourContacts(p){
+  const map={};
+  (state.people[p].contacts||[]).forEach(c=>{
+    const k=_tourKey(c.structure,c.email);
+    map[k]=Object.assign({},c,{key:k,manual:true});
+  });
+  state.fiches.filter(f=>belongsTo(f,p)&&f.orga&&(f.orga.structure||f.orga.email)).forEach(f=>{
+    const o=f.orga, k=_tourKey(o.structure,o.email);
+    if(!map[k]){
+      map[k]={key:k,id:'auto_'+k,structure:o.structure||'',contact:o.contact||'',email:o.email||'',telephone:o.telephone||'',notes:o.notes||'',manual:false};
+    }else{ // complète les champs vides d'un contact manuel avec les infos de la date
+      const c=map[k];
+      ['contact','email','telephone'].forEach(fld=>{ if(!c[fld]&&o[fld]) c[fld]=o[fld]; });
+    }
+  });
+  return Object.values(map).sort((a,b)=>String(a.structure||a.contact||'').localeCompare(String(b.structure||b.contact||''),'fr'));
+}
+// Dates (confirmées) faites avec ce contact, récent→ancien.
+function tourHistory(p,c){
+  const k=c.key||_tourKey(c.structure,c.email);
+  return state.fiches.filter(f=>belongsTo(f,p)&&!f.hypo&&f.start&&f.orga&&_tourKey(f.orga.structure,f.orga.email)===k)
+    .sort((a,b)=> a.start<b.start?1:-1);
+}
+function tourLastGig(p,c){ const h=tourHistory(p,c); return h.length?h[0]:null; }
+
+function openTour(person){
+  if(!state||!state.people) return;
+  _tourPerson=(person&&state.people[person])?person:currentPerson;
+  if(!state.people[_tourPerson]) _tourPerson=Object.keys(state.people)[0];
+  renderPersonToggle('tourToggle',_tourPerson,'openTour');
+  tourSetTab(_tourTab||'contacts');
+  document.getElementById('tourBg').classList.add('show');
+  if(typeof closeHdrMenu==='function') closeHdrMenu();
+}
+function closeTour(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('tourBg').classList.remove('show'); _tourEditId=null; }
+function tourSetTab(tab){
+  _tourTab=tab; _tourEditId=null;
+  document.querySelectorAll('#tourBg .tour-tab').forEach(b=>b.classList.toggle('active',b.dataset.tt===tab));
+  if(tab==='contacts') renderTourContacts();
+  else if(tab==='past') renderTourPast();
+  else renderTourMails();
+}
+
+/* ---- A) Carnet de contacts ---- */
+function renderTourContacts(){
+  const p=_tourPerson, box=document.getElementById('tourContent');
+  const list=tourContacts(p);
+  let h='<div style="margin-bottom:12px"><button class="btn" type="button" onclick="tourAddContact()" data-tip="Ajouter un contact à la main">➕ Ajouter un contact</button></div>';
+  if(_tourEditId==='new') h+=tourContactForm({id:'',structure:'',contact:'',email:'',telephone:'',notes:''},true);
+  if(!list.length && _tourEditId!=='new') h+='<div class="tour-empty">Aucun contact pour l\'instant. Les organisateurs de tes dates apparaissent ici automatiquement, ou ajoute-les à la main.</div>';
+  list.forEach(c=>{
+    if(_tourEditId===c.key){ h+=tourContactForm(c,false); return; }
+    const last=tourLastGig(p,c), hist=tourHistory(p,c);
+    h+='<div class="tour-card">';
+    h+='<h4>🏢 '+_esc(c.structure||'(sans structure)')+' <span class="tc-tag'+(c.manual?' man':'')+'">'+(c.manual?'ajouté':'auto')+'</span></h4>';
+    if(c.contact) h+='<div class="tc-meta">👤 <b>'+_esc(c.contact)+'</b></div>';
+    if(c.email) h+='<div class="tc-meta">✉️ '+_esc(c.email)+'</div>';
+    if(c.telephone) h+='<div class="tc-meta">📞 '+_esc(c.telephone)+'</div>';
+    if(c.notes) h+='<div class="tc-meta">📝 '+_esc(c.notes)+'</div>';
+    if(hist.length){
+      h+='<div class="tour-hist">';
+      if(last) h+='<div class="th-line th-last" onclick="closeTour();openDetail(\''+last.id+'\')">⭐ Dernière fois : '+_esc(last.lieu||'(sans titre)')+' — '+fmt(last.start)+'</div>';
+      hist.slice(1,5).forEach(f=>{ h+='<div class="th-line" onclick="closeTour();openDetail(\''+f.id+'\')">• '+fmt(f.start)+' · '+_esc(f.lieu||'(sans titre)')+'</div>'; });
+      if(hist.length>5) h+='<div class="th-line" style="opacity:.7">…et '+(hist.length-5)+' autre(s)</div>';
+      h+='</div>';
+    }
+    h+='<div class="tc-actions">';
+    h+='<button class="btn" type="button" onclick="tourRelance(\''+_escA(c.key)+'\')" data-tip="Ouvrir un mail de relance pré-rempli pour ce contact">✉️ Relancer</button>';
+    h+='<button class="btn ghost" type="button" onclick="tourEditContact(\''+_escA(c.key)+'\')">✏️ Éditer</button>';
+    if(c.manual) h+='<button class="btn ghost" type="button" onclick="tourRemoveContact(\''+_escA(c.key)+'\')" data-tip="Retirer ce contact ajouté à la main">🗑️ Retirer</button>';
+    h+='</div></div>';
+  });
+  box.innerHTML=h;
+}
+function tourContactForm(c,isNew){
+  const eid=isNew?'new':(c.key||'');
+  return '<div class="tour-card" style="border-color:var(--accent2)">'
+    +'<div class="pf-row"><label>Structure</label><input type="text" id="tc_structure" value="'+_escA(c.structure||'')+'"></div>'
+    +'<div class="pf-row"><label>Référent (nom)</label><input type="text" id="tc_contact" value="'+_escA(c.contact||'')+'"></div>'
+    +'<div class="pf-row"><label>Email</label><input type="email" id="tc_email" value="'+_escA(c.email||'')+'"></div>'
+    +'<div class="pf-row"><label>Téléphone</label><input type="text" id="tc_telephone" value="'+_escA(c.telephone||'')+'"></div>'
+    +'<div class="pf-row"><label>Notes</label><textarea id="tc_notes">'+_esc(c.notes||'')+'</textarea></div>'
+    +'<div class="tc-actions"><button class="btn" type="button" onclick="tourSaveContact('+(isNew?'true':'false')+',\''+_escA(eid)+'\')">💾 Enregistrer</button>'
+    +'<button class="btn ghost" type="button" onclick="tourCancelEdit()">Annuler</button></div></div>';
+}
+function tourAddContact(){ _tourEditId='new'; renderTourContacts(); }
+function tourEditContact(key){ _tourEditId=key; renderTourContacts(); }
+function tourCancelEdit(){ _tourEditId=null; renderTourContacts(); }
+function tourSaveContact(isNew,key){
+  const p=_tourPerson, g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  const data={structure:g('tc_structure'),contact:g('tc_contact'),email:g('tc_email'),telephone:g('tc_telephone'),notes:g('tc_notes')};
+  if(!data.structure && !data.contact && !data.email){ toast('⚠️ Renseigne au moins une structure ou un nom'); return; }
+  if(!state.people[p].contacts) state.people[p].contacts=[];
+  const arr=state.people[p].contacts;
+  // Retrouve un contact manuel existant par sa clé (avant modif)
+  let existing = isNew ? null : arr.find(c=>_tourKey(c.structure,c.email)===key);
+  if(existing){ Object.assign(existing,data); }
+  else { arr.push(Object.assign({id:'c'+Date.now(),manual:true},data)); }
+  save();
+  _tourEditId=null; renderTourContacts(); toast('💾 Contact enregistré');
+}
+function tourRemoveContact(key){
+  const p=_tourPerson, arr=state.people[p].contacts||[];
+  const i=arr.findIndex(c=>_tourKey(c.structure,c.email)===key);
+  if(i<0){ toast('Ce contact vient des dates, il ne peut pas être retiré ici'); return; }
+  if(!confirm('Retirer ce contact du carnet ?')) return;
+  arr.splice(i,1); save(); renderTourContacts(); toast('🗑️ Contact retiré');
+}
+
+/* ---- B) Concerts passés ---- */
+function renderTourPast(){
+  const p=_tourPerson, box=document.getElementById('tourContent');
+  const t=today0();
+  let rows=state.fiches.filter(f=>belongsTo(f,p)&&!f.hypo&&f.start&&parseD(f.start)<t)
+    .sort((a,b)=> a.start<b.start?1:-1);
+  const years=[...new Set(rows.map(f=>f.start.slice(0,4)))].sort().reverse();
+  const q=_tourSearch.trim().toLowerCase();
+  let shown=rows.filter(f=>{
+    if(_tourFilterYear && f.start.slice(0,4)!==_tourFilterYear) return false;
+    if(q){ const hay=((f.lieu||'')+' '+(f.place||'')+' '+(f.orga&&f.orga.structure||'')).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+  let h='<div class="tour-search">'
+    +'<select id="tourYear" onchange="_tourFilterYear=this.value;renderTourPast()"><option value="">Toutes les années</option>'
+    +years.map(y=>'<option value="'+y+'"'+(y===_tourFilterYear?' selected':'')+'>'+y+'</option>').join('')+'</select>'
+    +'<input type="text" id="tourQ" placeholder="🔎 Lieu ou organisateur…" value="'+_escA(_tourSearch)+'" oninput="_tourSearch=this.value;renderTourPast()">'
+    +'</div>';
+  if(!rows.length){ box.innerHTML=h+'<div class="tour-empty">Aucun concert passé confirmé pour '+_esc(fullName(p))+'.</div>'; return; }
+  h+='<div class="r-grandtot" style="margin-bottom:12px">'+shown.length+' concert(s) affiché(s)'+(shown.length!==rows.length?' sur '+rows.length:'')+'</div>';
+  shown.forEach(f=>{
+    const cc=Number(f.cachets)||0;
+    h+='<div class="tour-pastrow" onclick="closeTour();openDetail(\''+f.id+'\')">'
+      +'<div class="pr-top"><span class="pr-date">'+fmt(f.start)+'</span>'
+      +(cc?'<span class="pr-cachet">'+cc+' cachet'+(cc>1?'s':'')+'</span>':'')+'</div>'
+      +'<div>'+_esc(f.lieu||'(sans titre)')+(f.place?' · '+_esc(f.place):'')+'</div>'
+      +(f.orga&&f.orga.structure?'<div class="pr-sub">🏢 '+_esc(f.orga.structure)+'</div>':'')
+      +'</div>';
+  });
+  if(!shown.length) h+='<div class="tour-empty">Aucun concert ne correspond au filtre.</div>';
+  box.innerHTML=h;
+}
+
+/* ---- C) Mails types ---- */
+const TOUR_TEMPLATES={
+  relance:{label:'🔁 Relance / se reprogrammer', build:(a,c,last)=>({
+    subject:'On se reprogramme une date ? — '+a,
+    body:'Bonjour '+(c.contact||c.structure||'')+',\n\n'
+      +'J\'espère que tout va bien de votre côté'+(c.structure?' à '+c.structure:'')+' !\n\n'
+      +(last?'On a joué ensemble à '+(last.lieu||'votre événement')+' le '+fmt(last.start)+', et j\'en garde un très bon souvenir. ':'')
+      +'Je vous écris pour savoir si une nouvelle date ensemble pourrait vous intéresser dans les prochains mois.\n\n'
+      +'Je serais ravi de vous reproposer un concert et de m\'adapter à votre programmation. Dites-moi ce qui vous conviendrait le mieux, on trouvera facilement un créneau.\n\n'
+      +'À très vite j\'espère,\n'+a })},
+  presentation:{label:'👋 Présentation / premier contact', build:(a,c,last)=>({
+    subject:'Proposition de concert — '+a,
+    body:'Bonjour '+(c.contact||c.structure||'')+',\n\n'
+      +'Je me permets de vous contacter'+(c.structure?' au sujet de la programmation de '+c.structure:'')+'. Je suis '+a+', artiste, et je cherche à développer de nouvelles dates.\n\n'
+      +'Je pense que mon univers pourrait trouver sa place dans votre lieu. Je serais heureux de vous envoyer un dossier, des extraits et mes conditions.\n\n'
+      +'Auriez-vous un moment pour en échanger ?\n\n'
+      +'Bien cordialement,\n'+a })},
+  festival:{label:'🎪 Demande de programmation (festival)', build:(a,c,last)=>({
+    subject:'Candidature programmation '+(c.structure||'festival')+' — '+a,
+    body:'Bonjour '+(c.contact||c.structure||'')+',\n\n'
+      +'Je souhaite proposer ma candidature pour une programmation'+(c.structure?' au sein de '+c.structure:' de votre festival')+'.\n\n'
+      +'Je suis '+a+' et je serais très motivé à l\'idée de me produire chez vous. Je peux vous transmettre un dossier complet (biographie, extraits, fiche technique, conditions financières) dès que vous le souhaitez.\n\n'
+      +'Merci d\'avance pour l\'attention portée à ma demande. Je reste à votre disposition.\n\n'
+      +'Musicalement,\n'+a })},
+  remerciement:{label:'🙏 Remerciement après concert', build:(a,c,last)=>({
+    subject:'Merci pour '+(last&&last.lieu?last.lieu:'ce concert')+' !',
+    body:'Bonjour '+(c.contact||c.structure||'')+',\n\n'
+      +'Un grand merci pour l\'accueil'+(last?' à '+(last.lieu||'votre événement')+' le '+fmt(last.start):'')+'. C\'était un vrai plaisir de jouer chez vous'+(c.structure?' ('+c.structure+')':'')+'.\n\n'
+      +'J\'espère que le public a passé un aussi bon moment que moi. Ce serait avec grand plaisir que je reviendrais : n\'hésitez pas à me recontacter pour une prochaine date.\n\n'
+      +'Encore merci et à bientôt,\n'+a })}
+};
+function renderTourMails(){
+  const p=_tourPerson, box=document.getElementById('tourContent');
+  const list=tourContacts(p);
+  if(_tourMailContactKey && !list.some(c=>c.key===_tourMailContactKey)) _tourMailContactKey='';
+  let h='<div class="tour-mailbox">';
+  h+='<div class="pf-row"><label>Modèle</label><select id="tourTpl" onchange="_tourMailTpl=this.value;tourFillMail()">'
+    +Object.keys(TOUR_TEMPLATES).map(k=>'<option value="'+k+'"'+(k===_tourMailTpl?' selected':'')+'>'+TOUR_TEMPLATES[k].label+'</option>').join('')+'</select></div>';
+  h+='<div class="pf-row"><label>Contact (remplit le mail)</label><select id="tourMailContact" onchange="_tourMailContactKey=this.value;tourFillMail()">'
+    +'<option value="">— Choisir un contact —</option>'
+    +list.map(c=>'<option value="'+_escA(c.key)+'"'+(c.key===_tourMailContactKey?' selected':'')+'>'+_esc(c.structure||c.contact||'(sans nom)')+(c.contact&&c.structure?' · '+_esc(c.contact):'')+'</option>').join('')
+    +'</select></div>';
+  h+='<div class="pf-row"><label>Objet</label><input type="text" id="tourMailSubject"></div>';
+  h+='<div class="pf-row"><label>Corps du mail (modifiable avant copie)</label><textarea id="tourMailBody"></textarea></div>';
+  h+='<div class="tc-actions"><button class="btn" type="button" onclick="tourCopyMail()" data-tip="Copier l\'objet + le corps dans le presse-papier">📋 Copier le mail</button></div>';
+  h+='</div>';
+  box.innerHTML=h;
+  tourFillMail();
+}
+function _tourFindContact(key){ return tourContacts(_tourPerson).find(c=>c.key===key)||{structure:'',contact:'',email:''}; }
+function tourFillMail(){
+  const p=_tourPerson, a=fullName(p);
+  const c=_tourMailContactKey?_tourFindContact(_tourMailContactKey):{structure:'',contact:'',email:''};
+  const last=_tourMailContactKey?tourLastGig(p,c):null;
+  const tpl=TOUR_TEMPLATES[_tourMailTpl]||TOUR_TEMPLATES.relance;
+  const out=tpl.build(a,c,last);
+  const s=document.getElementById('tourMailSubject'), b=document.getElementById('tourMailBody');
+  if(s) s.value=out.subject; if(b) b.value=out.body;
+}
+function tourRelance(key){ _tourMailContactKey=key; _tourMailTpl='relance'; tourSetTab('mails'); }
+function tourCopyMail(){
+  const s=document.getElementById('tourMailSubject'), b=document.getElementById('tourMailBody');
+  const txt='Objet : '+(s?s.value:'')+'\n\n'+(b?b.value:'');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>toast('📋 Mail copié'),()=>prompt('Copie le mail :',txt));
+  else prompt('Copie le mail :',txt);
+}
 
 /* ---- Phase 4 : regroupement DPAE (une seule DPAE pour des dates proches ±7 j) ---- */
 let _dpaeNewId=null;
