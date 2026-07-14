@@ -1162,7 +1162,12 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       <div class="k">${f.type==='studio'?'Type de contrat':'N° déclaration GUSO'}</div><div class="v">${f.type==='studio'?'Chèque-intermittents (conv. 2121)':(f.num||'—')}</div>
     </div>
     ${f.type==='studio'
-      ? `<div class="mini" style="margin-bottom:6px">Démarches</div><div style="background:rgba(255,138,101,.10);border:1px solid rgba(255,138,101,.45);border-radius:10px;padding:10px 13px;font-size:12.5px;color:#ffcbb4">🎙️ <b>Contrat chèque-intermittents</b> (employeur ${f.orga&&f.orga.structure?_esc(f.orga.structure):'externe'}) — DPAE, déclaration et paiement gérés par l'employeur via Audiens, <b>hors circuit GUSO Des Sons et Des Liens</b>.</div>`
+      ? `<div class="mini" style="margin-bottom:6px">Statut & démarches</div>
+      <div style="background:${f.hypo?'rgba(167,139,250,.12)':'rgba(61,220,151,.12)'};border:1px solid ${f.hypo?'var(--hypo)':'var(--ok)'};border-radius:10px;padding:10px 13px;font-size:13px;color:${f.hypo?'#d9ccff':'#bdf3d8'};display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <span><b>${f.hypo?'🔮 Potentielle':'✅ Confirmée'}</b> — ${f.hypo?'non comptée dans tes heures':(Number(f.cachets)||0)*12+' h comptées'}</span>
+        <button class="btn ${f.hypo?'':'ghost'} sm" style="margin-left:auto" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Confirmer cette date studio : ses heures compteront':'Repasser en potentielle : ses heures sortiront du total'}">${f.hypo?'✅ Confirmer (compter les heures)':'🔮 Repasser en potentielle'}</button>
+      </div>
+      <div style="background:rgba(255,138,101,.10);border:1px solid rgba(255,138,101,.45);border-radius:10px;padding:10px 13px;font-size:12.5px;color:#ffcbb4">🎙️ <b>Contrat chèque-intermittents</b> (employeur ${f.orga&&f.orga.structure?_esc(f.orga.structure):'externe'}) — DPAE, déclaration et paiement gérés par l'employeur via Audiens, <b>hors circuit GUSO Des Sons et Des Liens</b>.</div>`
       : `<div class="mini" style="margin-bottom:6px">Étapes administratives (clique pour cocher) :</div>
     <div class="steps">${chips}</div>`}
     ${f.type!=='repet'?`<div class="ev-detailrow">
@@ -1181,7 +1186,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       ${factureOnline(f)?`<a class="btn pdf" style="background:#e0a458;color:#2a1a06" href="${factureOnline(f)}" target="_blank" rel="noopener" data-tip="Ouvrir la facture Résonances Productions liée à cette date (Google Drive)">🧾 Ouvrir la facture</a>`:''}
       <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
       <button class="btn ghost" onclick="copyDateLink('${f.id}')" data-tip="Copier un lien qui ouvre directement cette date (à partager, ou pour les futurs emails de rappel)">🔗 Copier le lien</button>
-      <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Marquer confirmée':'🔮 Marquer possible'}</button>
+      <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Confirmer (compter les heures)':'🔮 Marquer potentielle'}</button>
       <button class="btn ghost" style="border-color:var(--bad);color:var(--bad)" onclick="delFiche('${f.id}')" data-tip="Supprimer définitivement cette date">🗑️ Supprimer</button>
       <button class="btn ghost" onclick="closeDetail()" data-tip="Fermer cette fenêtre">Fermer</button>
     </div>`;
@@ -1651,15 +1656,15 @@ const COND_STYLE={
 function _cnum(v){ v=String(v==null?'':v).trim().replace(',','.'); if(v==='') return null; const n=Number(v); return isNaN(n)?null:n; }
 function _chas(v){ return v!=null && String(v).trim()!==''; }
 // Compare les conditions proposées (cond) aux conditions idéales du profil de <person>.
-function computeCond(cond, person){
-  cond=cond||{};
+function computeCond(cond, person, type){
+  cond=cond||{}; const studio=(type==='studio');
   const pr=(state.people[person]&&state.people[person].profile)||{};
   const crits=[];   // {label,state:'ok'|'ko'|'unknown'|'info',detail,missSide:'orga'|'profil'} — les 'na' sont exclus
   const push=(label,st,detail,missSide)=>{ if(st==='na') return; crits.push({label,state:st,detail:detail||'',missSide:missSide||''}); };
-  // Prix / cachet
-  (function(){ const c=_cnum(cond.prix), m=_cnum(pr.prixMin);
-    if(c!=null&&m!=null){ const ok=c>=m; push('Prix / cachet',ok?'ok':'ko', ok?(c+' € ≥ minimum '+m+' €'):('prix '+c+' € < minimum '+m+' €')); }
-    else if(c==null&&m!=null) push('Prix proposé par cachet','unknown','','orga');
+  // Prix / cachet (le cachet studio se compte comme un cachet, cf. conv. 2121)
+  (function(){ const c=_cnum(cond.prix), m=_cnum(pr.prixMin); const L=studio?'Prix / cachet studio':'Prix / cachet';
+    if(c!=null&&m!=null){ const ok=c>=m; push(L,ok?'ok':'ko', ok?(c+' € ≥ minimum '+m+' €'):('prix '+c+' € < minimum '+m+' €')); }
+    else if(c==null&&m!=null) push(studio?'Prix proposé par cachet studio':'Prix proposé par cachet','unknown','','orga');
     else if(c!=null&&m==null) push('Ton prix minimum','unknown','','profil');
   })();
   // Distance
@@ -1668,45 +1673,54 @@ function computeCond(cond, person){
     else if(c==null&&m!=null) push('Distance du lieu (km)','unknown','','orga');
     else if(c!=null&&m==null) push('Ta distance maximale','unknown','','profil');
   })();
-  // Critères oui/non « exigés » du profil : trajet, loge, ingé son
   const boolCrit=(label,required,condVal,koDetail)=>{ condVal=String(condVal||'').trim();
     if(required){
       if(condVal==='oui') push(label,'ok',label+' : oui');
       else if(condVal==='non') push(label,'ko',koDetail);
       else push(label,'unknown','','orga');
     } else if(condVal==='oui'||condVal==='non') push(label,'ok',label+' : '+condVal+' — non exigé');
-    // non exigé + non renseigné → na (exclu)
   };
   boolCrit('Trajet pris en charge', !!pr.trajetPris, cond.trajetPris, "trajet non pris en charge (tu l'exiges)");
-  boolCrit('Loge', !!pr.loge, cond.loge, "pas de loge (tu l'exiges)");
-  boolCrit('Ingé son', !!pr.ingeSon, cond.ingeSon, "pas d'ingé son (tu l'exiges)");
-  // Scène (avec dimensions éventuelles)
-  (function(){ const req=!!pr.scene, cv=String(cond.scene||'').trim(), dim=String(cond.sceneDim||'').trim();
-    if(req){
-      if(cv==='oui') push('Scène','ok', dim?('scène fournie ('+dim+')'):'scène fournie');
-      else if(cv==='non') push('Scène','ko',"pas de scène (tu l'exiges)");
-      else push('Scène','unknown','','orga');
-    } else if(cv==='oui'||cv==='non') push('Scène','ok', (cv==='oui'?('scène'+(dim?' ('+dim+')':'')):'pas de scène')+' — non exigé');
-  })();
-  // Logement : profil vide / « aucun » = pas d'exigence
+  // Logement / hébergement (pertinent surtout pour une session studio sur plusieurs jours)
   (function(){ const reqLodge=_chas(pr.logement)&&String(pr.logement).trim().toLowerCase()!=='aucun';
-    const cl=String(cond.logement||'').trim();
+    const cl=String(cond.logement||'').trim(); const L=studio?'Hébergement':'Logement';
     if(reqLodge){
-      if(cl && cl.toLowerCase()!=='aucun') push('Logement','ok','logement : '+cl);
-      else if(cl.toLowerCase()==='aucun') push('Logement','ko','aucun logement proposé (tu demandes : '+pr.logement+')');
-      else push('Logement proposé','unknown','','orga');
-    } else if(cl) push('Logement','ok','logement : '+cl+' — non exigé');
+      if(cl && cl.toLowerCase()!=='aucun') push(L,'ok',L.toLowerCase()+' : '+cl);
+      else if(cl.toLowerCase()==='aucun') push(L,'ko','aucun '+L.toLowerCase()+' proposé (tu demandes : '+pr.logement+')');
+      else push(L+' proposé','unknown','','orga');
+    } else if(cl) push(L,'ok',L.toLowerCase()+' : '+cl+' — non exigé');
   })();
-  // Sono : OK si l'orga la fournit (cond='non') ou si le profil dit que l'artiste l'amène
-  (function(){ const brings=/am[eè]n|apport/i.test(String(pr.sono||'')); const cs=String(cond.sonoAmener||'').trim();
-    if(cs==='non') push('Sono','ok',"sono fournie par l'orga");
-    else if(cs==='oui') push('Sono', brings?'ok':'ko', brings?'tu amènes ta sono (prévu au profil)':'sono à amener (non prévu dans ton profil)');
-    else push('Qui fournit la sono ?','unknown','','orga');
-  })();
-  // Visibilité : informatif (non chiffré dans le score)
-  (function(){ const cv=String(cond.visibilite||'').trim(), pv=String(pr.visibilite||'').trim();
-    if(cv) push('Visibilité proposée','info',cv);
-    else if(pv) push('Visibilité proposée','unknown','','orga');
+  if(studio){
+    // Critères SPÉCIFIQUES STUDIO (pas de loge/scène/sono comme en concert)
+    (function(){ const cv=String(cond.repas||'').trim();
+      if(cv==='oui') push('Repas / défraiements','ok','repas ou défraiements pris en charge');
+      else if(cv==='non') push('Repas / défraiements','ko','repas/défraiements non pris en charge');
+      else push('Repas / défraiements fournis ?','unknown','','orga'); })();
+    (function(){ const cv=String(cond.materiel||'').trim();
+      if(cv==='oui') push('Matériel / instruments','ok','matériel/instruments fournis par le studio');
+      else if(cv==='non') push('Matériel / instruments','ko','matériel/instruments à amener');
+      else push('Matériel / instruments fournis ?','unknown','','orga'); })();
+  } else {
+    // Critères SPÉCIFIQUES CONCERT / SCÈNE
+    boolCrit('Loge', !!pr.loge, cond.loge, "pas de loge (tu l'exiges)");
+    boolCrit('Ingé son', !!pr.ingeSon, cond.ingeSon, "pas d'ingé son (tu l'exiges)");
+    (function(){ const req=!!pr.scene, cv=String(cond.scene||'').trim(), dim=String(cond.sceneDim||'').trim();
+      if(req){
+        if(cv==='oui') push('Scène','ok', dim?('scène fournie ('+dim+')'):'scène fournie');
+        else if(cv==='non') push('Scène','ko',"pas de scène (tu l'exiges)");
+        else push('Scène','unknown','','orga');
+      } else if(cv==='oui'||cv==='non') push('Scène','ok', (cv==='oui'?('scène'+(dim?' ('+dim+')':'')):'pas de scène')+' — non exigé');
+    })();
+    (function(){ const brings=/am[eè]n|apport/i.test(String(pr.sono||'')); const cs=String(cond.sonoAmener||'').trim();
+      if(cs==='non') push('Sono','ok',"sono fournie par l'orga");
+      else if(cs==='oui') push('Sono', brings?'ok':'ko', brings?'tu amènes ta sono (prévu au profil)':'sono à amener (non prévu dans ton profil)');
+      else push('Qui fournit la sono ?','unknown','','orga');
+    })();
+  }
+  // Visibilité / crédits : informatif
+  (function(){ const cv=String(cond.visibilite||'').trim(), pv=String(pr.visibilite||'').trim(); const L=studio?'Crédits / visibilité (album)':'Visibilité proposée';
+    if(cv) push(L,'info',cv);
+    else if(pv) push(L,'unknown','','orga');
   })();
   const ok=crits.filter(c=>c.state==='ok').length;
   const ko=crits.filter(c=>c.state==='ko').length;
@@ -1721,7 +1735,7 @@ function computeCond(cond, person){
   return {crits,ok,ko,unknown,counted,score,level,style:COND_STYLE[level],person};
 }
 function condBadgeHTML(f){ if(!f.cond) return '';
-  const r=computeCond(f.cond,currentPerson), s=r.style;
+  const r=computeCond(f.cond,currentPerson,f.type), s=r.style;
   const txt=(r.score==null)?'à compléter':(s.label+' '+r.score+' %');
   return '<span class="ev-badge" style="background:'+s.bg+';color:'+s.col+';border:1px solid '+s.col+'" data-tip="Évaluation « bon plan ? » — clique « 🎯 Bon plan ? » pour revoir le détail">🎯 '+txt+'</span>';
 }
@@ -1749,35 +1763,44 @@ function condVerdictHTML(r){ const s=r.style;
   if(profMiss.length) html+='<div class="ev-missing prof"><b>👤 À compléter dans ton profil</b><ul>'+profMiss.map(c=>'<li>'+_esc(c.label)+'</li>').join('')+'</ul></div>';
   return html;
 }
+let _condType='concert';
 function _condSel(id,val,opts){ return '<select id="'+id+'" onchange="condRecalc()">'+opts.map(o=>'<option value="'+_escA(o[0])+'"'+(String(val||'')===o[0]?' selected':'')+'>'+_esc(o[1])+'</option>').join('')+'</select>'; }
-function condFormHTML(c){ const ON=[['','? (à demander)'],['oui','Oui'],['non','Non']];
-  let h='<div class="pf-sec">Conditions proposées par l\'organisateur</div>';
-  h+='<div class="pf-row"><label>Prix proposé (€ / cachet)</label><input type="number" id="cd_prix" min="0" step="1" value="'+_escA(c.prix==null?'':c.prix)+'" oninput="condRecalc()"></div>';
+function condFormHTML(c,type){ const ON=[['','? (à demander)'],['oui','Oui'],['non','Non']]; const studio=(type==='studio');
+  let h='<div class="pf-sec">Conditions proposées'+(studio?' (session studio)':' par l\'organisateur')+'</div>';
+  h+='<div class="pf-row"><label>Prix proposé (€ / cachet'+(studio?' studio':'')+')</label><input type="number" id="cd_prix" min="0" step="1" value="'+_escA(c.prix==null?'':c.prix)+'" oninput="condRecalc()"></div>';
   h+='<div class="pf-row"><label>Distance du lieu (km)</label><input type="number" id="cd_distanceKm" min="0" step="1" value="'+_escA(c.distanceKm==null?'':c.distanceKm)+'" oninput="condRecalc()"></div>';
-  h+='<div class="pf-row"><label>Trajet pris en charge par l\'orga ?</label>'+_condSel('cd_trajetPris',c.trajetPris,ON)+'</div>';
-  h+='<div class="pf-row"><label>Logement proposé</label>'+_condSel('cd_logement',c.logement,[['','? (à demander)'],['aucun','Aucun'],['sur place','Sur place'],['hôtel','Hôtel']])+'</div>';
-  h+='<div class="pf-row"><label>Loge fournie ?</label>'+_condSel('cd_loge',c.loge,ON)+'</div>';
-  h+='<div class="pf-row"><label>Scène fournie ?</label>'+_condSel('cd_scene',c.scene,ON)+'</div>';
-  h+='<div class="pf-row"><label>Dimensions de la scène</label><input type="text" id="cd_sceneDim" value="'+_escA(c.sceneDim||'')+'" placeholder="ex. 6 × 4 m" oninput="condRecalc()"></div>';
-  h+='<div class="pf-row"><label>Ingé son fourni ?</label>'+_condSel('cd_ingeSon',c.ingeSon,ON)+'</div>';
-  h+='<div class="pf-row"><label>Sono à amener par l\'artiste ?</label>'+_condSel('cd_sonoAmener',c.sonoAmener,ON)+'</div>';
-  h+='<div class="pf-row"><label>Visibilité proposée</label><input type="text" id="cd_visibilite" value="'+_escA(c.visibilite||'')+'" placeholder="ex. festival, presse, jauge…" oninput="condRecalc()"></div>';
-  h+='<div class="pf-row"><label>Notes / autres conditions</label><textarea id="cd_notes" placeholder="ex. cachet supplémentaire répétition, repas fourni…">'+_esc(c.notes||'')+'</textarea></div>';
+  h+='<div class="pf-row"><label>Trajet pris en charge ?</label>'+_condSel('cd_trajetPris',c.trajetPris,ON)+'</div>';
+  h+='<div class="pf-row"><label>'+(studio?'Hébergement proposé (multi-jours)':'Logement proposé')+'</label>'+_condSel('cd_logement',c.logement,[['','? (à demander)'],['aucun','Aucun'],['sur place','Sur place'],['hôtel','Hôtel']])+'</div>';
+  if(studio){
+    h+='<div class="pf-row"><label>Repas / défraiements fournis ?</label>'+_condSel('cd_repas',c.repas,ON)+'</div>';
+    h+='<div class="pf-row"><label>Matériel / instruments fournis par le studio ?</label>'+_condSel('cd_materiel',c.materiel,ON)+'</div>';
+    h+='<div class="pf-row"><label>Crédits / visibilité (album…)</label><input type="text" id="cd_visibilite" value="'+_escA(c.visibilite||'')+'" placeholder="ex. crédité sur l\'album, clip, streaming…" oninput="condRecalc()"></div>';
+  } else {
+    h+='<div class="pf-row"><label>Loge fournie ?</label>'+_condSel('cd_loge',c.loge,ON)+'</div>';
+    h+='<div class="pf-row"><label>Scène fournie ?</label>'+_condSel('cd_scene',c.scene,ON)+'</div>';
+    h+='<div class="pf-row"><label>Dimensions de la scène</label><input type="text" id="cd_sceneDim" value="'+_escA(c.sceneDim||'')+'" placeholder="ex. 6 × 4 m" oninput="condRecalc()"></div>';
+    h+='<div class="pf-row"><label>Ingé son fourni ?</label>'+_condSel('cd_ingeSon',c.ingeSon,ON)+'</div>';
+    h+='<div class="pf-row"><label>Sono à amener par l\'artiste ?</label>'+_condSel('cd_sonoAmener',c.sonoAmener,ON)+'</div>';
+    h+='<div class="pf-row"><label>Visibilité proposée</label><input type="text" id="cd_visibilite" value="'+_escA(c.visibilite||'')+'" placeholder="ex. festival, presse, jauge…" oninput="condRecalc()"></div>';
+  }
+  h+='<div class="pf-row"><label>Notes / autres conditions</label><textarea id="cd_notes" placeholder="ex. cachet répétition en plus, per diem…">'+_esc(c.notes||'')+'</textarea></div>';
   return h;
 }
-function readCondForm(){ const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
-  return { prix:g('cd_prix'), distanceKm:g('cd_distanceKm'), trajetPris:g('cd_trajetPris'),
-    logement:g('cd_logement'), loge:g('cd_loge'), scene:g('cd_scene'), sceneDim:g('cd_sceneDim'),
-    ingeSon:g('cd_ingeSon'), sonoAmener:g('cd_sonoAmener'), visibilite:g('cd_visibilite'), notes:g('cd_notes') }; }
-function condRecalc(){ document.getElementById('condVerdictBox').innerHTML=condVerdictHTML(computeCond(readCondForm(),currentPerson)); }
-function openCond(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _condId=id;
-  document.getElementById('condSub').innerHTML='Date : <b>'+_esc(f.lieu||fmt(f.start))+'</b> — évalué pour <b>'+currentPerson+'</b>'+(f.owner==='both'?' <span style="opacity:.85">(date partagée)</span>':'');
-  document.getElementById('condFormBox').innerHTML=condFormHTML(f.cond||{});
+function readCondForm(type){ const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  const b={ prix:g('cd_prix'), distanceKm:g('cd_distanceKm'), trajetPris:g('cd_trajetPris'),
+    logement:g('cd_logement'), visibilite:g('cd_visibilite'), notes:g('cd_notes') };
+  if(type==='studio'){ b.repas=g('cd_repas'); b.materiel=g('cd_materiel'); }
+  else { b.loge=g('cd_loge'); b.scene=g('cd_scene'); b.sceneDim=g('cd_sceneDim'); b.ingeSon=g('cd_ingeSon'); b.sonoAmener=g('cd_sonoAmener'); }
+  return b; }
+function condRecalc(){ document.getElementById('condVerdictBox').innerHTML=condVerdictHTML(computeCond(readCondForm(_condType),currentPerson,_condType)); }
+function openCond(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _condId=id; _condType=(f.type==='studio')?'studio':'concert';
+  document.getElementById('condSub').innerHTML='Date : <b>'+_esc(f.lieu||fmt(f.start))+'</b>'+(f.type==='studio'?' <span style="color:var(--c-studio);font-weight:700">🎙️ studio</span>':'')+' — évalué pour <b>'+currentPerson+'</b>'+(f.owner==='both'?' <span style="opacity:.85">(date partagée)</span>':'');
+  document.getElementById('condFormBox').innerHTML=condFormHTML(f.cond||{},_condType);
   condRecalc();
   document.getElementById('condBg').classList.add('show');
 }
 function saveCond(){ const f=state.fiches.find(x=>x.id===_condId); if(!f) return;
-  f.cond=readCondForm(); save(); render(); closeCond(); openDetail(f.id); toast('🎯 Évaluation enregistrée'); }
+  f.cond=readCondForm(_condType); save(); render(); closeCond(); openDetail(f.id); toast('🎯 Évaluation enregistrée'); }
 function closeCond(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('condBg').classList.remove('show'); }
 
 /* ===== Module 3 — Organisateur & suivi de négociation (f.orga + f.nego) ===== */
