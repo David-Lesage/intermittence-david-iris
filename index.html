@@ -400,6 +400,35 @@
   .r-hero{position:relative;background:linear-gradient(135deg,#1b2740,#25406b);border-radius:12px;padding:16px 18px;margin-bottom:14px}
   .r-hero h2{margin:0;font-size:18px;color:#eaf1ff}
   .r-hero .bo-sub{color:#b9c8e8;font-size:12.5px;margin-top:4px}
+  /* --- Vérifier & bilan --- */
+  .bl-verdict{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;border-radius:12px;padding:14px 16px;font-size:18px;font-weight:800;margin-bottom:14px}
+  .bl-verdict.ok{background:rgba(61,220,151,.14);border:1px solid rgba(61,220,151,.5);color:var(--ok)}
+  .bl-verdict.warn{background:rgba(255,193,7,.14);border:1px solid rgba(255,193,7,.5);color:var(--warn)}
+  .bl-verdict .bl-vsub{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .bl-issues{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .bl-issue{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:9px;padding:9px 11px;cursor:pointer}
+  .bl-issue:hover{border-color:var(--warn)}
+  .bl-issue .bl-idot{font-size:15px;line-height:1.3}
+  .bl-issue .bl-idate{color:var(--muted);font-size:12px;font-weight:600}
+  .bl-issue .bl-imsg{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .bl-recap{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+  .bl-stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:center}
+  .bl-stat.warn{border-color:rgba(255,193,7,.5);background:rgba(255,193,7,.08)}
+  .bl-stat .bl-sv{font-size:19px;font-weight:800;color:var(--txt)}
+  .bl-stat .bl-sv small{font-size:11px;font-weight:600;color:var(--muted)}
+  .bl-stat .bl-sl{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .bl-list-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}
+  .bl-list{display:flex;flex-direction:column;gap:6px}
+  .bl-row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:13px}
+  .bl-row:hover{border-color:var(--accent2)}
+  .bl-row .bl-rwhen{flex:0 0 auto;font-weight:700;color:var(--txt);min-width:82px}
+  .bl-row .bl-rlieu{flex:1 1 auto;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bl-row .bl-rstat{flex:0 0 auto;font-size:11.5px;font-weight:700}
+  .bl-row .bl-rstat.ok{color:var(--ok)}
+  .bl-row .bl-rstat.warn{color:var(--warn)}
+  .bl-row .bl-rstat.studio{color:var(--muted)}
+  .bl-actions{margin-top:16px;display:flex;justify-content:center}
+  .bl-hero-btn{margin-top:12px;background:var(--ok);color:#06222e;font-weight:800;border:none}
   .r-toggle{display:flex;gap:8px;margin-bottom:14px}
   .r-tab{flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer}
   .r-tab.active{background:rgba(124,158,255,.16);border-color:var(--accent2);color:var(--txt)}
@@ -527,6 +556,7 @@
     <div class="hdr-actions" id="hdrActions">
       <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
       <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
+      <button class="btn ghost sm" onclick="openBilan()" data-tip="Vérifier que tout est en ordre (DPAE, feuillets GUSO, factures) sur la période en cours et sortir un bilan imprimable">🔍 Vérifier &amp; bilan</button>
       <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
       <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
       <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
@@ -570,6 +600,7 @@
         <div class="hero-win" id="heroWin" style="display:none">
           <div class="hero-win-title">🎉 Objectif 507 h atteint !</div>
           <div class="hero-win-sub" id="heroWinSub">Tes heures sont sécurisées pour cette période.</div>
+          <button class="btn bl-hero-btn" type="button" onclick="openBilan()" data-tip="Contrôler que tout est en ordre et sortir le bilan imprimable de la période">🔍 Vérifier &amp; sortir le bilan</button>
         </div>
         <div class="hero-anniv" id="heroAnniv"></div>
         <div class="hero-rhythm" id="heroRhythm"></div>
@@ -710,6 +741,24 @@
         <button class="r-tab" id="rTabIris" type="button" onclick="openRecap('Iris')">Iris</button>
       </div>
       <div id="recapContent"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- VÉRIFIER & BILAN -->
+  <div class="modal-bg" id="bilanBg" onclick="closeBilan(event)">
+   <div class="modal recap-modal" onclick="event.stopPropagation()">
+    <div class="r-hero">
+      <button class="btn ghost sm bo-x" type="button" onclick="closeBilan()" data-tip="Fermer">✕</button>
+      <h2>🔍 Vérifier &amp; bilan</h2>
+      <div class="bo-sub">Contrôle de cohérence de ta période en cours (DPAE, feuillets GUSO, factures) + récapitulatif imprimable.</div>
+    </div>
+    <div class="r-body">
+      <div class="r-toggle">
+        <button class="r-tab" id="blTabDavid" type="button" onclick="openBilan('David')">David</button>
+        <button class="r-tab" id="blTabIris" type="button" onclick="openBilan('Iris')">Iris</button>
+      </div>
+      <div id="bilanContent"></div>
     </div>
    </div>
   </div>
@@ -1662,6 +1711,137 @@ function buildRecap(person){
     html+='</div>';
   });
   return html;
+}
+
+/* ===== Vérifier & bilan — contrôle de cohérence de la période en cours =====
+   Passe en revue les dates CONFIRMÉES (non hypo) de la période courante et remonte
+   les anomalies : n° GUSO manquant, feuillet non tamponné, DPAE non faite, virement
+   non fait (sur dates passées, type≠studio), incohérences f.warn. Studio = info (hors GUSO). */
+let _bilanPerson='David';
+function _blEur(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function runCheck(person){
+  person=person||currentPerson||'David';
+  const period=currentPeriod(person);
+  const t=today0();
+  const inP=fichesFor(person,'period').filter(f=>!f.hypo);
+  const issues=[];
+  const add=(niveau,cat,f,msg)=>issues.push({niveau,cat,date:f.start,lieu:f.lieu||'(sans titre)',msg,id:f.id});
+  inP.forEach(f=>{
+    const d=parseD(f.start); const past = d && d<t;
+    if(f.type==='studio'){
+      add('info','studio',f,'Date studio : hors circuit GUSO (pas de DPAE ni de feuillet à faire).');
+    } else {
+      if(past && !f.num) add('alerte','guso-num',f,'Date passée sans n° GUSO.');
+      if(past && !(f.steps&&f.steps.guso)) add('alerte','guso-feuillet',f,'Feuillet GUSO non tamponné.');
+      if(past) dpaePersons(f).forEach(pp=>{ if(!dpaeDone(f,pp)) add('alerte','dpae',f,'DPAE non faite'+(f.owner==='both'?(' ('+pp+')'):'')+'.'); });
+      if(past && !(f.steps&&f.steps.paiement)) add('alerte','paiement',f,'Facture / virement non fait.');
+    }
+    if(f.warn) add('alerte','warn',f,'Incohérence signalée : '+f.warn);
+    if(!(f.steps&&f.steps.actu)) add('info','actu',f,'Actualisation France Travail à faire / vérifier.');
+  });
+  const heures=inP.reduce((s,f)=>s+ficheHours(f,person),0);
+  const cachets=inP.reduce((s,f)=>s+(Number(f.cachets)||0),0);
+  const repetH=inP.reduce((s,f)=>s+repetFor(f,person),0);
+  const brut=inP.reduce((s,f)=>s+(Number(f.brut)||0),0);
+  const prouvees=inP.filter(f=>f.steps&&f.steps.guso).reduce((s,f)=>s+ficheHours(f,person),0);
+  const aTamponner=Math.max(0,heures-prouvees);
+  const alertes=issues.filter(i=>i.niveau==='alerte');
+  return {ok:alertes.length===0, issues, stats:{heures,cachets,repetH,brut,nbDates:inP.length,prouvees,aTamponner}, period, person};
+}
+function _blDateStatus(f,person){
+  if(f.type==='studio') return {txt:'🎙️ hors GUSO',cls:'studio'};
+  const miss=[];
+  if(!f.num) miss.push('n° GUSO');
+  if(!(f.steps&&f.steps.guso)) miss.push('feuillet');
+  if(dpaePersons(f).some(pp=>!dpaeDone(f,pp))) miss.push('DPAE');
+  if(!(f.steps&&f.steps.paiement)) miss.push('virement');
+  if(f.warn) miss.push('⚠️');
+  if(!miss.length) return {txt:'✓ complète',cls:'ok'};
+  return {txt:'⏳ '+miss.join(', '),cls:'warn'};
+}
+function openBilan(person){ person=person||currentPerson||'David'; _bilanPerson=person;
+  document.getElementById('blTabDavid').classList.toggle('active',person==='David');
+  document.getElementById('blTabIris').classList.toggle('active',person==='Iris');
+  document.getElementById('bilanContent').innerHTML=buildBilan(person);
+  document.getElementById('bilanBg').classList.add('show'); }
+function closeBilan(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('bilanBg').classList.remove('show'); }
+function buildBilan(person){
+  const R=runCheck(person), S=R.stats;
+  const per=R.period?('du '+fmt(isoLocal(R.period.start))+' au '+fmt(isoLocal(R.period.end))):'';
+  const alertes=R.issues.filter(i=>i.niveau==='alerte');
+  let h='';
+  if(R.ok){
+    h+='<div class="bl-verdict ok">🟢 Tout est en ordre <span class="bl-vsub">Aucune anomalie sur tes dates confirmées.</span></div>';
+  } else {
+    h+='<div class="bl-verdict warn">🟡 '+alertes.length+' point'+(alertes.length>1?'s':'')+' à régler</div>';
+    h+='<div class="bl-issues">'+alertes.map(i=>
+      '<div class="bl-issue" onclick="closeBilan();openDetail(\''+i.id+'\')" data-tip="Ouvrir cette date">'
+      +'<span class="bl-idot">⚠️</span><div><b>'+_esc(i.lieu)+'</b> <span class="bl-idate">'+fmt(i.date)+'</span>'
+      +'<div class="bl-imsg">'+_esc(i.msg)+'</div></div></div>').join('')+'</div>';
+  }
+  h+='<div class="bl-recap">'
+    +'<div class="bl-stat"><div class="bl-sv">'+Math.round(S.heures)+' <small>/ 507 h</small></div><div class="bl-sl">Heures totales</div></div>'
+    +'<div class="bl-stat"><div class="bl-sv">'+S.cachets+'</div><div class="bl-sl">Cachets</div></div>'
+    +'<div class="bl-stat"><div class="bl-sv">'+Math.round(S.repetH)+' h</div><div class="bl-sl">Heures répét.</div></div>'
+    +'<div class="bl-stat"><div class="bl-sv" style="color:var(--money)">'+_blEur(S.brut)+'</div><div class="bl-sl">Brut encaissé</div></div>'
+    +'<div class="bl-stat"><div class="bl-sv">'+S.nbDates+'</div><div class="bl-sl">Dates confirmées</div></div>'
+    +'<div class="bl-stat"><div class="bl-sv">'+Math.round(S.prouvees)+' h</div><div class="bl-sl">Prouvées (tamponnées)</div></div>'
+    +(S.aTamponner>0?'<div class="bl-stat warn"><div class="bl-sv">'+Math.round(S.aTamponner)+' h</div><div class="bl-sl">À tamponner</div></div>':'')
+    +'</div>';
+  const inP=fichesFor(person,'period').filter(f=>!f.hypo).sort((a,b)=>a.start<b.start?1:-1);
+  h+='<div class="bl-list-title">Dates de la période '+per+'</div>';
+  h+='<div class="bl-list">'+(inP.length?inP.map(f=>{
+      const st=_blDateStatus(f,person);
+      return '<div class="bl-row" onclick="closeBilan();openDetail(\''+f.id+'\')" data-tip="Ouvrir cette date">'
+        +'<span class="bl-rwhen">'+fmt(f.start)+'</span><span class="bl-rlieu">'+_esc(f.lieu||'(sans titre)')+'</span>'
+        +'<span class="bl-rstat '+st.cls+'">'+st.txt+'</span></div>';
+    }).join(''):'<div class="r-empty">Aucune date confirmée dans la période.</div>')+'</div>';
+  h+='<div class="bl-actions"><button class="btn" type="button" onclick="printBilan()" data-tip="Ouvrir une page imprimable pour enregistrer le bilan en PDF">🖨️ Imprimer / PDF le bilan</button></div>';
+  return h;
+}
+function printBilan(){
+  const person=_bilanPerson||currentPerson||'David';
+  const html=buildBilanPrint(person);
+  const w=window.open('','_blank');
+  if(!w){ alert('Autorise les fenêtres pop-up pour imprimer le bilan.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 400);
+}
+function buildBilanPrint(person){
+  const R=runCheck(person), S=R.stats;
+  const per=R.period?('du '+fmt(isoLocal(R.period.start))+' au '+fmt(isoLocal(R.period.end))):'';
+  const alertes=R.issues.filter(i=>i.niveau==='alerte');
+  const infos=R.issues.filter(i=>i.niveau==='info');
+  const esc=_esc;
+  const inP=fichesFor(person,'period').filter(f=>!f.hypo).sort((a,b)=>a.start<b.start?1:-1);
+  const verdict=R.ok
+    ? '<div style="background:#e7faf1;border:1px solid #9be3c2;color:#0a7a4e;border-radius:10px;padding:14px 16px;font-size:19px;font-weight:800">🟢 Tout est en ordre — aucune anomalie sur les dates confirmées.</div>'
+    : '<div style="background:#fff6e0;border:1px solid #f0cf7a;color:#9a6a00;border-radius:10px;padding:14px 16px;font-size:19px;font-weight:800">🟡 '+alertes.length+' point'+(alertes.length>1?'s':'')+' à régler</div>';
+  const issuesHtml=alertes.length
+    ? '<h2>Points à régler</h2><ul style="margin:0;padding-left:18px">'+alertes.map(i=>'<li style="margin:5px 0"><b>'+esc(i.lieu)+'</b> — '+fmt(i.date)+' : '+esc(i.msg)+'</li>').join('')+'</ul>'
+    : '';
+  const stat=(v,l)=>'<td style="border:1px solid #ccc;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800">'+v+'</div><div style="font-size:11px;color:#666">'+l+'</div></td>';
+  const recap='<table style="border-collapse:collapse;width:100%;margin:8px 0 4px"><tr>'
+    +stat(Math.round(S.heures)+' / 507 h','Heures totales')+stat(S.cachets,'Cachets')+stat(Math.round(S.repetH)+' h','Heures répét.')+'</tr><tr>'
+    +stat(_blEur(S.brut),'Brut encaissé')+stat(S.nbDates,'Dates')+stat(Math.round(S.prouvees)+' h / '+Math.round(S.aTamponner)+' h','Prouvées / à tamponner')+'</tr></table>';
+  const rows=inP.map(f=>{ const st=_blDateStatus(f,person);
+    return '<tr><td style="border:1px solid #ccc;padding:6px 9px">'+fmt(f.start)+'</td><td style="border:1px solid #ccc;padding:6px 9px">'+esc(f.lieu||'(sans titre)')+'</td>'
+      +'<td style="border:1px solid #ccc;padding:6px 9px">'+esc(st.txt)+'</td></tr>'; }).join('');
+  const list='<h2>Dates de la période</h2><table style="border-collapse:collapse;width:100%;font-size:13px">'
+    +'<tr style="background:#f0f0f0"><th style="border:1px solid #ccc;padding:6px 9px;text-align:left">Date</th><th style="border:1px solid #ccc;padding:6px 9px;text-align:left">Lieu / titre</th><th style="border:1px solid #ccc;padding:6px 9px;text-align:left">Statut</th></tr>'
+    +(rows||'<tr><td colspan="3" style="border:1px solid #ccc;padding:8px">Aucune date confirmée.</td></tr>')+'</table>';
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bilan Guso Facile</title>'
+    +'<style>@page{margin:16mm}body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;max-width:760px;margin:0 auto;padding:20px;background:#fff}'
+    +'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}.sub{color:#666;font-size:13px;margin-bottom:14px}'
+    +'.foot{margin-top:26px;color:#999;font-size:11px;text-align:center}</style></head><body>'
+    +'<h1>Bilan intermittence — '+esc(person)+'</h1>'
+    +'<div class="sub">Période '+per+' · seuil 507 h · édité le '+fmt(isoLocal(today0()))+'</div>'
+    +verdict+issuesHtml
+    +'<h2>Récapitulatif de la période</h2>'+recap
+    +list
+    +(infos.length?'<h2>Rappels (non bloquant)</h2><ul style="margin:0;padding-left:18px;color:#555;font-size:12.5px">'+infos.map(i=>'<li>'+esc(i.lieu)+' — '+fmt(i.date)+' : '+esc(i.msg)+'</li>').join('')+'</ul>':'')
+    +'<div class="foot">Généré par Guso Facile — créé avec amour par David Lesage</div>'
+    +'</body></html>';
 }
 
 /* ===== Profil artiste (Module 1) — identité, instruments, conditions idéales, contrats ===== */
