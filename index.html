@@ -358,6 +358,7 @@
     background:rgba(255,209,102,.16);color:var(--warn);border:1px solid rgba(255,209,102,.4);white-space:nowrap}
   .tn-row .tn-when.urgent{background:rgba(255,107,107,.16);color:var(--bad);border-color:rgba(255,107,107,.45)}
   .tn-row .tn-when.late{background:rgba(255,107,107,.14);color:var(--bad);border-color:rgba(255,107,107,.4)}
+  .tn-row .tn-when.soon{background:rgba(124,158,255,.16);color:var(--accent2);border-color:rgba(124,158,255,.4)}
   .tn-empty{padding:16px 15px;text-align:center;color:var(--ok);font-weight:700;font-size:14px}
   @media(max-width:560px){
     .tn-row{padding:12px 13px}
@@ -1337,24 +1338,25 @@ function renderTodoNow(p){
     const days=daysBetween(t,d);           // >0 : à venir ; <0 : passé
     const lieu=f.lieu||'(sans titre)';
     // Incohérence signalée (prioritaire, quelle que soit la date)
-    if(f.warn) items.push({id:f.id,ic:'⚠️',lbl:'Incohérence à vérifier',meta:lieu+' · '+fmt(f.start),when:'à vérifier',cls:'urgent',sk:-3});
+    // Incohérence signalée (data à vérifier) — après les échéances et les retards (grp 2)
+    if(f.warn) items.push({id:f.id,ic:'⚠️',lbl:'Incohérence à vérifier',meta:lieu+' · '+fmt(f.start),when:'à vérifier',cls:'',grp:2,ord:0});
     if(f.type==='studio') return;          // studio : hors circuit GUSO
     if(d>=t){
-      // DPAE à faire pour une date à venir
+      // À VENIR — le plus important (échéances qui approchent) : en TÊTE (grp 0), le plus proche d'abord
       const dpaeMiss=dpaePersons(f).some(pp=>!dpaeDone(f,pp));
       if(dpaeMiss){
         const urgent=days<=3;
         items.push({id:f.id,ic:'📋',lbl:'DPAE à faire'+(f.owner==='both'?' (David & Iris)':''),
-          meta:lieu+' · '+fmt(f.start),when:'J-'+days,cls:urgent?'urgent':'',sk:days});
+          meta:lieu+' · '+fmt(f.start),when:days===0?"aujourd'hui":'dans '+days+' j',cls:urgent?'urgent':'soon',grp:0,ord:days});
       }
     } else if(pe && d>=pe.start && d<pe.end){
-      // dates passées de la période en cours : pièces manquantes
-      if(!(f.steps&&f.steps.guso)) items.push({id:f.id,ic:'📄',lbl:'Feuillet GUSO à éditer',meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',sk:-2});
-      if(dpaePersons(f).some(pp=>!dpaeDone(f,pp))) items.push({id:f.id,ic:'📋',lbl:'DPAE en retard'+(f.owner==='both'?' (David & Iris)':''),meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',sk:-2});
-      if(!(f.steps&&f.steps.paiement)) items.push({id:f.id,ic:'💸',lbl:'Facture / salaire en attente',meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',sk:-1});
+      // DÉPASSÉ (grp 1) — souvent juste une case oubliée ; le plus récent d'abord
+      if(!(f.steps&&f.steps.guso)) items.push({id:f.id,ic:'📄',lbl:'Feuillet GUSO à éditer',meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',grp:1,ord:-days});
+      if(dpaePersons(f).some(pp=>!dpaeDone(f,pp))) items.push({id:f.id,ic:'📋',lbl:'DPAE en retard'+(f.owner==='both'?' (David & Iris)':''),meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',grp:1,ord:-days});
+      if(!(f.steps&&f.steps.paiement)) items.push({id:f.id,ic:'💸',lbl:'Facture / salaire en attente',meta:lieu+' · '+fmt(f.start),when:'en retard',cls:'late',grp:1,ord:-days});
     }
   });
-  items.sort((a,b)=>a.sk-b.sk);
+  items.sort((a,b)=>(a.grp-b.grp)||(a.ord-b.ord));
   const n=items.length;
   // Badge du bouton « À faire » (header)
   const badge=document.getElementById('todoBadge');
