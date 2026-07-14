@@ -361,3 +361,9 @@ même validé, avancer par petits incréments déployés, sans tout enchaîner d
 - Communication : explications longues en chat, **choix courts/cliquables**.
 - Style : pour l'esthétique/UX proposer des variantes ; pour le structurel, trancher puis exécuter.
 - Données = sacrées : ne jamais risquer un écrasement ; vérifier local **et** cloud en cas de doute.
+
+## 9-bis. Ajouts 2026-07-14 (session 4 tâches)
+- **A. Dépôt de facture par date** (`factureBlock`/`factPick`/`factDrop`/`factRemove`/`factSetUrl`/`openFacture`, cap `FACT_MAX`=350 Ko) : dans `openDetail`, si aucune facture accessible → zone glisser-déposer « 🧾 Facture manquante » (PDF/image, `f.factureFile={name,type,data}`) + champ « coller un lien Drive » (`f.factureUrl`) ; sinon bouton « Ouvrir la facture » (+ « 🗑 Retirer » si non-officielle). Exclu des dates studio.
+- **B. Back-office DPAE inclut les dates possibles** : la catégorie DPAE liste aussi les dates `hypo` **à venir** (badge « 🔮 possible », couleur `--hypo`) pour anticiper ; GUSO/Factures restent aux dates confirmées.
+- **C. Retour à l'écran d'origine** (`openDetail(id,from)` + `_detailFrom`) : `closeDetail()` ré-ouvre le back-office si origine `backoffice` (rafraîchi), le back-office + fiche artiste si `artist:<p>`, sinon retour liste. Lignes BO appellent `openDetail(id,'backoffice')` sans fermer le BO.
+- **D. Écran d'accueil** (`#welcomeOverlay`, `openWelcome`/`chooseSpace`) : affiché par `startApp()` (sauf deep-link `#date=`), 2 cartes « 👤 Espace artiste » / « 🏢 Espace structure », mémorise `localStorage.gf_space`, bouton « 🏠 Accueil » dans l'en-tête.

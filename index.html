@@ -414,6 +414,24 @@
   <button class="btn" style="margin-top:12px;max-width:280px;width:100%" onclick="tryUnlock()">Déverrouiller</button>
   <div id="unlockErr" style="margin-top:10px;font-size:13px;color:var(--bad)"></div>
 </div>
+<div id="welcomeOverlay" style="display:none;position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -10%,rgba(123,158,255,.16),transparent 60%),var(--bg);z-index:250;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto">
+  <div style="font-size:40px;margin-bottom:6px">👋</div>
+  <h2 style="margin:0 0 6px;font-size:26px;font-weight:800;background:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);-webkit-background-clip:text;background-clip:text;color:transparent">Bienvenue sur Guso Facile</h2>
+  <div style="color:var(--muted);font-size:14px;max-width:420px;margin:0 auto 22px">Choisis ton espace pour commencer.</div>
+  <div id="welcomeCards" style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:760px">
+    <div id="wcArt" onclick="chooseSpace('artist')" style="cursor:pointer;flex:1 1 300px;max-width:340px;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:26px 22px;transition:border-color .15s,transform .12s" onmouseover="this.style.borderColor='var(--david)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform=''">
+      <div style="font-size:40px;margin-bottom:10px">👤</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Espace artiste</div>
+      <div style="color:var(--muted);font-size:13px">Suivi des heures, dates et démarches de David &amp; Iris.</div>
+    </div>
+    <div id="wcStr" onclick="chooseSpace('structure')" style="cursor:pointer;flex:1 1 300px;max-width:340px;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:26px 22px;transition:border-color .15s,transform .12s" onmouseover="this.style.borderColor='var(--accent2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform=''">
+      <div style="font-size:40px;margin-bottom:10px">🏢</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Espace structure</div>
+      <div style="color:var(--muted);font-size:13px">Des Sons et Des Liens : DPAE, feuillets GUSO, factures, artistes.</div>
+    </div>
+  </div>
+  <div id="welcomeHint" style="color:var(--muted);font-size:12px;margin-top:18px"></div>
+</div>
 <header>
   <div class="brand">
     <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-label="Guso Facile">
@@ -437,6 +455,7 @@
     </div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost sm" onclick="openWelcome()" data-tip="Revenir à l'accueil : choisir l'espace artiste ou l'espace structure">🏠 Accueil</button>
     <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
     <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
     <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
@@ -1148,11 +1167,54 @@ function factureLine(f){ const i=factureInfo(f); if(!i) return '';
   if(multi) return '🧾 Facturé <b>'+e0(i.t)+'</b> <span class="fdet">('+det.replace('salaire net','salaires nets')+', global)</span> — couvre '+i.who;
   return '🧾 Facturé à l\'organisateur : <b>'+e0(i.t)+'</b> <span class="fdet">('+det+')</span>';
 }
-function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
+/* --- Facture par date : lien Drive officiel, sinon fichier déposé (dataURL), sinon lien Drive collé --- */
+const FACT_MAX=350*1024;
+function factureAccessUrl(f){ return factureOnline(f) || (f&&f.factureUrl) || (f&&f.factureFile?f.factureFile.data:'') || ''; }
+function openFacture(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
+  const on=factureOnline(f); if(on){ window.open(on,'_blank'); return; }
+  if(f.factureUrl){ window.open(f.factureUrl,'_blank'); return; }
+  if(f.factureFile){ openDataUrl(f.factureFile.data,f.factureFile.type); } }
+function factDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag'); }
+function factDragLeave(e){ e.currentTarget.classList.remove('drag'); }
+function factDrop(e,id){ e.preventDefault(); e.currentTarget.classList.remove('drag'); factPick(e.dataTransfer.files,id); }
+function factPick(files,id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; const file=files&&files[0]; if(!file) return;
+  if(!(file.type==='application/pdf'||file.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
+  if(file.size>FACT_MAX){ toast('⚠️ Facture trop lourde ('+Math.round(file.size/1024)+' Ko, max '+(FACT_MAX/1024)+' Ko). Dépose-la sur ton Drive et colle le lien ci-dessous.'); return; }
+  const rd=new FileReader(); rd.onload=()=>{ f.factureFile={name:file.name,type:file.type,data:rd.result}; save(); openDetail(f.id,_detailFrom); toast('🧾 Facture ajoutée à cette date'); };
+  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(file);
+}
+function factRemove(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; delete f.factureFile; delete f.factureUrl; save(); openDetail(f.id,_detailFrom); toast('🗑 Facture retirée'); }
+function factSetUrl(id,v){ const f=state.fiches.find(x=>x.id===id); if(!f) return; v=(v||'').trim(); if(v) f.factureUrl=v; else delete f.factureUrl; save(); openDetail(f.id,_detailFrom); toast(v?'🔗 Lien de facture enregistré':'🔗 Lien retiré'); }
+function factureBlock(f){
+  if(f.type==='studio') return '';
+  const on=factureOnline(f), has=on||f.factureUrl||f.factureFile;
+  if(has){
+    let inner='<b>🧾 Facture disponible</b> ';
+    if(on) inner+='<span style="opacity:.8">(Drive officiel)</span>';
+    else if(f.factureFile) inner+='<span style="opacity:.8">('+_esc(f.factureFile.name)+' · '+_dataKo(f.factureFile.data)+')</span>';
+    else inner+='<span style="opacity:.8">(lien Drive)</span>';
+    inner+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button class="btn pdf sm" style="background:#e0a458;color:#2a1a06" onclick="openFacture(\''+f.id+'\')" data-tip="Ouvrir la facture">🧾 Ouvrir la facture</button>';
+    if(!on) inner+='<button class="btn ghost sm" onclick="factRemove(\''+f.id+'\')" data-tip="Retirer la facture de cette date">🗑 Retirer</button>';
+    inner+='</div>';
+    return '<div style="background:rgba(224,138,88,.12);border:1px solid rgba(224,138,88,.55);border-radius:10px;padding:11px 13px;margin:14px 0;font-size:13px;color:#f0c9a0">'+inner+'</div>';
+  }
+  return '<div style="background:rgba(224,138,88,.10);border:1px solid rgba(224,138,88,.4);border-radius:10px;padding:11px 13px;margin:14px 0;font-size:13px;color:#f0c9a0">'
+    +'<b>🧾 Facture manquante</b>'
+    +'<div id="factZone" class="pf-drop" style="margin-top:9px" ondragover="factDragOver(event)" ondragleave="factDragLeave(event)" ondrop="factDrop(event,\''+f.id+'\')" onclick="document.getElementById(\'fact_file\').click()">'
+    +'<div class="pf-drop-txt">🧾 Dépose la facture ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div></div>'
+    +'<input type="file" id="fact_file" accept="application/pdf,image/*" style="display:none" onchange="factPick(this.files,\''+f.id+'\')">'
+    +'<div class="pf-row" style="margin-top:8px"><label style="font-size:12px">…ou coller un lien Drive</label>'
+    +'<input type="text" id="fact_url" placeholder="https://drive.google.com/..." style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px" '
+    +'onblur="factSetUrl(\''+f.id+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}"></div>'
+    +'</div>';
+}
+let _detailFrom='';
+function openDetail(id,from){ _detailFrom=from||''; const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
   const href=pdfOnline(f);
   const stepChip=(key,ic,short,label)=>{ const on=!!f.steps[key];
-    return `<div class="step ${on?'done':''}" onclick="toggleStep('${f.id}','${key}');openDetail('${f.id}')" data-tip="${label} — clique pour cocher/décocher cette étape administrative"><span class="box">${on?'✓':''}</span>${ic} ${short}</div>`; };
+    return `<div class="step ${on?'done':''}" onclick="toggleStep('${f.id}','${key}');openDetail('${f.id}','${_detailFrom}')" data-tip="${label} — clique pour cocher/décocher cette étape administrative"><span class="box">${on?'✓':''}</span>${ic} ${short}</div>`; };
   const chips=STEPS.map(s=>{
     if(s.key==='dpae' && f.owner==='both')   // DPAE nominative : 2 cases distinctes
       return stepChip('dpae','📋','DPAE David','DPAE de David (nominative, 1 par personne)')+stepChip('dpaeIris','📋','DPAE Iris','DPAE d\'Iris (nominative, 1 par personne)');
@@ -1192,13 +1254,13 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
       ${negoBadgesHTML(f)}
       <span class="ev-detailhint">Compare l'offre à tes conditions idéales${f.owner==='both'?' (évalué pour '+currentPerson+')':''}</span>
     </div>`:''}
+    ${factureBlock(f)}
     <div class="modal-actions">
       ${href
         ? `<a class="btn pdf" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le ${f.type==='studio'?'contrat':'feuillet GUSO'} (PDF) de cette date dans un nouvel onglet">📄 Ouvrir ${f.type==='studio'?'le contrat':'le GUSO'}</a>`
         : (f.pdf||f.num)
           ? `<span class="btn pdf disabled" data-tip="Le document est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 ${f.type==='studio'?'Contrat':('Feuillet '+(f.num?'n° '+f.num:'GUSO'))} · hors ligne</span>`
           : ''}
-      ${factureOnline(f)?`<a class="btn pdf" style="background:#e0a458;color:#2a1a06" href="${factureOnline(f)}" target="_blank" rel="noopener" data-tip="Ouvrir la facture Résonances Productions liée à cette date (Google Drive)">🧾 Ouvrir la facture</a>`:''}
       <button class="btn ghost" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
       <button class="btn ghost" onclick="copyDateLink('${f.id}')" data-tip="Copier un lien qui ouvre directement cette date (à partager, ou pour les futurs emails de rappel)">🔗 Copier le lien</button>
       <button class="btn ghost" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Confirmer (compter les heures)':'🔮 Marquer potentielle'}</button>
@@ -1207,7 +1269,11 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     </div>`;
   document.getElementById('modalBg').classList.add('show');
 }
-function closeDetail(){ document.getElementById('modalBg').classList.remove('show'); }
+function closeDetail(){ document.getElementById('modalBg').classList.remove('show');
+  const from=_detailFrom; _detailFrom='';
+  if(from==='backoffice'){ openBackoffice(); }
+  else if(from&&from.indexOf('artist:')===0){ const p=from.slice(7); openBackoffice(); if(state.people[p]) openArtistCard(p); }
+}
 function copyDateLink(id){ const url=location.origin+location.pathname+'#date='+id;
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>toast('🔗 Lien de la date copié'),()=>prompt('Copie ce lien :',url));
   else prompt('Copie ce lien :',url); }
@@ -1259,9 +1325,12 @@ function openBackoffice(){
   BO_CATS.forEach(cat=>{
     let items;
     if(cat.key==='dpae'){
-      // DPAE nominative : une entrée par (date × personne dont la DPAE manque)
+      // DPAE nominative : une entrée par (date × personne dont la DPAE manque).
+      // Inclut AUSSI les dates possibles (hypo) À VENIR, pour anticiper/relancer (badge 🔮 possible).
+      const todayIso=isoLocal(today0());
+      const dpaeSrc=state.fiches.filter(f=>f.type!=='studio' && (!f.hypo || (f.start&&f.start>=todayIso)));
       items=[];
-      all.forEach(f=>dpaePersons(f).forEach(p=>{ if(!dpaeDone(f,p)) items.push({f,person:p}); }));
+      dpaeSrc.forEach(f=>dpaePersons(f).forEach(p=>{ if(!dpaeDone(f,p)) items.push({f,person:p}); }));
       const seen=new Set();                              // dédoublonnage par (groupe + personne)
       items=items.filter(it=>{ if(!it.f.dpaeGroupId) return true; const k=it.f.dpaeGroupId+'|'+it.person; if(seen.has(k)) return false; seen.add(k); return true; });
     } else {
@@ -1294,10 +1363,11 @@ function openBackoffice(){
             const whoCls=cls(it.person||f.owner);
             const gN=(cat.key==='dpae'&&f.dpaeGroupId)?dpaeGroupCountPerson(f,it.person):1;
             const groupMark=gN>1?' <span style="color:#c5c9ff;font-weight:700">🔗 +'+(gN-1)+' date(s)</span>':'';
-            return `<div class="bo-row" onclick="closeBackoffice();openDetail('${f.id}')" data-tip="Ouvrir cette date">
+            const possMark=f.hypo?' <span style="color:var(--hypo);font-weight:700;background:rgba(167,139,250,.14);border:1px solid var(--hypo);border-radius:6px;padding:1px 6px;font-size:11px">🔮 possible</span>':'';
+            return `<div class="bo-row" onclick="openDetail('${f.id}','backoffice')" data-tip="Ouvrir cette date">
             <span class="bo-when">${fmt(f.start)}</span>
             <span class="bo-who ${whoCls}">${whoLabel}</span>
-            <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${groupMark}</span>
+            <span class="bo-lieu">${f.lieu||'(sans titre)'}${f.num?' · GUSO '+f.num:'<span class="bo-nogus"> · pas de n° GUSO</span>'}${groupMark}${possMark}</span>
             <span class="bo-go">ouvrir ›</span></div>`; }).join('')
         : '<div class="bo-empty">✓ Rien en attente ici</div>';
       html+='</div></div>';
@@ -1815,7 +1885,7 @@ function openCond(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; _
   document.getElementById('condBg').classList.add('show');
 }
 function saveCond(){ const f=state.fiches.find(x=>x.id===_condId); if(!f) return;
-  f.cond=readCondForm(_condType); save(); render(); closeCond(); openDetail(f.id); toast('🎯 Évaluation enregistrée'); }
+  f.cond=readCondForm(_condType); save(); render(); closeCond(); openDetail(f.id,_detailFrom); toast('🎯 Évaluation enregistrée'); }
 function closeCond(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('condBg').classList.remove('show'); }
 
 /* ===== Module 3 — Organisateur & suivi de négociation (f.orga + f.nego) ===== */
@@ -1929,7 +1999,7 @@ function orgaRecalc(){ const f=state.fiches.find(x=>x.id===_orgaId); if(!f) retu
   document.getElementById('orgaMissBox').innerHTML=orgaMissHTML(f, readOrgaForm()); }
 function openCondFromOrga(id){ closeOrga(); openCond(id); }
 function saveOrga(){ const f=state.fiches.find(x=>x.id===_orgaId); if(!f) return;
-  const d=readOrgaForm(); f.orga=d.orga; f.nego=d.nego; save(); render(); closeOrga(); openDetail(f.id); toast('🏢 Organisateur enregistré'); }
+  const d=readOrgaForm(); f.orga=d.orga; f.nego=d.nego; save(); render(); closeOrga(); openDetail(f.id,_detailFrom); toast('🏢 Organisateur enregistré'); }
 function closeOrga(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('orgaBg').classList.remove('show'); }
 // Génère un message poli listant EXACTEMENT les infos manquantes, à coller dans un mail / WhatsApp.
 // ⚠️ SÉCURITÉ : ne JAMAIS insérer le lien de l'app ni un deep-link #date= — le code d'accès est COMMUN
@@ -2035,7 +2105,7 @@ function closeAdd(ev){ if(ev&&ev.target!==ev.currentTarget) return;
   document.getElementById('addBg').classList.remove('show'); }
 function cancelEdit(){ finishEdit(); toast('Modification annulée'); }
 function toggleHypoStatus(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
-  f.hypo=!f.hypo; save(); render(); openDetail(id);
+  f.hypo=!f.hypo; save(); render(); openDetail(id,_detailFrom);
   toast(f.hypo?'→ Date possible 🔮 (passe en projection)':'→ Date confirmée ✅ (compte dans tes heures)'); }
 function delFiche(id){ if(!confirm('Supprimer cette date ?')) return;
   if(editId===id) finishEdit();
@@ -2231,7 +2301,20 @@ function openFromHash(){
   openDetail(f.id);
 }
 window.addEventListener('hashchange',()=>{ _hashOpened=false; openFromHash(); });
-function startApp(){ ensureDpaeIris(state); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); }
+function startApp(){ ensureDpaeIris(state); setPerson('David'); renderSaveStatus(); connectSync(); openFromHash(); if(!/date=/.test(location.hash||'')) openWelcome(); }
+/* ===== Écran d'accueil : choix Espace artiste / Espace structure ===== */
+function openWelcome(){
+  const last=localStorage.getItem('gf_space');
+  const hint=document.getElementById('welcomeHint');
+  if(hint) hint.textContent=last?('Dernier espace utilisé : '+(last==='structure'?'🏢 structure':'👤 artiste')):'';
+  document.getElementById('welcomeOverlay').style.display='flex';
+}
+function chooseSpace(space){
+  localStorage.setItem('gf_space',space);
+  document.getElementById('welcomeOverlay').style.display='none';
+  if(space==='structure'){ openBackoffice(); }
+  else { closeBackoffice(); setPerson('David'); }
+}
 async function tryUnlock(){ const pw=document.getElementById('unlockCode').value;
   const e=document.getElementById('unlockErr'); e.textContent='Déverrouillage…';
   try{ CRYPTO_KEY=await deriveKey(pw); const seed=await decryptSeed(); /* valide le code */
