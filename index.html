@@ -574,6 +574,25 @@
   .map-unloc-d li{margin:2px 0;color:var(--txt)}
   .map-pin span{display:block;width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
   .map-home-icon{font-size:24px;line-height:1;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .map-pin.guess span{border:2px dashed #fff;opacity:.75}
+  .map-pin.guess span:after{content:'?';position:absolute;left:0;top:-1px;width:16px;text-align:center;font-size:11px;font-weight:800;color:#fff;line-height:16px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .map-pin.guess span{position:relative}
+  .map-opts{display:flex;gap:6px;flex-wrap:wrap}
+  .map-todo,.map-guess{border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:2px}
+  .map-todo{background:rgba(124,158,255,.08);border:1px solid rgba(124,158,255,.32)}
+  .map-guess{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.35)}
+  .map-todo .mt-h,.map-guess .mt-h{font-weight:800;margin-bottom:7px;font-size:13px}
+  .map-todo .mt-h{color:var(--accent2)} .map-guess .mt-h{color:#ffe49b}
+  .mt-item{display:flex;flex-direction:column;gap:5px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
+  .mt-item:first-of-type{border-top:0}
+  .mt-lbl{color:var(--txt);font-weight:600}
+  .mt-lbl .mt-date{opacity:.7;font-weight:400;margin-left:5px}
+  .mt-lbl .mt-mq{opacity:.85;font-weight:400;font-style:italic}
+  .mt-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .mt-row input{flex:1 1 120px;min-width:100px;padding:7px 9px;font-size:13px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)}
+  .mt-row .btn{padding:7px 11px;font-size:13px}
+  .mt-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .mt-actions .btn{padding:6px 11px;font-size:12.5px}
   .leaflet-popup-content{font-size:12.5px;line-height:1.45}
 </style>
 </head>
@@ -1093,10 +1112,13 @@
   </div>
   <div class="r-body" style="display:flex;flex-direction:column;gap:10px">
     <div id="mapRange" class="map-range"></div>
+    <div id="mapOpts" class="map-opts"></div>
     <div id="mapKm" class="map-km"></div>
     <div id="mapProgress" class="map-progress" hidden><div class="map-progress-bar" id="mapProgressBar"></div><div class="map-progress-txt" id="mapProgressTxt"></div></div>
     <div id="mapCanvas" class="map-canvas"></div>
     <div id="mapNoAddr" class="map-noaddr" hidden></div>
+    <div id="mapGuess" class="map-guesswrap"></div>
+    <div id="mapTodo" class="map-todowrap"></div>
     <div id="mapUnloc" class="map-unloc"></div>
   </div>
  </div>
@@ -2986,7 +3008,7 @@ setInterval(refreshIfNewDay, 20*60*1000);
    - géocodage auto via Nominatim, séquentiel (≥1,1 s entre requêtes),
      résultat mis en cache sur la fiche (f.geo) et le profil (homeGeo)
    ============================================================ */
-let _mapLeaflet=null, _map=null, _mapLayer=null, _mapRange='period', _mapBusy=false;
+let _mapLeaflet=null, _map=null, _mapLayer=null, _mapRange='period', _mapBusy=false, _mapConnect=false;
 const _sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 function loadLeaflet(){
@@ -3049,6 +3071,37 @@ function _renderMapRangeBtns(){
     '<button class="btn ghost sm map-rbtn'+(_mapRange===o[0]?' active':'')+'" type="button" onclick="setMapRange(\''+o[0]+'\')">'+o[1]+'</button>').join('');
 }
 function setMapRange(r){ _mapRange=r; _renderMapRangeBtns(); _refreshMap(); }
+function _renderMapOpts(){
+  document.getElementById('mapOpts').innerHTML=
+    '<button class="btn ghost sm map-rbtn'+(_mapConnect?' active':'')+'" type="button" onclick="toggleMapConnect()" data-tip="Relie les dates dans l\'ordre chronologique pour visualiser l\'itinéraire">🔗 Relier les dates (chronologique)</button>';
+}
+function toggleMapConnect(){ _mapConnect=!_mapConnect; _renderMapOpts(); _refreshMap(); }
+
+// Géocodage rapide depuis un mini-champ (lieu à renseigner ou correction d'un supposé)
+async function _mapQuickGeo(id, val){
+  val=String(val||'').trim(); if(!val) return;
+  const f=state.fiches.find(x=>x.id===id); if(!f) return;
+  toast('Localisation de « '+val+' »…');
+  const g=await _geocode(val);
+  if(g){
+    f.geo={lat:g.lat,lng:g.lng,q:_placeQuery(f),manual:true,mq:val};
+    save(); toast('📍 Lieu placé : '+val); _refreshMap();
+  }else{
+    toast('❌ Lieu introuvable : '+val+' (précise la ville/le pays)');
+  }
+}
+function _mapQuickGeoBtn(btn){
+  const inp=btn.parentNode.querySelector('input');
+  _mapQuickGeo(btn.getAttribute('data-id'), inp?inp.value:'');
+}
+function _mapConfirmGuess(id){
+  const f=state.fiches.find(x=>x.id===id); if(!f||!f.geo) return;
+  f.geo.guessed=false; f.geo.confirmed=true; save(); toast('✅ Lieu confirmé'); _refreshMap();
+}
+function _mapCorrectGuess(btn){
+  const wrap=btn.closest('.mt-item'); if(!wrap) return;
+  const box=wrap.querySelector('.mt-correct'); if(box) box.hidden=!box.hidden;
+}
 
 function openMap(){
   if(typeof closeHdrMenu==='function') closeHdrMenu();
@@ -3062,14 +3115,17 @@ function openMap(){
   if(!addr){
     noAddr.hidden=false; canvas.style.display='none';
     document.getElementById('mapRange').innerHTML='';
+    document.getElementById('mapOpts').innerHTML='';
     document.getElementById('mapKm').innerHTML='';
     document.getElementById('mapUnloc').innerHTML='';
+    document.getElementById('mapTodo').innerHTML='';
+    document.getElementById('mapGuess').innerHTML='';
     _hideMapProgress();
     noAddr.innerHTML='<div class="map-empty">📍 Renseigne ton adresse dans ton profil pour générer ta carte.<div style="margin-top:14px"><button class="btn" type="button" onclick="closeMap();openProfile(\''+p+'\')">👤 Ouvrir le profil</button></div></div>';
     return;
   }
   noAddr.hidden=true; canvas.style.display='';
-  _renderMapRangeBtns();
+  _renderMapRangeBtns(); _renderMapOpts();
   loadLeaflet().then(L=>{
     if(!_map){
       _map=L.map('mapCanvas',{scrollWheelZoom:true}).setView([46.6,2.5],5);
@@ -3100,21 +3156,33 @@ async function _refreshMap(){
       await _sleep(1100);
     }
     const list=_fichesInRange(p,_mapRange);
-    // Géocodage des lieux non encore en cache (ou dont le lieu a changé)
-    const todo=list.filter(f=>!(f.geo && f.geo.q===_placeQuery(f)));
+    // Géocodage des lieux non encore en cache. On NE re-géocode PAS ce qui est
+    // saisi/corrigé manuellement (manual) ni confirmé, même si le titre change.
+    const todo=list.filter(f=>!(f.geo && (f.geo.manual || f.geo.q===_placeQuery(f))));
     for(let i=0;i<todo.length;i++){
-      const f=todo[i], q=_placeQuery(f);
+      const f=todo[i], key=_placeQuery(f);
+      const hasPlace=!!String(f.place||'').trim();
       _setMapProgress(i+1,todo.length,'Géocodage des lieux… ('+(i+1)+'/'+todo.length+')');
-      const g=await _geocode(q);
-      f.geo = g ? {lat:g.lat,lng:g.lng,q:q} : {lat:null,lng:null,q:q,fail:true};
-      await _sleep(1100);
+      let g=null, guessed=false, mq='';
+      // 1) Adresse/lieu réel (champ « place »)
+      if(hasPlace){ mq=key; g=await _geocode(mq); await _sleep(1100); }
+      // 2) Sinon / si échec : on SUPPOSE la ville depuis le titre (f.lieu)
+      if(!g){
+        const tq=String(f.lieu||'').trim();
+        if(tq && tq.toLowerCase()!==mq.toLowerCase()){
+          mq=tq; g=await _geocode(tq); guessed=true; await _sleep(1100);
+        }
+      }
+      f.geo = g ? {lat:g.lat,lng:g.lng,q:key,mq:mq,guessed:guessed||undefined}
+                : {lat:null,lng:null,q:key,fail:true};
     }
     if(todo.length) save();
     _hideMapProgress();
 
     // Tracé des marqueurs
     _mapLayer.clearLayers();
-    const bounds=[]; let totalAllerKm=0, located=0; const unloc=[];
+    const bounds=[]; let totalAllerKm=0, guessKm=0, located=0, nGuess=0;
+    const unloc=[], guessed=[];
     if(home){
       const hIcon=L.divIcon({className:'map-home-icon',html:'🏠',iconSize:[30,30],iconAnchor:[15,15]});
       L.marker([home.lat,home.lng],{icon:hIcon}).addTo(_mapLayer).bindPopup('<b>🏠 Domicile</b><br>'+_esc(addr));
@@ -3122,18 +3190,33 @@ async function _refreshMap(){
     }
     list.forEach(f=>{
       if(!(f.geo && f.geo.lat!=null)){ unloc.push(f); return; }
+      const isGuess=!!f.geo.guessed;
       located++;
-      let kmStr='';
-      if(home){ const km=haversineKm(home,f.geo); totalAllerKm+=km; kmStr='<br>🚗 ≈ '+Math.round(km)+' km (aller) · '+Math.round(km*2)+' km A/R'; }
+      let kmStr='', km=0;
+      if(home){ km=haversineKm(home,f.geo); totalAllerKm+=km; if(isGuess) guessKm+=km; kmStr='<br>🚗 ≈ '+Math.round(km)+' km (aller) · '+Math.round(km*2)+' km A/R'; }
       const cat=ficheCat(f), col=f.hypo?'var(--hypo)':cat.c;
-      const icon=L.divIcon({className:'map-pin',html:'<span style="background:'+col+'"></span>',iconSize:[16,16],iconAnchor:[8,8],popupAnchor:[0,-8]});
-      const pop='<b>'+_esc(f.lieu||cat.l)+'</b><br>'+fmt(f.start)
-        +'<br>📍 '+_esc(f.place||'—')
+      const icon=L.divIcon({className:'map-pin'+(isGuess?' guess':''),html:'<span style="background:'+col+'"></span>',iconSize:[16,16],iconAnchor:[8,8],popupAnchor:[0,-8]});
+      const pop='<b>'+_esc(f.lieu||cat.l)+'</b>'+(isGuess?' <span style="color:#c98800">⚠️ supposé</span>':'')+'<br>'+fmt(f.start)
+        +'<br>📍 '+_esc(f.place||(isGuess?('≈ '+(f.geo.mq||f.lieu)):'—'))
         +(f.cachets?'<br>🎫 '+f.cachets+' cachet'+(Number(f.cachets)>1?'s':''):'')
         +(f.hypo?'<br>🔮 possible':'')+kmStr;
       L.marker([f.geo.lat,f.geo.lng],{icon:icon}).addTo(_mapLayer).bindPopup(pop);
       bounds.push([f.geo.lat,f.geo.lng]);
+      if(isGuess){ nGuess++; guessed.push(f); }
     });
+
+    // Relier chronologiquement (polyline)
+    if(_mapConnect){
+      const pts=list.filter(f=>f.geo&&f.geo.lat!=null).slice()
+        .sort((a,b)=>{const da=parseD(a.start),db=parseD(b.start);return (da?da.getTime():0)-(db?db.getTime():0);})
+        .map(f=>[f.geo.lat,f.geo.lng]);
+      const full=home?[[home.lat,home.lng]].concat(pts,[[home.lat,home.lng]]):pts;
+      if(full.length>1){
+        const c=(getComputedStyle(document.documentElement).getPropertyValue('--accent2')||'#7b9eff').trim();
+        L.polyline(full,{color:c,weight:2.5,opacity:.55}).addTo(_mapLayer);
+      }
+    }
+
     if(bounds.length){ try{ _map.fitBounds(bounds,{padding:[40,40],maxZoom:11}); }catch(e){} }
     setTimeout(()=>{ try{_map.invalidateSize();}catch(e){} },60);
 
@@ -3142,14 +3225,40 @@ async function _refreshMap(){
     document.getElementById('mapKm').innerHTML=
       '<div class="map-km-big">≈ '+totalAR.toLocaleString('fr-FR')+' km parcourus <span>(aller-retour)</span></div>'+
       '<div class="map-km-sub">'+located+' date'+(located>1?'s':'')+' localisée'+(located>1?'s':'')+
+      (nGuess?' <span style="color:#c98800">(dont '+nGuess+' supposée'+(nGuess>1?'s':'')+' ≈ '+Math.round(guessKm*2).toLocaleString('fr-FR')+' km A/R)</span>':'')+
       (home?'':' · ⚠️ domicile non localisé')+
-      (unloc.length?' · '+unloc.length+' non localisée'+(unloc.length>1?'s':''):'')+'</div>';
+      (unloc.length?' · '+unloc.length+' à renseigner':'')+'</div>';
 
-    // Lieux non localisés
-    document.getElementById('mapUnloc').innerHTML= unloc.length ?
-      '<details class="map-unloc-d"><summary>⚠️ '+unloc.length+' lieu(x) non localisé(s)</summary><ul>'+
-      unloc.map(f=>'<li>'+_esc(f.lieu||'—')+' — '+_esc(f.place||f.lieu||'?')+' <span style="opacity:.7">('+fmt(f.start)+')</span></li>').join('')+
-      '</ul></details>' : '';
+    // Panneau « Lieux supposés — à confirmer »
+    document.getElementById('mapGuess').innerHTML = guessed.length ?
+      '<div class="map-guess"><div class="mt-h">⚠️ '+guessed.length+' lieu'+(guessed.length>1?'x':'')+' supposé'+(guessed.length>1?'s':'')+' — à confirmer</div>'+
+      guessed.map(f=>{
+        const idA=_escA(f.id);
+        return '<div class="mt-item"><div class="mt-lbl">'+_esc(f.lieu||'—')+
+          '<span class="mt-date">'+fmt(f.start)+'</span><br><span class="mt-mq">≈ '+_esc(f.geo.mq||f.lieu||'?')+'</span></div>'+
+          '<div class="mt-actions">'+
+            '<button class="btn ghost sm" type="button" onclick="_mapConfirmGuess(\''+idA+'\')">✓ Confirmer</button>'+
+            '<button class="btn ghost sm" type="button" onclick="_mapCorrectGuess(this)">✏️ Corriger</button>'+
+          '</div>'+
+          '<div class="mt-correct mt-row" hidden><input type="text" placeholder="ville / lieu exact…" '+
+            'onkeydown="if(event.key===\'Enter\'){event.preventDefault();_mapQuickGeo(\''+idA+'\',this.value);}">'+
+            '<button class="btn sm" type="button" data-id="'+idA+'" onclick="_mapQuickGeoBtn(this)">✓</button></div>'+
+        '</div>';
+      }).join('')+'</div>' : '';
+
+    // Panneau « Lieux à renseigner » (non localisés) avec mini-champ rapide
+    document.getElementById('mapTodo').innerHTML = unloc.length ?
+      '<div class="map-todo"><div class="mt-h">📍 '+unloc.length+' lieu'+(unloc.length>1?'x':'')+' à renseigner</div>'+
+      unloc.map(f=>{
+        const idA=_escA(f.id);
+        return '<div class="mt-item"><div class="mt-lbl">'+_esc(f.lieu||'—')+
+          '<span class="mt-date">'+fmt(f.start)+'</span></div>'+
+          '<div class="mt-row"><input type="text" placeholder="ville / lieu…" value="'+_escA(f.place||'')+'" '+
+            'onkeydown="if(event.key===\'Enter\'){event.preventDefault();_mapQuickGeo(\''+idA+'\',this.value);}">'+
+            '<button class="btn sm" type="button" data-id="'+idA+'" onclick="_mapQuickGeoBtn(this)">✓</button></div>'+
+        '</div>';
+      }).join('')+'</div>' : '';
+    document.getElementById('mapUnloc').innerHTML='';
   }catch(e){ _hideMapProgress(); }
   _mapBusy=false;
 }
