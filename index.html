@@ -764,6 +764,7 @@
       <button class="btn ghost sm" onclick="openMap()" data-tip="Carte de tous tes plans géolocalisés + kilomètres parcourus depuis chez toi">🗺️ Carte</button>
       <button class="btn ghost sm" onclick="openTour()" data-tip="Préparation de tournée : carnet de contacts organisateurs, concerts passés et mails types pour relancer / démarcher">🎪 Tournée</button>
       <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
+      <button class="btn ghost sm" onclick="openBug()" data-tip="Signaler un bug ou proposer une idée d'amélioration">🐛 Signaler un bug</button>
       <!-- Actions données (rarement utilisées) : visibles uniquement dans le menu mobile ☰ -->
       <div class="hdr-data-mob">
         <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
@@ -1152,6 +1153,62 @@
    <div class="pf-actions" style="display:flex;gap:10px;margin-top:14px">
      <button class="btn" type="button" onclick="submitAddArtist()">✓ Créer l'artiste</button>
      <button class="btn ghost" type="button" onclick="closeAddArtist()">Annuler</button>
+   </div>
+ </div>
+</div>
+
+<!-- SIGNALER UN BUG / FEEDBACK -->
+<div class="modal-bg" id="bugBg" style="z-index:85" onclick="closeBug(event)">
+ <div class="modal" onclick="event.stopPropagation()" style="max-width:460px">
+   <button class="btn ghost sm bo-x" type="button" onclick="closeBug()" data-tip="Fermer">✕</button>
+   <div class="add-head">
+     <h2 style="margin:0;font-size:19px">🐛 Signaler un bug / Feedback</h2>
+   </div>
+   <div class="hint">Tu testes Guso Facile ? Dis-moi ce qui bugue ou ce qui te manque. Merci 🙏</div>
+   <div class="pf-row"><label>Type</label>
+     <select id="bug_kind">
+       <option value="bug">🐛 Bug (quelque chose ne marche pas)</option>
+       <option value="feature">💡 Idée / amélioration</option>
+       <option value="question">❓ Question</option>
+     </select>
+   </div>
+   <div class="pf-row"><label>Catégorie</label>
+     <select id="bug_category">
+       <option value="dpae">DPAE</option>
+       <option value="guso">GUSO</option>
+       <option value="facture">Factures</option>
+       <option value="dates">Dates</option>
+       <option value="carte">Carte</option>
+       <option value="tournee">Tournée</option>
+       <option value="sync">Synchro</option>
+       <option value="mobile">Mobile</option>
+       <option value="affichage">Affichage</option>
+       <option value="compte">Compte</option>
+       <option value="autre" selected>Autre</option>
+     </select>
+   </div>
+   <div class="pf-row"><label>Description *</label><textarea id="bug_body" rows="4" placeholder="Décris le bug (ce que tu faisais, ce qui s'est passé) ou ton idée…"></textarea></div>
+   <div class="pf-row"><label>Est-ce que ça te bloque ?</label>
+     <select id="bug_blocks">
+       <option value="non" selected>Non, c'est un détail</option>
+       <option value="un_peu">Un peu, c'est gênant</option>
+       <option value="oui">Oui, ça me bloque</option>
+     </select>
+   </div>
+   <div class="pf-row"><label>Gravité (optionnel)</label>
+     <select id="bug_severity">
+       <option value="" selected>—</option>
+       <option value="0">0 · cosmétique</option>
+       <option value="1">1 · mineur</option>
+       <option value="2">2 · important</option>
+       <option value="3">3 · critique</option>
+     </select>
+   </div>
+   <div class="pf-row"><label>Ton nom (optionnel)</label><input id="bug_name" placeholder="Pour te recontacter si besoin" autocomplete="off"></div>
+   <div class="pf-row"><label>Ton email (optionnel)</label><input id="bug_email" type="email" placeholder="email@exemple.fr" autocomplete="off"></div>
+   <div class="pf-actions" style="display:flex;gap:10px;margin-top:14px">
+     <button class="btn" id="bug_send" type="button" onclick="submitBug()">📤 Envoyer</button>
+     <button class="btn ghost" type="button" onclick="closeBug()">Annuler</button>
    </div>
  </div>
 </div>
@@ -2159,6 +2216,57 @@ function openAddArtist(){ document.getElementById('aa_name').value=''; document.
   document.getElementById('addArtistBg').classList.add('show');
   setTimeout(()=>{var n=document.getElementById('aa_name'); if(n)n.focus();},100); }
 function closeAddArtist(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('addArtistBg').classList.remove('show'); }
+
+// ===== Signaler un bug / Feedback (Supabase, indépendant du reste de l'app) =====
+const BUG_SB_URL='https://wqhwfqasoyyeprggjxet.supabase.co';
+const BUG_SB_KEY='sb_publishable_vLxMMGhr5Jq_RrAQ2g_Fjg_dzdpKDbQ';
+function openBug(){ try{ closeHdrMenu(); }catch(e){}
+  document.getElementById('bug_kind').value='bug';
+  document.getElementById('bug_category').value='autre';
+  document.getElementById('bug_body').value='';
+  document.getElementById('bug_blocks').value='non';
+  document.getElementById('bug_severity').value='';
+  try{ document.getElementById('bug_name').value=fullName(currentPerson)||''; }catch(e){ document.getElementById('bug_name').value=''; }
+  document.getElementById('bug_email').value='';
+  const b=document.getElementById('bug_send'); if(b){ b.disabled=false; b.textContent='📤 Envoyer'; }
+  document.getElementById('bugBg').classList.add('show');
+  setTimeout(()=>{var n=document.getElementById('bug_body'); if(n)n.focus();},100); }
+function closeBug(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('bugBg').classList.remove('show'); }
+async function submitBug(){
+  const body=(document.getElementById('bug_body').value||'').trim();
+  if(!body){ toast('Décris le bug ou l\'idée avant d\'envoyer'); document.getElementById('bug_body').focus(); return; }
+  const btn=document.getElementById('bug_send'); if(btn){ btn.disabled=true; btn.textContent='Envoi…'; }
+  const sevRaw=document.getElementById('bug_severity').value;
+  const payload={
+    kind: document.getElementById('bug_kind').value,
+    category: document.getElementById('bug_category').value,
+    body: body,
+    blocks_usage: document.getElementById('bug_blocks').value,
+    severity: sevRaw===''?null:parseInt(sevRaw,10),
+    context: {
+      space:(typeof _space!=='undefined'?_space:''),
+      person: currentPerson,
+      screen: location.hash||location.pathname,
+      ua: navigator.userAgent,
+      ts: new Date().toISOString()
+    },
+    contact_name: (document.getElementById('bug_name').value||'').trim()||null,
+    contact_email: (document.getElementById('bug_email').value||'').trim()||null
+  };
+  try{
+    const r=await fetch(BUG_SB_URL+'/rest/v1/feedback',{
+      method:'POST',
+      headers:{'apikey':BUG_SB_KEY,'Authorization':'Bearer '+BUG_SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){ throw new Error('HTTP '+r.status); }
+    document.getElementById('bugBg').classList.remove('show');
+    toast('Merci ! Ton retour a bien été envoyé 🙏');
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='📤 Envoyer'; }
+    toast('Envoi impossible pour le moment, réessaie');
+  }
+}
 // Dérive une clé (prénom, unique) à partir du nom complet.
 function artistKey(name){ let base=String(name).trim().split(/\s+/)[0]||'Artiste';
   base=base.charAt(0).toUpperCase()+base.slice(1);
