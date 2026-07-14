@@ -27,7 +27,7 @@
     --txt:#e8eef5; --muted:#8aa0b8; --accent:#4cc9f0; --accent2:#7b9eff;
     --ok:#3ddc97; --warn:#ffd166; --bad:#ff6b6b; --money:#ffd166;
     --david:#4cc9f0; --iris:#f072c0; --hypo:#a78bfa;
-    --c-concert:#4cc9f0; --c-repet:#ffd166; --c-tech:#5ec9c9; --c-studio:#ff8a65;
+    --c-concert:#4cc9f0; --c-repet:#ffd166; --c-tech:#4ade80; --c-studio:#ff8a65;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -167,6 +167,7 @@
     box-shadow:0 8px 24px rgba(0,0,0,.6);white-space:nowrap;text-align:left}
   .chart-tip .ct-main{font-size:18px;font-weight:800;color:var(--txt)}
   .chart-tip .ct-sub{font-size:14.5px;font-weight:500;color:var(--muted);margin-top:2px}
+  .chart-tip .ct-emp{font-size:14px;font-weight:600;color:var(--accent2);margin-top:2px}
   .chart-tip .ct-h{font-size:21px;font-weight:800;color:var(--ok);margin-top:4px}
   .chart-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--muted)}
   .chart-legend span{display:inline-flex;align-items:center;gap:6px}
@@ -278,6 +279,10 @@
   .eng .eng-titre{font-size:15px;font-weight:700;color:var(--txt);margin-top:4px}
   .eng .eng-lieu{font-size:13.5px;font-weight:600;color:var(--txt);margin-top:4px;background:rgba(255,255,255,.04);border-radius:6px;padding:3px 8px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .eng .eng-rep{font-size:12.5px;color:var(--c-repet);margin-top:4px}
+  .eng .eng-emp{font-size:12.5px;margin-top:5px;color:var(--txt);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .eng .eng-emp b{color:var(--accent2)}
+  .eng .eng-emp .eng-ref{color:var(--muted);font-weight:600}
+  .eng .eng-emp.empty{color:var(--muted);opacity:.6;font-style:italic}
   .eng .eng-meta{font-size:12px;color:var(--muted);margin-top:5px}
   .eng .eng-fact{margin-top:10px;padding:8px 11px;background:rgba(224,138,88,.1);border:1px solid rgba(224,138,88,.32);border-radius:9px;font-size:12.5px;color:#f0c9a0;font-weight:600;line-height:1.5}
   .fdet{font-weight:400;opacity:.82}
@@ -477,7 +482,7 @@
     <div class="stat-rows">
       <div class="stat"><span class="k">Statut</span><span class="v" id="statusPill">—</span></div>
       <div class="stat"><span class="k">Déjà fait (cachets · répét.)</span><span class="v" id="breakdown">—</span></div>
-      <div class="stat" id="techRow" style="display:none"><span class="k">🔧 dont technicien (annexe 8)</span><span class="v" id="techLine" style="color:#5ec9c9">—</span></div>
+      <div class="stat" id="techRow" style="display:none"><span class="k">🔧 dont technicien (annexe 8)</span><span class="v" id="techLine" style="color:var(--c-tech)">—</span></div>
       <div class="stat"><span class="k">Brut encaissé (période)</span><span class="v" id="brutPeriod">—</span></div>
     </div>
 
@@ -1001,11 +1006,16 @@ function renderYearChart(p){
   const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
   let bars='';
   list.forEach(f=>{ const h=ficheHours(f,p);
-    const bh=Math.max(4,(h/maxH)*plotH), bx=X(f.start)-4.5;
+    const bh=Math.max(4,(h/maxH)*plotH);
+    const x1p=X(f.start), x2p=X(f.end||f.start);
+    const spanDays=Math.max(1, daysBetween(parseD(f.start), parseD(f.end||f.start))+1);
+    const bw=Math.max(7, x2p-x1p+7);                 // barre plus large si la date couvre plusieurs jours
+    const bx=x1p-3.5;
     const cat=ficheCat(f);
     const col=f.hypo?'var(--hypo)':cat.c;
     const t=(f.hypo?'🔮 ':'')+cat.l;
-    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="9" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-id="${f.id}" data-t="${esc(t)}" data-d="${esc(fmt(f.start))}" data-l="${esc(f.lieu||'')}" data-h="${h}"/>`;
+    const per=fmt(f.start)+(f.end&&f.end!==f.start?' → '+fmt(f.end):'');
+    bars+=`<rect class="bar" x="${bx.toFixed(1)}" y="${(baseline-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${col}" opacity="${f.hypo?'0.85':'1'}" data-id="${f.id}" data-t="${esc(t)}" data-p="${esc(per)}" data-days="${spanDays}" data-l="${esc(f.lieu||'')}" data-emp="${esc(f.orga&&f.orga.structure?f.orga.structure:'')}" data-h="${h}"/>`;
   });
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}${bars}</svg><div class="chart-tip" id="chartTip"></div>`;
   const tip=document.getElementById('chartTip');
@@ -1014,9 +1024,11 @@ function renderYearChart(p){
       let x=e.clientX-r.left; x=Math.min(Math.max(x,tw/2+4),r.width-tw/2-4);
       let y=e.clientY-r.top-tip.offsetHeight-12; if(y<0) y=e.clientY-r.top+18;
       tip.style.left=x+'px'; tip.style.top=y+'px'; };
-    const show=e=>{ tip.innerHTML='<div class="ct-main"></div><div class="ct-sub"></div><div class="ct-h"></div>';
-      tip.querySelector('.ct-main').textContent=b.dataset.t+' · '+b.dataset.d;
+    const show=e=>{ tip.innerHTML='<div class="ct-main"></div><div class="ct-sub"></div><div class="ct-emp"></div><div class="ct-h"></div>';
+      const days=Number(b.dataset.days)||1;
+      tip.querySelector('.ct-main').textContent=b.dataset.t+' · '+b.dataset.p+(days>1?' ('+days+' jours)':'');
       const sub=tip.querySelector('.ct-sub'); if(b.dataset.l){ sub.textContent='📍 '+b.dataset.l; } else { sub.remove(); }
+      const emp=tip.querySelector('.ct-emp'); if(b.dataset.emp){ emp.textContent='🏢 '+b.dataset.emp; } else { emp.remove(); }
       tip.querySelector('.ct-h').textContent=b.dataset.h+' h';
       tip.style.display='block'; move(e); };
     b.addEventListener('mouseenter',show);
@@ -1073,8 +1085,11 @@ function renderList(){
           <div class="eng-date">${mainLabel} : ${per}${f.hypo?'<span class="badge-hypo">🔮 possible</span>':''}</div>
           <div class="eng-titre">${f.lieu||'(sans titre)'}</div>
           ${f.place?`<div class="eng-lieu">📍 ${f.place}</div>`:''}
+          ${(f.orga&&(f.orga.structure||f.orga.contact))
+            ? `<div class="eng-emp">🏢 <b>${_esc(f.orga.structure||'—')}</b>${f.orga.contact?`<span class="eng-ref">· 👤 ${_esc(f.orga.contact)}</span>`:''}</div>`
+            : `<div class="eng-emp empty">🏢 <span>employeur à renseigner</span> ✨</div>`}
           ${f.repetStart?`<div class="eng-rep">🎼 Répétitions : ${fmt(f.repetStart)}${f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''}</div>`:(f.repetDates?`<div class="eng-rep">🎼 Répétitions : ${f.repetDates}</div>`:'')}
-          <div class="eng-meta">${f.owner==='both'?'<span style="color:var(--accent2);font-weight:700">👥 partagée</span> · ':''}${f.tech?'<span style="color:#5ec9c9;font-weight:700">🔧 Technicien (annexe 8)</span> · ':''}${f.num?'GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''}${(f.num||f.pdf||f.warn)?' · ':''}<span style="color:var(--accent);font-weight:600">détail ›</span></div>
+          <div class="eng-meta">${f.owner==='both'?'<span style="color:var(--accent2);font-weight:700">👥 partagée</span> · ':''}${f.tech?'<span style="color:var(--c-tech);font-weight:700">🔧 Technicien (annexe 8)</span> · ':''}${f.num?'GUSO '+f.num:''}${f.pdf?' · 📄':''}${f.warn?' · <span style="color:var(--warn);font-weight:700">⚠️ à vérifier</span>':''}${(f.num||f.pdf||f.warn)?' · ':''}<span style="color:var(--accent);font-weight:600">détail ›</span></div>
         </div>
         <div class="hrs">
           <div class="price ${priceEst?'est':''}">${priceStr}</div>
@@ -1153,7 +1168,7 @@ function openDetail(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
     <div class="kv">
       <div class="k">Période</div><div class="v">${per}</div>
       <div class="k">Lieu (salle/ville)</div><div class="v">${f.place||'—'}</div>
-      <div class="k">Régime</div><div class="v" style="font-weight:700">${f.tech?'<span style="color:#5ec9c9">🔧 Technicien (annexe 8)</span>':'🎭 Artiste (annexe 10)'}</div>
+      <div class="k">Régime</div><div class="v" style="font-weight:700">${f.tech?'<span style="color:var(--c-tech)">🔧 Technicien (annexe 8)</span>':'🎭 Artiste (annexe 10)'}</div>
       <div class="k">🎤 Cachets${f.type==='studio'?' (studio)':''}</div><div class="v" style="color:var(--c-concert);font-weight:700">${f.cachets||0} cachet${(f.cachets||0)>1?'s':''} = ${(Number(f.cachets)||0)*12} h</div>
       <div class="k">🎼 Heures de répétition</div><div class="v" style="color:var(--c-repet);font-weight:700">${f.owner==='both'?('David : '+(f.repet||0)+' h · Iris : '+((f.repetIris!=null&&f.repetIris!=='')?f.repetIris:(f.repet||0))+' h'):((f.repet||0)+' h')}</div>
       <div class="k">Période de répét.</div><div class="v">${f.repetStart?fmt(f.repetStart)+(f.repetEnd&&f.repetEnd!==f.repetStart?' → '+fmt(f.repetEnd):''):(f.repetDates||'—')}</div>
