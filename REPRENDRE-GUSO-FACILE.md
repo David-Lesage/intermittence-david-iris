@@ -1,10 +1,85 @@
 # 🎯 REPRENDRE ICI — Guso Facile (app intermittence David & Iris)
 
-> **But de ce fichier** : permettre de reprendre le projet dans une **nouvelle session** avec
-> tout le contexte. Lis-le en entier avant d'agir. Dernière mise à jour : **2026-06-24**.
->
-> ⚠️ **Prochaine grosse étape = back-office « Des Sons et Des Liens »** (voir §6). David veut
-> **valider le plan AVANT toute implémentation** (§7).
+> **But de ce fichier** : mémoire de contexte **illimitée** du projet — permettre de reprendre dans une
+> **nouvelle session** avec tout le contexte. Lis d'abord la section « ÉTAT ACTUEL » ci-dessous, puis le reste.
+> **Dernière mise à jour : 2026-07-15.** Les §5 à §9 (historique/détails) restent valables ; l'état à jour est ici.
+
+---
+
+## 🚀 ÉTAT ACTUEL — REPRENDRE ICI (2026-07-15)
+
+**L'app est riche, stable et EN LIGNE.** Énormément a été livré depuis le 24/06. Ce qui suit est la
+photo à jour ; les sections plus bas gardent l'historique détaillé.
+
+### Ce qui est LIVE (index.html, un seul fichier)
+- **Suivi 507 h** : jauge + **célébration à 507 h** (David est à **521 h → droits sécurisés** ; Iris 412 h),
+  bloc **« 🔔 À faire maintenant »** (échéances à venir J-X d'abord, puis dépassés, cliquables), badges
+  « Droits à sécuriser / sécurisés » + « incohérences à vérifier » cliquable.
+- **DPAE nominative** par personne (2 cases sur dates `both`). **Récap mensuel** (rapprochement France Travail)
+  + dates possibles. **Bilan** imprimable (« 🔍 Vérifier & bilan », contrôle de cohérence).
+- **Types de date** : concert / repet / **studio** (chèque-intermittents, conv. 2121 ; 1 cachet = 12 h ;
+  hors circuit GUSO). Graphique annuel 4 catégories (Concert/Répét/**Technicien** vert/**Studio**), barres
+  selon durée, infobulle plage+km+employeur.
+- **Évaluateur « 🎯 Bon plan ? »** (conditions réelles vs idéales, adapté studio). **Organisateur & négo**
+  (SIRET, échéance signature, demande d'infos). **Profils** (identité, IBAN/RIB, anniv, conditions idéales,
+  photo/contrats en liens). **Ajout de nouveaux artistes** (onglets dynamiques ; cloisonnement réel = Phase 6).
+- **Back-office « Des Sons et Des Liens »** : to-do transversal DPAE/GUSO/factures (dates possibles incluses),
+  **« 👥 Mes artistes »** (fiche admin 1 clic, sécu masquée), **« 🏢 Ma structure »** (SIRET/IBAN DSDL
+  pré-remplis). Regroupement DPAE ±7 j. Dépôt de **facture** par date. Cases virement → **« Facture réglée »
+  / « Salaire reçu »**. Log des coches dans l'historique (quand · case · espace Artiste/Structure).
+- **🗺️ Carte** (Leaflet + OSM + Nominatim) : dates géolocalisées, **km parcourus** depuis l'adresse du profil,
+  plage de dates, **lieux à renseigner** (autocomplétion **avec code postal**), **lieux supposés** depuis le
+  titre à confirmer/corriger, toggle **« relier chronologiquement »**.
+- **🎪 Préparation de tournée** : carnet de contacts (auto depuis les organisateurs + manuel + historique),
+  concerts passés filtrables, **mails types** pré-remplis (relance/présentation/prog/remerciement).
+- **Mobile** optimisé (menu ☰, FAB « + », modales plein écran, zéro débordement). **Accueil** (logo + 2 illus
+  SVG modernes, « Espace artistes »/« Espace structure », choix d'espace mémorisé) + **guide générique** +
+  **phrases d'encouragement**. Déverrouillage : phrase générique (code `gusofacile`).
+- **🐛 Module « Signaler un bug / feedback »** : formulaire → **table Supabase `feedback`** (envoi anonyme OK,
+  validé HTTP 201) — pour la phase de test beta. Indépendant du reste (si Supabase KO, l'app reste intacte).
+- **Page commerciale** autonome : `presentation.html` →
+  https://david-lesage.github.io/intermittence-david-iris/presentation.html
+
+### 🔐 Backend Supabase (bac à sable — Phase 6 en cours, SÉPARÉ des données live)
+> ⚠️ **NE PAS mélanger avec le projet Handpan Studio** (autre projet Supabase, ref `zqcuhnjjrgmybftppkcl`).
+- **Projet** : `guso-facile-sandbox` · ref/id **`wqhwfqasoyyeprggjxet`** · région eu-west-1 · org « David-Lesage Organisation » (`oqzeqbdzchouonorlihx`) · gratuit.
+- **URL** : `https://wqhwfqasoyyeprggjxet.supabase.co` · **clé publishable (sûre côté client)** : `sb_publishable_vLxMMGhr5Jq_RrAQ2g_Fjg_dzdpKDbQ`.
+- **Tables** (RLS activé partout) : `profiles` (compte + rôle artiste/structure/admin + anniv/adresse/sécu/iban),
+  `projects` (ex. « Solune »), `project_members`, `project_invitations`, `gig_dates` (dates, rattachables à un
+  projet → visibles par ses membres), `entitlements` (rôle user/admin + accès beta — **David = admin, invite
+  les testeurs**), `feedback` + `feedback_media` (module bug, inspiré de Handpan Studio, adapté). Auth Supabase
+  gère **mot de passe ET lien magique** (les deux, choix de David). Isolation = chaque compte ne voit que ses
+  données + les projets dont il est membre.
+- Migrations appliquées : `multiuser_core_schema`, `harden_security_definer_functions`, `feedback_and_entitlements`, `grant_feedback_insert_anon`.
+- ⚠️ Avant prod : durcir `handle_new_user`/`is_project_member` (schéma privé) ; le module bug utilise l'insertion **anonyme** (spam possible — ok en beta).
+
+### ⏭️ FILE D'ATTENTE (prochaines étapes, ordre indicatif)
+1. **🔐 Prototype front-end backend** (page `beta.html` SÉPARÉE, ne touche pas index.html ni les données live) :
+   écran connexion (mot de passe + lien magique), **invitations beta** (David admin via `entitlements`),
+   **projets partagés** (le « pont » type Solune), démo cliquable de bout en bout. → *validé par David (bac à sable)*.
+2. **📄 Sélecteur de type de document** sur le dépôt de fichier d'une date : « 📄 Feuillet GUSO / 📝 Contrat de
+   travail / 🧾 Autre » (défaut malin : studio→contrat), stocké `f.docType`, bouton « Ouvrir » adapté. → *validé par David*.
+3. **🎪 Tournée avancée** : wishlist de festivals visés + **press-kit** (bio + photos/vidéos en liens → page
+   exportable). Puis (Phase 5) **rappels Google Agenda** (relances organisateurs) + **hébergement médias**.
+4. **🔮 Phase 5 (backend requis)** : emails automatiques (J-3 « faire la DPAE », J+1 « GUSO+facture », « payer »),
+   **scan des boîtes mail** (plusieurs boîtes/artiste via connecteurs MCP) pour récupérer GUSO/factures auto.
+   Adresse rappels Des Sons et Des Liens : **dessonsetdesliens@gmail.com**. Sender possible : contact@solune.show.
+5. **Migration des données live** vers le modèle multi-comptes — SEULEMENT après validation du prototype, avec
+   backups, réversible. Les 521 h de David = ses droits : ne JAMAIS risquer un écrasement.
+
+### 🧭 Méthode de travail (IMPÉRATIF — cf. `~/CLAUDE/CLAUDE.md`)
+- **Multi-agent** : déléguer le travail substantiel à des **agents de fond Opus** (`run_in_background:true`,
+  `model:'opus'`), garder le chat réactif. **UN SEUL éditeur d'`index.html` à la fois** (règle anti-régression).
+  Fichiers disjoints (ex. `presentation.html`, `beta.html`) peuvent être parallèles mais **éviter deux `git push`
+  concurrents** (rebase). **Vérifier soi-même (build + rendu réel, y compris mobile 375 px) AVANT de présenter à David.**
+- **Données = sacrées** : tests navigateur avec `window.pushRemote=()=>{}` (et souvent `window.save=()=>{}`) pour
+  ne JAMAIS polluer le cloud Firestore. Toute écriture réelle dans les données live = backup + relecture (scripts
+  Node de déchiffrement AES-GCM, cf. §3 ; salt/clé dérivés de `gusofacile`).
+- **Déployer systématiquement** : `git commit` + `git push origin master` après chaque modif ; GitHub Pages
+  redéploie en ~1-8 min (file parfois lente). Vérifier le live via md5 (curl la page ?cb=… vs `md5 index.html`).
+  Proposer **Cmd+Shift+R**.
+
+---
 
 ---
 
