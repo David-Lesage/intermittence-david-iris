@@ -542,3 +542,94 @@ Contrôle de cohérence de la période en cours + bilan imprimable. Aucune régr
 - **JS** (après `closeAddArtist`) : `openBug()` (reset + pré-remplissage + focus), `closeBug(ev)`, `async submitBug()`. Constantes `BUG_SB_URL`/`BUG_SB_KEY` (clé publishable, en clair, sûre côté client).
 - **Envoi** : `POST {URL}/rest/v1/feedback` headers `apikey`+`Authorization: Bearer`+`Content-Type: application/json`+`Prefer: return=minimal`. `context` JSON auto = `{space,person,screen,ua,ts}`. Validation body non vide (toast + focus). Bouton « Envoyer » → « Envoi… » (disabled) ; succès → toast « Merci ! Ton retour a bien été envoyé 🙏 » + ferme + reset ; erreur réseau/HTTP → toast « Envoi impossible pour le moment, réessaie », bouton réactivé, modale reste ouverte.
 - **Testé** (port 8000, `pushRemote` neutralisé, espace artiste, David) : bouton ouvre la modale, nom pré-rempli « David Lesage » ✅ ; envoi réel Type=Bug/Catégorie=Carte/Description=« TEST agent » → **HTTP 201** ✅ ; flux `submitBug()` complet → modale fermée + toast de remerciement ✅ ; body vide → bloqué avec toast ✅ ; erreur simulée (`fetch` stub rejeté) → toast d'erreur propre, app intacte ✅ ; **375 px** sans débordement (screenshot) ✅ ; page rechargée. ⚠️ 2 lignes « TEST agent » créées dans la table `feedback` (à supprimer).
+
+---
+
+## 📓 Journal chronologique du projet (généré depuis git)
+
+> Historique complet de l'évolution, un commit = un changement daté. Régénérable à tout moment via
+> `git log --pretty=format:"%ad|%s" --date=short --reverse`. **À compléter d'un résumé daté à chaque fin de
+> session** (voir règle dans `~/CLAUDE/CLAUDE.md`). Total à ce jour : voir `git rev-list --count HEAD`.
+
+
+**2026-06-17**
+- Intermittence en ligne — suivi David & Iris (données chiffrées, accès par code)
+- Synchro temps réel David ↔ Iris via Firebase Firestore (données chiffrées AES)
+- Indicateur de sauvegarde en toutes lettres (vert/orange/rouge)
+- Interface : bloc date anniversaire agrandi + infobulle interactive sur le graphique
+- Interface : lisibilité (année complète, distinction prestation/répét, infobulles, aide formulaire)
+- Refonte dashboard : pensé pour un musicien (accès rapide aux dates + ajout en modale + technicien)
+- Branding : Guso Facile + logo + slogan + signature
+- Branding : titre modale sur 1 ligne, slogan sur la connexion, aperçu de lien + favicon
+- Fix : plus de 404 sur « Ouvrir le GUSO »
+- Feuillets GUSO ouvrables via Google Drive (55 dates reliées)
+
+**2026-06-23**
+- Montants à facturer recalés sur la réalité (189 €/cachet)
+- Nouveau GUSO St Félix 06/06 : lien Drive du feuillet (6510133778)
+- Factures reliées aux dates + dashboard 189€ minimum (5% frais admin)
+- Dashboard refondu : hero (effectué/restant/jours en gros) + plan mois par mois
+- Garde-fou render() : ne jamais afficher un dashboard vide si données pas prêtes / personne courante absente
+
+**2026-06-24**
+- Plan mensuel : calcul sur jours réels restants + rafraîchissement auto à la date du jour
+- Correction d'incohérence : l'avertissement disparaît à la modif + note d'historique
+- Date partagée David & Iris (3e option) + heures de répét par personne
+- Rapprochement comptable : montant facturé + détail (salaire/charges/frais admin) sur chaque date
+- doc: fichier de reprise + analyse besoins back-office Des Sons et Des Liens
+- doc: plan back-office validé (Phases 0-4 client d'abord)
+- Phase 0 : date fin auto = date début + inversion blocs Projection/À facturer
+- Phase 1 : bandeau preuve GUSO (heures prouvées vs à tamponner) + badge cohérence
+- Phase 4 (regroupement DPAE ±7j) + bouton copier le lien (Phase 3) — back-office complet
+- doc: Phases 0-4 livrées (reste backend Phases 5-6)
+- doc: dossier de travail canonique = ~/CLAUDE/GUSO FACILE
+- chore: ignore .DS_Store
+- chore: ajout .nojekyll (fiabilise le déploiement GitHub Pages) + config launch.json
+- Back-office Des Sons et Des Liens : refonte graphique colorée/brandée + bouton Guide utilisateur (artiste vs structure)
+- doc: ajout liste — DPAE nominative par personne sur dates partagées (remarque Des Sons et Des Liens)
+- DPAE nominative par personne sur les dates partagées (remarque Des Sons et Des Liens)
+
+**2026-07-06**
+- Récap mensuel « rapprochement France Travail » (nb GUSO / cachets / heures / brut par mois)
+
+**2026-07-09**
+- Récap FT : affiche aussi les dates possibles du mois (grisées, non comptées)
+- Module 1 — Espace Profil par artiste (identité, instruments, conditions idéales, contrats)
+- doc: feuille de route « gestionnaire de contrats » (§9) — modules client vs backend
+- Module 2 — Évaluateur de date « Bon plan ? » (conditions réelles vs conditions idéales)
+- Profil : 5 champs bonus (téléphone, email, lieu de naissance, nationalité, qualification)
+- Module 3 — Organisateur & suivi de négociation (structure employeuse, échéance, infos manquantes)
+- Module 4 — « 👥 Mes artistes » : fiche administrative des artistes dans le back-office
+
+**2026-07-13**
+- Profil : date anniversaire intermittence modifiable (champ dédié)
+- Mobile : hero compact + date anniversaire mise en valeur (badge blanc/rouge)
+- Profil : coordonnées bancaires (IBAN/banque/BIC) + RIB officiel en glisser-déposer
+- Fiche « Ma structure » (Des Sons et Des Liens) : identité employeur + coordonnées bancaires
+
+**2026-07-14**
+- Graphique annuel : catégories Technicien + Studio + nouveau type 'studio' (chèque-intermittents)
+- Studio : ouverture du contrat (lien Drive) + démarches hors circuit GUSO
+- Studio : évaluateur « Bon plan ? » adapté + statut confirmé/potentiel visible
+- Graphique + cartes : couleur technicien distincte, barres selon durée, employeur/référent
+- 4 ajouts : dépôt facture par date, DPAE dates possibles, retour à l'origine, écran d'accueil
+- UX dashboard : célébration 507 h, clarté confirmé/projection, détail compact, accueil/guide génériques
+- Navigation mobile : en-tête compact (menu ☰), onglets tactiles, FAB, modales plein écran
+- Bouton « 🔍 Vérifier & bilan » : contrôle de cohérence + bilan imprimable
+- Accueil : SVG artistes/structure + « Espace artistes », encouragements dashboard, libellés « Facture réglée »/« Salaire reçu », log des coches dans l'historique
+- Dashboard : header réordonné, badges clarifiés, bloc « À faire maintenant »
+- Accueil v2 : logo Guso Facile + illustrations SVG modernes (dégradés) + texte structure
+- À faire maintenant : échéances à venir (J-X) en premier, puis les dépassés
+- Jauge : compteur d'heures toujours centré dans le cercle (responsive)
+- Ajout de nouveaux artistes (espace partagé) : onglets/toggles/select dynamiques + modale ➕ Artiste
+- Mobile : bouton flottant + remonté au-dessus de l'indicateur de sauvegarde
+- Page promo autonome presentation.html (artistes + structures)
+
+**2026-07-15**
+- Carte du monde des dates + km parcourus (Leaflet + Nominatim)
+- Carte v2 : lieux à renseigner (mini-champ) + lieux supposés (confirmer/corriger) + relier chronologiquement
+- Module « 🎪 Préparation de tournée » : carnet de contacts + concerts passés + mails types
+- Carte : autocomplétion des lieux (Nominatim, code postal) + phrase de login générique
+- Module « 🐛 Signaler un bug / Feedback » : bouton header + modale + envoi Supabase
+- doc: handoff complet — ÉTAT ACTUEL 2026-07-15 (features live, backend Supabase bac à sable, file d'attente, méthode)
+
