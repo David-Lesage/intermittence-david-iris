@@ -843,6 +843,8 @@
     <button class="btn ghost sm hdr-menu-btn" type="button" onclick="toggleHdrMenu(event)" aria-label="Menu" aria-expanded="false" data-tip="Ouvrir le menu">☰ Menu</button>
     <div class="hdr-actions" id="hdrActions">
       <button class="btn ghost sm hdr-todo" onclick="focusTodo()" data-tip="Voir tout ce qui reste à faire maintenant : DPAE à venir, feuillets GUSO à éditer, factures en attente, incohérences">🔔 À faire<span class="hdr-badge" id="todoBadge" hidden>0</span></button>
+      <button class="btn ghost sm" onclick="openHelp()" data-tip="Demander un coup de main : prochain pas, retard d'heures, blocage admin ou simple doute. Tu restes libre de partager ou non.">🤗 Besoin d'aide</button>
+      <button class="btn ghost sm" onclick="openGroup()" data-tip="Vue groupe : veiller les uns sur les autres, en toute transparence et avec le consentement de chacun (jamais tes montants)">🎸 Groupe<span class="hdr-badge" id="grpInviteBadge" hidden>0</span></button>
       <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
       <button class="btn ghost sm" onclick="openBilan()" data-tip="Vérifier que tout est en ordre (DPAE, feuillets GUSO, factures) sur la période en cours et sortir un bilan imprimable">🔍 Bilan</button>
       <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
@@ -869,6 +871,7 @@
 </header>
 
 <div class="wrap">
+  <div id="helpInbox" style="order:0;display:none"></div>
   <div class="tabs" id="tabs" style="order:0">
     <div class="tab david active" data-p="David" onclick="setPerson('David')" data-tip="Afficher le suivi des heures de David"><span class="dot"></span>David</div>
     <div class="tab iris" data-p="Iris" onclick="setPerson('Iris')" data-tip="Afficher le suivi des heures d'Iris"><span class="dot"></span>Iris</div>
@@ -1191,6 +1194,9 @@
       <div id="f_repetIrisRow" style="display:none"><label>Heures de répét — Iris</label><input type="number" id="f_repetIris" min="0" step="0.5" placeholder="(idem David si vide)" data-tip="Heures de répétition d'Iris si elles diffèrent de David. Laisse vide pour reprendre le même nombre que David."></div>
       <div><label>N° GUSO (si édité)</label><input id="f_num" placeholder="—"></div>
       <div><label>Brut (€)</label><input type="number" id="f_brut" min="0" step="0.01" value="0"></div>
+      <div class="full" id="f_groupeRow" style="display:none"><label>🎸 Groupe <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label>
+        <input id="f_groupe" list="groupeList" placeholder="—" autocomplete="off" data-tip="Rattache cette date à l'un de tes groupes : elle nourrit la « vue groupe » (répartition des sources d'heures). Toujours facultatif.">
+        <datalist id="groupeList"></datalist></div>
       <div class="full" style="display:flex;gap:10px;align-items:center">
         <button class="btn" type="submit" id="submitBtn" data-tip="Ajouter cette date comme confirmée — elle compte tout de suite dans tes heures">+ Ajouter (confirmée)</button>
         <button class="btn btn-hypo" type="button" id="addPossibleBtn" onclick="addPossible()" data-tip="Ajouter en date possible (non validée) — elle apparaît seulement dans la projection (en violet)">🔮 Ajouter comme date possible</button>
@@ -1358,6 +1364,86 @@
    </div>
  </div>
 </div>
+
+<!-- ===== VUE GROUPE ===== -->
+<div class="modal-bg" id="groupBg" style="z-index:80" onclick="closeGroup(event)">
+  <div class="modal grp-modal" onclick="event.stopPropagation()">
+    <button class="bo-x" type="button" onclick="closeGroup()" data-tip="Fermer">✕</button>
+    <h3>🎸 Vue groupe</h3>
+    <div class="msub">Veiller les uns sur les autres — chacun consent librement à ce qu'il partage.</div>
+    <div id="grpBody"><div class="grp-loading">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ===== BESOIN D'AIDE ===== -->
+<div class="modal-bg" id="helpBg" style="z-index:82" onclick="closeHelp(event)">
+  <div class="modal help-modal" onclick="event.stopPropagation()">
+    <button class="bo-x" type="button" onclick="closeHelp()" data-tip="Fermer">✕</button>
+    <h3>🤗 Besoin d'aide</h3>
+    <div class="msub">Demander de l'aide, c'est déjà avancer. Tu restes libre à chaque étape.</div>
+    <div id="helpBody"></div>
+  </div>
+</div>
+
+<style>
+/* ===== Vue groupe + Besoin d'aide ===== */
+.grp-loading{color:var(--muted);padding:18px 0;font-size:14px}
+.grp-intro{font-size:14px;line-height:1.55;color:var(--txt)}
+.grp-intro .warm{background:linear-gradient(135deg,rgba(76,201,240,.10),rgba(129,236,197,.10));border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin:0 0 14px}
+.grp-actions{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.grp-actions .btn{justify-content:center}
+.grp-sec-t{font-weight:800;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:18px 0 8px}
+.grp-invite{background:rgba(255,209,102,.10);border:1px solid rgba(255,209,102,.45);border-radius:12px;padding:13px 15px;margin-bottom:10px}
+.grp-invite .gi-t{font-weight:700;margin-bottom:4px}
+.grp-invite .gi-txt{font-size:13px;color:var(--txt);line-height:1.5;margin-bottom:10px}
+.grp-invite .gi-btns{display:flex;gap:8px;flex-wrap:wrap}
+.grp-code{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:8px 0}
+.grp-code code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)}
+.grp-wait{text-align:center;color:var(--muted);font-size:14px;line-height:1.55;padding:20px 8px}
+.grp-wait .gw-names{color:var(--warn);font-weight:700}
+.grp-vig{background:linear-gradient(135deg,rgba(76,201,240,.14),rgba(129,236,197,.12));border:1px solid rgba(76,201,240,.4);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.grp-vig .gv-msg{font-size:15px;font-weight:700;line-height:1.45}
+.grp-vig .gv-sub{font-size:12.5px;color:var(--muted);margin-top:5px}
+.grp-card{border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:11px;background:var(--panel2)}
+.grp-card .gc-head{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.grp-dot{flex:0 0 auto;width:13px;height:13px;border-radius:50%}
+.grp-dot.rouge{background:#f87171}.grp-dot.orange{background:#f59e0b}.grp-dot.vert{background:#34d399}.grp-dot.inconnu{background:#8891a5}
+.grp-card .gc-name{font-weight:800;font-size:15px}
+.grp-card .gc-full{color:var(--muted);font-size:12px;font-weight:500}
+.grp-gauge{position:relative;height:12px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0 5px}
+.grp-gauge .gg-valid{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:999px}
+.grp-gauge .gg-poss{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,var(--hypo),var(--hypo) 4px,transparent 4px,transparent 8px);opacity:.9}
+.grp-line{font-size:13px;color:var(--txt);margin:3px 0}
+.grp-line .gl-strong{font-weight:700}
+.grp-anniv{font-size:12.5px;color:var(--muted);margin-top:3px}
+.grp-src{display:flex;height:8px;border-radius:999px;overflow:hidden;margin:8px 0 4px;background:var(--line)}
+.grp-src span{display:block;height:100%}
+.grp-src .s-ce{background:var(--accent)}.grp-src .s-au{background:#8b7bd8}.grp-src .s-pe{background:#5aa9c9}
+.grp-src-leg{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.grp-src-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.grp-foot{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+/* Besoin d'aide — questionnaire */
+.help-q{font-size:16px;font-weight:800;margin:6px 0 14px;line-height:1.4}
+.help-opts{display:flex;flex-direction:column;gap:11px}
+.help-opt{display:flex;align-items:center;gap:13px;text-align:left;width:100%;background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;cursor:pointer;color:var(--txt);font-size:14.5px;font-weight:600;line-height:1.35;transition:border-color .12s,transform .06s}
+.help-opt:hover{border-color:var(--accent)}
+.help-opt:active{transform:scale(.99)}
+.help-opt .ho-ic{font-size:24px;flex:0 0 auto}
+.help-opt.soft{border-style:dashed}
+.help-answer{background:linear-gradient(135deg,rgba(76,201,240,.10),rgba(129,236,197,.10));border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin:6px 0 16px;font-size:14.5px;line-height:1.55}
+.help-answer .ha-t{font-weight:800;margin-bottom:6px;font-size:15px}
+.help-back{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px 0;margin-top:6px}
+.help-back:hover{color:var(--txt)}
+.help-inbox-item{display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,rgba(255,209,102,.12),rgba(76,201,240,.08));border:1px solid rgba(255,209,102,.5);border-radius:13px;padding:11px 14px;margin-bottom:10px;font-size:13.5px}
+.help-inbox-item .hi-txt{flex:1;line-height:1.45}
+.help-inbox-item .hi-txt b{color:var(--txt)}
+.help-inbox-item .hi-btns{display:flex;gap:7px;flex-wrap:wrap;flex:0 0 auto}
+@media(max-width:560px){
+  .modal.grp-modal,.modal.help-modal{max-width:100%}
+  .help-opt{font-size:15px;padding:16px}
+  .help-inbox-item{flex-wrap:wrap}
+}
+</style>
 
 <div class="toast" id="toast"></div>
 
@@ -3187,6 +3273,7 @@ function addFiche(e){ e.preventDefault();
     cachets:Number(f_cachets.value)||0, repet:Number(f_repet.value)||0, brut:Number(f_brut.value)||0,
     repetIris: (document.getElementById('f_repetIris').value===''?null:(Number(document.getElementById('f_repetIris').value)||0)),
     tech: document.getElementById('f_tech').checked,
+    groupe: (document.getElementById('f_groupe').value||'').trim(),
     hypo: document.getElementById('f_hypo').value==='oui' };
   if(editId){                                  // --- modification ---
     const f=state.fiches.find(x=>x.id===editId);
@@ -3233,6 +3320,8 @@ function startEdit(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   f_cachets.value=f.cachets||0; f_repet.value=f.repet||0; f_num.value=f.num||''; f_brut.value=f.brut||0;
   document.getElementById('f_repetIris').value=(f.repetIris!=null&&f.repetIris!=='')?f.repetIris:'';
   document.getElementById('f_tech').checked=!!f.tech;
+  document.getElementById('f_groupe').value=f.groupe||'';
+  refreshGroupDatalist();
   updatePersonFields();
   document.getElementById('addTitle').textContent='✏️ Modifier la date';
   document.getElementById('submitBtn').textContent='💾 Enregistrer';
@@ -3249,6 +3338,7 @@ function finishEdit(){ editId=null; resetForm();
   document.getElementById('addPossibleBtn').style.display='inline-block';
   updatePersonFields(); closeAdd(); }
 function openAdd(){ document.getElementById('addBg').classList.add('show');
+  refreshGroupDatalist();
   setTimeout(()=>{var s=document.getElementById('f_start'); if(s&&!editId)s.focus();},100); }
 function closeAdd(ev){ if(ev&&ev.target!==ev.currentTarget) return;
   document.getElementById('addBg').classList.remove('show'); }
@@ -4242,6 +4332,415 @@ async function _refreshMap(){
   _mapBusy=false;
 }
 function closeMap(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('mapBg').classList.remove('show'); }
+
+/* ==================================================================== */
+/* ===== VUE GROUPE (solidarité, consentement) + BESOIN D'AIDE ======== */
+/* ==================================================================== */
+let _myGroups=null;          // lignes music_group_members de l'utilisateur (jointes aux groupes)
+let _grpCurrentId=null;      // groupe affiché dans le dashboard
+let _helpInbox=[];           // demandes d'aide ouvertes qui me sont adressées
+
+/* ---------- chargements ---------- */
+async function loadMyGroups(){
+  if(!sb||!_user){ _myGroups=_myGroups||[]; return _myGroups; }
+  try{
+    const r=await sb.from('music_group_members')
+      .select('id,group_id,person_key,consent,invited_by,music_groups(id,name,created_by)')
+      .eq('user_id',_user.id);
+    if(r.error) throw r.error;
+    _myGroups=(r.data||[]).map(m=>({
+      memberId:m.id, group_id:m.group_id, person_key:m.person_key, consent:m.consent,
+      name:(m.music_groups&&m.music_groups.name)||'(groupe)',
+      created_by:m.music_groups&&m.music_groups.created_by }));
+  }catch(e){ console.warn('loadMyGroups',e); _myGroups=_myGroups||[]; }
+  return _myGroups;
+}
+function myAcceptedGroups(){ return (_myGroups||[]).filter(g=>g.consent==='accepted'); }
+function myInvites(){ return (_myGroups||[]).filter(g=>g.consent==='invited'); }
+function updateInviteBadge(){
+  const b=document.getElementById('grpInviteBadge'); if(!b) return;
+  const n=myInvites().length;
+  if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true;
+}
+function refreshGroupDatalist(){
+  const dl=document.getElementById('groupeList'), row=document.getElementById('f_groupeRow');
+  if(!dl||!row) return;
+  const names=[...new Set(myAcceptedGroups().map(g=>g.name))];
+  if(!names.length){ row.style.display='none'; dl.innerHTML=''; return; }
+  row.style.display='';
+  dl.innerHTML=names.map(n=>'<option value="'+_escA(n)+'"></option>').join('');
+}
+
+/* ---------- structure affiliée (destinataire « aide ») ---------- */
+async function myStructureId(){
+  if(!sb||!_spaceId) return null;
+  try{
+    const r=await sb.from('structure_artists').select('structure_id,status').eq('artist_space_id',_spaceId);
+    if(r.error) throw r.error;
+    const a=(r.data||[]).filter(x=>x.status==='active');
+    return a.length? a[0].structure_id : null;
+  }catch(e){ console.warn('myStructureId',e); return null; }
+}
+/* ---------- membres de mes groupes acceptés (destinataire « personne ») ---------- */
+async function myGroupPeers(){
+  if(!sb||!_user) return [];
+  const gids=myAcceptedGroups().map(g=>g.group_id);
+  if(!gids.length) return [];
+  try{
+    const r=await sb.from('music_group_members').select('user_id,person_key,group_id,consent').in('group_id',gids).eq('consent','accepted');
+    if(r.error) throw r.error;
+    const seen={};
+    return (r.data||[]).filter(m=>m.user_id!==_user.id).filter(m=>{ if(seen[m.user_id]) return false; seen[m.user_id]=1; return true; })
+      .map(m=>({user_id:m.user_id, name:m.person_key||'un membre'}));
+  }catch(e){ console.warn('myGroupPeers',e); return []; }
+}
+
+/* ---------- ouverture / fermeture ---------- */
+function openGroup(){ try{closeHdrMenu();}catch(e){}
+  if(!sb||!_user){ toast('Connexion requise pour la vue groupe'); return; }
+  document.getElementById('groupBg').classList.add('show'); grpRender(); }
+function closeGroup(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('groupBg').classList.remove('show'); }
+
+/* ---------- rendu principal de la modale groupe ---------- */
+async function grpRender(){
+  const box=document.getElementById('grpBody'); if(!box) return;
+  box.innerHTML='<div class="grp-loading">Chargement…</div>';
+  await loadMyGroups(); updateInviteBadge(); refreshGroupDatalist();
+  const invites=myInvites(), accepted=myAcceptedGroups();
+  let h='';
+  // 1) invitations en attente
+  if(invites.length){
+    h+='<div class="grp-sec-t">Invitations en attente</div>';
+    invites.forEach(g=>{
+      h+='<div class="grp-invite"><div class="gi-t">🎸 « '+_esc(g.name)+' » t\'invite à rejoindre le groupe</div>'
+        +'<div class="gi-txt">En acceptant, tu partages avec les membres du groupe : tes <b>heures validées</b>, tes <b>dates possibles</b>, ta <b>date anniversaire</b> et le <b>rythme</b> qu\'il te reste à tenir. '
+        +'<b>Jamais tes montants</b> (brut, factures, cachets €). Tu peux quitter le groupe à tout moment.</div>'
+        +'<div class="gi-btns"><button class="btn" type="button" onclick="grpConsent(\''+_escA(g.memberId)+'\',true)" data-tip="Accepter de partager ta situation avec ce groupe">✅ J\'accepte</button>'
+        +'<button class="btn ghost" type="button" onclick="grpConsent(\''+_escA(g.memberId)+'\',false)" data-tip="Refuser — rien ne sera partagé">❌ Non merci</button></div></div>';
+    });
+  }
+  // 2) aucun groupe accepté → accueil chaleureux
+  if(!accepted.length){
+    if(!invites.length){
+      h+='<div class="grp-intro"><div class="warm">Un groupe, c\'est <b>veiller les uns sur les autres</b>. Chacun voit où en sont les autres pour leurs 507 h — '
+        +'et peut donner un coup de main quand quelqu\'un est à la traîne. <b>Chacun consent librement</b>, et personne ne voit jamais tes montants.</div></div>';
+    }
+    h+=grpCreateJoinHtml();
+    box.innerHTML=h; return;
+  }
+  // 3) groupe(s) accepté(s) → sélecteur + dashboard
+  if(!_grpCurrentId || !accepted.some(g=>g.group_id===_grpCurrentId)) _grpCurrentId=accepted[0].group_id;
+  if(accepted.length>1){
+    h+='<div class="grp-sec-t">Mes groupes</div><div style="margin-bottom:12px"><select id="grpSel" onchange="_grpCurrentId=this.value;grpDashboard()" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+      +accepted.map(g=>'<option value="'+_escA(g.group_id)+'"'+(g.group_id===_grpCurrentId?' selected':'')+'>'+_esc(g.name)+'</option>').join('')+'</select></div>';
+  }
+  h+='<div id="grpDash"><div class="grp-loading">Chargement du tableau de bord…</div></div>';
+  h+='<details style="margin-top:16px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">➕ Créer ou rejoindre un autre groupe</summary>'+grpCreateJoinHtml()+'</details>';
+  box.innerHTML=h;
+  grpDashboard();
+}
+function grpCreateJoinHtml(){
+  return '<div class="grp-actions">'
+    +'<div><label style="font-size:13px;color:var(--muted)">Créer un groupe</label>'
+    +'<div style="display:flex;gap:8px;margin-top:5px"><input id="grpNewName" placeholder="Nom du groupe (ex. Solune, Les Copains…)" autocomplete="off" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+    +'<button class="btn" type="button" onclick="grpCreate()" data-tip="Créer ce groupe — tu en seras membre automatiquement">➕ Créer</button></div></div>'
+    +'<div style="margin-top:12px"><label style="font-size:13px;color:var(--muted)">Rejoindre avec un code</label>'
+    +'<div style="display:flex;gap:8px;margin-top:5px"><input id="grpJoinCode" placeholder="Colle ici le code du groupe" autocomplete="off" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+    +'<button class="btn" type="button" onclick="grpJoin()" data-tip="Rejoindre le groupe grâce au code partagé par son créateur">🔗 Rejoindre</button></div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-top:5px">Le créateur du groupe te transmet ce code. L\'invitation par email arrivera bientôt.</div></div></div>';
+}
+
+/* ---------- actions groupe ---------- */
+async function grpCreate(){
+  const el=document.getElementById('grpNewName'); const name=(el&&el.value||'').trim();
+  if(!name){ toast('Donne un nom à ton groupe'); if(el) el.focus(); return; }
+  try{
+    const ins=await sb.from('music_groups').insert({name:name, created_by:_user.id}).select('id,name').maybeSingle();
+    if(ins.error) throw ins.error;
+    const gid=ins.data.id;
+    const m=await sb.from('music_group_members').insert({group_id:gid, user_id:_user.id, person_key:currentPerson, consent:'accepted', invited_by:_user.id, consented_at:new Date().toISOString()});
+    if(m.error) throw m.error;
+    _grpCurrentId=gid;
+    toast('🎸 Groupe « '+name+' » créé');
+    await grpRender();
+  }catch(e){ console.warn('grpCreate',e); toast('Création impossible pour le moment'); }
+}
+async function grpJoin(){
+  const el=document.getElementById('grpJoinCode'); const code=(el&&el.value||'').trim();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)){ toast('Code de groupe invalide'); return; }
+  if((_myGroups||[]).some(g=>g.group_id===code && (g.consent==='accepted'||g.consent==='invited'))){ toast('Tu fais déjà partie de ce groupe'); _grpCurrentId=code; await grpRender(); return; }
+  try{
+    const ins=await sb.from('music_group_members').insert({group_id:code, user_id:_user.id, person_key:currentPerson, consent:'accepted', consented_at:new Date().toISOString()});
+    if(ins.error) throw ins.error;
+    _grpCurrentId=code;
+    toast('🎸 Tu as rejoint le groupe');
+    await grpRender();
+  }catch(e){ console.warn('grpJoin',e); toast('Code introuvable ou accès refusé'); }
+}
+async function grpConsent(memberId, accept){
+  try{
+    const r=await sb.from('music_group_members').update({consent: accept?'accepted':'declined', consented_at:new Date().toISOString()}).eq('id',memberId);
+    if(r.error) throw r.error;
+    toast(accept?'✅ Tu partages ta situation avec le groupe':'Invitation refusée');
+    await grpRender();
+  }catch(e){ console.warn('grpConsent',e); toast('Action impossible pour le moment'); }
+}
+async function grpLeave(gid){
+  if(!confirm('Quitter ce groupe ? Tu ne partageras plus ta situation et tu ne verras plus celle des autres.')) return;
+  try{
+    const r=await sb.from('music_group_members').update({consent:'left'}).eq('group_id',gid).eq('user_id',_user.id);
+    if(r.error) throw r.error;
+    _grpCurrentId=null;
+    toast('Tu as quitté le groupe');
+    await grpRender();
+  }catch(e){ console.warn('grpLeave',e); toast('Action impossible pour le moment'); }
+}
+
+/* ---------- dashboard groupe (RPC group_dashboard) ---------- */
+async function grpDashboard(){
+  const dash=document.getElementById('grpDash'); if(!dash) return;
+  const gid=_grpCurrentId; if(!gid){ dash.innerHTML=''; return; }
+  dash.innerHTML='<div class="grp-loading">Chargement du tableau de bord…</div>';
+  let res;
+  try{ res=await sb.rpc('group_dashboard',{gid:gid}); }
+  catch(e){ dash.innerHTML='<div class="grp-wait">Connexion indisponible. Réessaie dans un instant.</div>'+grpDashFoot(gid); return; }
+  if(res.error){
+    const err=res.error;
+    if(err.code==='42501' || /forbidden/i.test(err.message||'')){
+      dash.innerHTML='<div class="grp-wait">Tu n\'es pas (ou plus) membre accepté de ce groupe.</div>'+grpDashFoot(gid); return;
+    }
+    if(/consent_pending/i.test(err.message||'')){
+      const names=(err.details||'').trim();
+      dash.innerHTML='<div class="grp-wait">⏳ En attente du consentement de : '
+        +(names?'<span class="gw-names">'+_esc(names)+'</span>':'<span class="gw-names">d\'autres membres du groupe</span>')
+        +'<br><span style="font-size:12.5px">Le tableau de bord s\'affiche quand chacun a accepté de partager sa situation.</span></div>'+grpDashFoot(gid); return;
+    }
+    dash.innerHTML='<div class="grp-wait">Impossible d\'afficher le groupe pour le moment.</div>'+grpDashFoot(gid); return;
+  }
+  dash.innerHTML=grpDashHtml(res.data)+grpDashFoot(gid);
+}
+function grpDashFoot(gid){
+  return '<div class="grp-code"><span style="font-size:12px;color:var(--muted);flex:0 0 auto">Code à partager :</span><code id="grpCodeVal">'+_esc(gid)+'</code>'
+    +'<button class="btn ghost sm" type="button" onclick="grpCopyCode(\''+_escA(gid)+'\')" data-tip="Copier le code pour l\'envoyer à quelqu\'un">📋 Copier</button></div>'
+    +'<div class="grp-foot"><button class="btn ghost sm" type="button" onclick="grpDashboard()" data-tip="Recharger les données du groupe">🔄 Actualiser</button>'
+    +'<button class="btn ghost sm" type="button" onclick="grpLeave(\''+_escA(gid)+'\')" data-tip="Quitter ce groupe">🚪 Quitter le groupe</button></div>';
+}
+function grpCopyCode(code){
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(()=>toast('📋 Code du groupe copié'),()=>prompt('Copie ce code :',code));
+  else prompt('Copie ce code :',code);
+}
+function grpDashHtml(d){
+  if(!d||!d.members) return '<div class="grp-wait">Aucune donnée.</div>';
+  let h='';
+  if(d.vigilance&&d.vigilance.message){
+    h+='<div class="grp-vig"><div class="gv-msg">🤝 '+_esc(d.vigilance.message)+'</div><div class="gv-sub">C\'est le moment de se serrer les coudes.</div></div>';
+  }
+  if(!d.members.length) return h+'<div class="grp-wait">Aucun membre à afficher.</div>';
+  d.members.forEach(m=>{
+    const al=m.alerte||'inconnu';
+    const valid=Number(m.heures_validees)||0, poss=Number(m.heures_possibles)||0;
+    const vPct=Math.min(100, valid/507*100), pPct=Math.min(Math.max(0,100-vPct), poss/507*100);
+    const src=m.sources||null;
+    const ce=src?Number(src.ce_groupe)||0:0, au=src?Number(src.autres_groupes)||0:0, pe=src?Number(src.perso)||0:0;
+    const tot=ce+au+pe;
+    h+='<div class="grp-card"><div class="gc-head"><span class="grp-dot '+al+'"></span>'
+      +'<div><div class="gc-name">'+_esc(m.person||'—')+(m.full_name&&m.full_name!==m.person?' <span class="gc-full">· '+_esc(m.full_name)+'</span>':'')+'</div></div></div>';
+    if(m.heures_validees==null){
+      h+='<div class="grp-line" style="color:var(--muted)">Date anniversaire non renseignée — situation non calculable.</div></div>'; return;
+    }
+    h+='<div class="grp-gauge"><div class="gg-valid" style="width:'+vPct.toFixed(1)+'%"></div><div class="gg-poss" style="left:'+vPct.toFixed(1)+'%;width:'+pPct.toFixed(1)+'%"></div></div>'
+      +'<div class="grp-line"><span class="gl-strong">'+Math.round(valid)+' h</span> validées / 507'+(poss>0?' <span style="color:var(--hypo)">(+'+Math.round(poss)+' h possibles)</span>':'')+'</div>'
+      +'<div class="grp-line">reste <b>'+Math.round(Number(m.restant)||0)+' h</b> · ~'+Math.round(Number(m.rythme_necessaire)||0)+' h/mois nécessaires</div>'
+      +'<div class="grp-anniv">📅 anniversaire le '+_esc(grpFrDate(m.anniv))+(m.days_left!=null?' · J-'+m.days_left:'')+'</div>';
+    if(tot>0){
+      h+='<div class="grp-src"><span class="s-ce" style="width:'+(ce/tot*100).toFixed(1)+'%"></span><span class="s-au" style="width:'+(au/tot*100).toFixed(1)+'%"></span><span class="s-pe" style="width:'+(pe/tot*100).toFixed(1)+'%"></span></div>'
+        +'<div class="grp-src-leg"><span><i class="s-ce" style="background:var(--accent)"></i>ce groupe '+Math.round(ce)+' h</span>'
+        +'<span><i style="background:#8b7bd8"></i>autres '+Math.round(au)+' h</span>'
+        +'<span><i style="background:#5aa9c9"></i>perso '+Math.round(pe)+' h</span></div>';
+    }
+    h+='</div>';
+  });
+  return h;
+}
+function grpFrDate(iso){ if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return isNaN(d)?iso:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); }
+
+/* ==================================================================== */
+/* ===== BESOIN D'AIDE ================================================ */
+/* ==================================================================== */
+let _help={step:'q1', kind:null, share:null, target:null, targetLabel:null};
+const HELP_KINDS={
+  prochain_pas:{ic:'🧭', lbl:'Je ne sais pas quoi faire ensuite'},
+  retard_heures:{ic:'⏳', lbl:'Je suis en retard sur mes heures'},
+  blocage_admin:{ic:'🧾', lbl:'Un blocage admin précis'},
+  doute_perso:{ic:'💭', lbl:'Un doute plus perso (valeur, légitimité)'}
+};
+function openHelp(){ try{closeHdrMenu();}catch(e){}
+  _help={step:'q1', kind:null, share:null, target:null, targetLabel:null};
+  document.getElementById('helpBg').classList.add('show'); helpRender(); }
+function closeHelp(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('helpBg').classList.remove('show'); }
+
+/* Stats réelles de la personne courante (cohérentes avec le dashboard). */
+function helpCurrentStats(){
+  const p=currentPerson, period=currentPeriod(p);
+  const inP=fichesFor(p,'period').filter(f=>!f.hypo);
+  const totalH=inP.reduce((s,f)=>s+ficheHours(f,p),0);
+  const remaining=Math.max(0,THRESHOLD-totalH);
+  const dl=period?Math.max(0,daysBetween(today0(),period.end)):0;
+  const months=dl/30.44;
+  const rythme=months>0?remaining/months:remaining;
+  return {p, period, totalH, remaining, dl, months, rythme};
+}
+/* Le vrai « prochain pas » = premier item du bloc « À faire maintenant » déjà rendu. */
+function helpNextStep(){
+  const row=document.querySelector('#todoNow .tn-row');
+  if(row){
+    const lbl=row.querySelector('.tn-lbl'), meta=row.querySelector('.tn-meta');
+    return { has:true, lbl:(lbl?lbl.textContent:'').trim(), meta:(meta?meta.textContent:'').trim() };
+  }
+  return { has:false };
+}
+function helpAnswer(kind){
+  if(kind==='prochain_pas'){
+    const ns=helpNextStep();
+    if(ns.has) return {t:'Ton prochain pas', body:'<b>'+_esc(ns.lbl)+'</b>'+(ns.meta?' — '+_esc(ns.meta):'')+'.<br>Un pas à la fois, tu n\'as pas à tout faire d\'un coup.'};
+    return {t:'Tout est carré 🎉', body:'Rien en attente côté démarches. Ton prochain pas : <b>caler ta prochaine date</b> pour continuer à avancer vers tes 507 h.'};
+  }
+  if(kind==='retard_heures'){
+    const s=helpCurrentStats();
+    if(!s.period) return {t:'Il manque ta date anniversaire', body:'Renseigne ta date anniversaire dans ton profil pour calculer ton rythme — ensuite on saura exactement où tu en es.'};
+    const moisTxt=(s.months).toFixed(1).replace('.',',');
+    return {t:'Voici où tu en es', body:'Il te reste <b>'+Math.round(s.remaining)+' h</b> et <b>'+moisTxt+' mois</b>. C\'est ~<b>'+Math.round(s.rythme)+' h/mois</b>. '
+      +'Une date de 2 cachets = 24 h. C\'est atteignable, et <b>tu n\'es pas seul·e</b>.'};
+  }
+  if(kind==='blocage_admin'){
+    return {t:'Débloquer une démarche', body:'Ouvre la date concernée : le détail liste chaque étape (DPAE, GUSO, facture) et te dit quoi faire. '
+      +'Si ça coince toujours, préviens ta structure — c\'est exactement son rôle.'};
+  }
+  // doute_perso
+  return {t:'Ce que tu ressens est normal', body:'Ce que tu ressens est <b>très courant chez les artistes</b> — et ça ne dit rien de ta valeur. '
+    +'Ton compteur mesure des heures, <b>pas ton talent</b>. En parler à quelqu\'un de confiance du groupe peut vraiment aider.'};
+}
+function helpRender(){
+  const box=document.getElementById('helpBody'); if(!box) return;
+  if(_help.step==='q1'){
+    box.innerHTML='<div class="help-q">Qu\'est-ce qui se passe ?</div><div class="help-opts">'
+      +Object.keys(HELP_KINDS).map(k=>'<button class="help-opt" type="button" onclick="helpPickKind(\''+k+'\')"><span class="ho-ic">'+HELP_KINDS[k].ic+'</span><span>'+_esc(HELP_KINDS[k].lbl)+'</span></button>').join('')
+      +'</div>';
+    return;
+  }
+  if(_help.step==='answer'){
+    const a=helpAnswer(_help.kind);
+    let h='<div class="help-answer"><div class="ha-t">'+HELP_KINDS[_help.kind].ic+' '+_esc(a.t)+'</div><div>'+a.body+'</div></div>';
+    // Q2 partage
+    h+='<div class="help-q">Tu veux que quelqu\'un le sache ?</div><div class="help-opts">';
+    h+='<button class="help-opt soft" type="button" onclick="helpShare(\'non\')"><span class="ho-ic">🔒</span><span>Non, c\'était juste pour moi</span></button>';
+    if(myAcceptedGroups().length) h+='<button class="help-opt" type="button" onclick="helpShare(\'group\')"><span class="ho-ic">🎸</span><span>Mon groupe</span></button>';
+    h+='<button class="help-opt" type="button" id="helpStructOpt" style="display:none" onclick="helpShare(\'structure\')"><span class="ho-ic">🏢</span><span>Ma structure</span></button>';
+    if(myAcceptedGroups().length) h+='<button class="help-opt" type="button" onclick="helpShare(\'person\')"><span class="ho-ic">👤</span><span>Une personne précise</span></button>';
+    h+='</div><button class="help-back" type="button" onclick="_help.step=\'q1\';helpRender()">← Revenir</button>';
+    box.innerHTML=h;
+    // structure : affichage conditionnel (async)
+    myStructureId().then(sid=>{ const el=document.getElementById('helpStructOpt'); if(el&&sid){ el.style.display=''; el.dataset.sid=sid; } });
+    return;
+  }
+  if(_help.step==='pickTarget'){ box.innerHTML=box.innerHTML; return; }  // rempli par helpShare
+  if(_help.step==='q3'){
+    box.innerHTML='<div class="help-answer"><div>Partagé avec : <b>'+_esc(_help.targetLabel||'')+'</b></div></div>'
+      +'<div class="help-q">C\'est urgent ?</div><div class="help-opts">'
+      +'<button class="help-opt" type="button" onclick="helpSend(\'peut_attendre\')"><span class="ho-ic">🌤️</span><span>Ça peut attendre</span></button>'
+      +'<button class="help-opt" type="button" onclick="helpSend(\'cette_semaine\')"><span class="ho-ic">📆</span><span>Cette semaine</span></button>'
+      +'<button class="help-opt" type="button" onclick="helpSend(\'maintenant\')"><span class="ho-ic">🔥</span><span>Là, maintenant</span></button>'
+      +'</div><button class="help-back" type="button" onclick="_help.step=\'answer\';helpRender()">← Revenir</button>';
+    return;
+  }
+}
+function helpPickKind(k){ _help.kind=k; _help.step='answer'; helpRender(); }
+async function helpShare(kind){
+  if(kind==='non'){ closeHelp(); toast('C\'était pour toi 💙 Prends soin de toi.'); return; }
+  if(kind==='group'){
+    const gs=myAcceptedGroups();
+    if(gs.length===1){ _help.share='group'; _help.target=gs[0].group_id; _help.targetLabel='Groupe '+gs[0].name; _help.step='q3'; helpRender(); return; }
+    // plusieurs groupes → choisir
+    const box=document.getElementById('helpBody');
+    box.innerHTML='<div class="help-q">Quel groupe ?</div><div class="help-opts">'
+      +gs.map(g=>'<button class="help-opt" type="button" onclick="helpSetTarget(\'group\',\''+_escA(g.group_id)+'\',\'Groupe '+_escA(g.name)+'\')"><span class="ho-ic">🎸</span><span>'+_esc(g.name)+'</span></button>').join('')
+      +'</div><button class="help-back" type="button" onclick="_help.step=\'answer\';helpRender()">← Revenir</button>';
+    return;
+  }
+  if(kind==='structure'){
+    const el=document.getElementById('helpStructOpt'); const sid=el&&el.dataset.sid;
+    if(!sid){ toast('Aucune structure affiliée'); return; }
+    _help.share='structure'; _help.target=sid; _help.targetLabel='Ta structure'; _help.step='q3'; helpRender(); return;
+  }
+  if(kind==='person'){
+    const peers=await myGroupPeers();
+    if(!peers.length){ toast('Aucun membre à qui écrire pour l\'instant'); return; }
+    const box=document.getElementById('helpBody');
+    box.innerHTML='<div class="help-q">À qui ?</div><div class="help-opts">'
+      +peers.map(p=>'<button class="help-opt" type="button" onclick="helpSetTarget(\'person\',\''+_escA(p.user_id)+'\',\''+_escA(p.name)+'\')"><span class="ho-ic">👤</span><span>'+_esc(p.name)+'</span></button>').join('')
+      +'</div><button class="help-back" type="button" onclick="_help.step=\'answer\';helpRender()">← Revenir</button>';
+    return;
+  }
+}
+function helpSetTarget(share,target,label){ _help.share=share; _help.target=target; _help.targetLabel=label; _help.step='q3'; helpRender(); }
+async function helpSend(urgency){
+  const kind=_help.kind, nm=fullName(currentPerson);
+  let message;
+  if(kind==='doute_perso'){ message=nm+' aimerait parler à quelqu\'un.'; }
+  else if(kind==='retard_heures'){ const s=helpCurrentStats();
+    message=nm+' a demandé un coup de main : retard d\'heures.'+(s.period?' Il lui reste '+Math.round(s.remaining)+' h sur ~'+s.dl+' jours (~'+Math.round(s.rythme)+' h/mois).':''); }
+  else if(kind==='prochain_pas'){ message=nm+' a demandé un coup de main pour savoir par quoi continuer.'; }
+  else { message=nm+' a demandé un coup de main sur un blocage administratif.'; }
+  const row={from_user:_user.id, from_name:nm, kind:kind, urgency:urgency, message:message, status:'open'};
+  if(_help.share==='group') row.group_id=_help.target;
+  else if(_help.share==='structure') row.structure_id=_help.target;
+  else if(_help.share==='person') row.to_user=_help.target;
+  try{
+    const r=await sb.from('help_requests').insert(row);
+    if(r.error) throw r.error;
+    closeHelp();
+    toast('C\'est envoyé. Demander de l\'aide, c\'est déjà avancer 💪');
+  }catch(e){ console.warn('helpSend',e); toast('Envoi impossible pour le moment, réessaie'); }
+}
+
+/* ---------- réception des demandes d'aide ---------- */
+async function loadHelpInbox(){
+  if(!sb||!_user){ _helpInbox=[]; return; }
+  try{
+    const r=await sb.from('help_requests').select('*').eq('status','open').neq('from_user',_user.id).order('created_at',{ascending:false});
+    if(r.error) throw r.error;
+    _helpInbox=r.data||[];
+  }catch(e){ console.warn('loadHelpInbox',e); _helpInbox=[]; }
+  renderHelpInbox();
+}
+function renderHelpInbox(){
+  const box=document.getElementById('helpInbox'); if(!box) return;
+  if(!_helpInbox.length){ box.style.display='none'; box.innerHTML=''; return; }
+  const URG={maintenant:'🔥 maintenant', cette_semaine:'📆 cette semaine', peut_attendre:'🌤️ ça peut attendre'};
+  box.style.display='';
+  box.innerHTML=_helpInbox.map(h=>'<div class="help-inbox-item"><span style="font-size:20px">🤝</span>'
+    +'<span class="hi-txt"><b>'+_esc(h.from_name||'Quelqu\'un')+'</b> a besoin d\'un coup de main : '+_esc(h.message||'')+' <span style="color:var(--muted)">('+(URG[h.urgency]||'')+')</span></span>'
+    +'<span class="hi-btns"><button class="btn sm" type="button" onclick="helpAck(\''+_escA(h.id)+'\')" data-tip="Prévenir que tu t\'en occupes">👍 Je m\'en occupe</button></span></div>').join('');
+}
+async function helpAck(id){
+  try{
+    const r=await sb.from('help_requests').update({status:'acked', acked_by:_user.id}).eq('id',id);
+    if(r.error) throw r.error;
+    _helpInbox=_helpInbox.filter(h=>h.id!==id);
+    renderHelpInbox();
+    toast('👍 Merci — la personne va être prévenue');
+  }catch(e){ console.warn('helpAck',e); toast('Action impossible pour le moment'); }
+}
+
+/* ---------- amorçage (après connexion + chargement de l'espace) ---------- */
+async function grpHelpBoot(){
+  try{ await loadMyGroups(); updateInviteBadge(); refreshGroupDatalist(); }catch(e){ console.warn(e); }
+  try{ await loadHelpInbox(); }catch(e){ console.warn(e); }
+}
+if(typeof startApp==='function'){
+  const _origStartApp=startApp;
+  startApp=function(){ const r=_origStartApp.apply(this,arguments); try{ grpHelpBoot(); }catch(e){ console.warn(e); } return r; };
+}
 </script>
 </body>
 </html>

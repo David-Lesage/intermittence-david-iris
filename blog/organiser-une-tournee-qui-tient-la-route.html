@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organiser une tournée qui tient la route — Blog Guso Facile</title>
+<meta name="description" content="Comment préparer une tournée sans fouiller ses mails : la carte des trajets et des kilomètres, le carnet de contacts auto-alimenté, l'historique par organisateur et les mails types de relance.">
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171f29; --panel2:#1e2a38; --line:#2a3a4d;
+    --text:#e8eef5; --muted:#8aa0b8; --accent:#4cc9f0; --accent2:#7b9eff;
+    --iris:#f072c0; --ok:#3ddc97; --warn:#ffd166;
+    --grad:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  a{color:inherit;text-decoration:none}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vw 40vw at 15% -5%, rgba(76,201,240,.10), transparent 60%),radial-gradient(55vw 40vw at 100% 10%, rgba(240,114,192,.09), transparent 60%);}
+  .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
+  .logo{width:44px;height:44px;flex:0 0 auto;filter:drop-shadow(0 6px 18px rgba(76,201,240,.25))}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  .topbar{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;background:rgba(15,20,25,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;padding-bottom:14px}
+  .brand-mini{display:flex;align-items:center;gap:12px}
+  .brand-mini b{font-size:19px;font-weight:800;letter-spacing:-.4px}
+  .top-actions{display:flex;align-items:center;gap:12px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;font-weight:700;font-size:14.5px;border:1px solid transparent;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;}
+  .btn-primary{background:var(--grad);color:#0b1017;box-shadow:0 8px 26px rgba(76,201,240,.28)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(123,158,255,.36)}
+  .back-link{color:var(--muted);font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
+  .back-link:hover{color:var(--text)}
+  .article{max-width:720px;margin:0 auto;padding:0 20px}
+  .art-head{padding:50px 0 6px}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);margin-bottom:18px}
+  .art-head h1{font-size:clamp(28px,5.2vw,42px);font-weight:800;letter-spacing:-.6px;line-height:1.12;margin-bottom:16px}
+  .dek{font-size:19px;color:var(--muted);line-height:1.55;margin-bottom:20px}
+  .art-meta{display:flex;gap:10px;align-items:center;font-size:13.5px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding-bottom:22px}
+  .art-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);opacity:.6}
+  .art-body{padding:28px 0 8px;font-size:17px}
+  .art-body p{margin:0 0 20px}
+  .art-body h2{font-size:24px;font-weight:800;letter-spacing:-.3px;margin:38px 0 14px;line-height:1.25}
+  .art-body ul{margin:0 0 20px;padding-left:22px}
+  .art-body li{margin-bottom:9px}
+  .art-body strong,.art-body b{color:var(--text);font-weight:700}
+  .lead{font-size:18.5px}
+  .scene{border-left:3px solid var(--iris);padding:6px 0 6px 18px;margin:0 0 26px;color:var(--text);font-style:italic;background:linear-gradient(90deg,rgba(240,114,192,.06),transparent 80%)}
+  .callout{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;padding:18px 20px;margin:26px 0;font-size:15.5px;line-height:1.62;}
+  .callout .ct{display:block;font-weight:800;color:var(--accent);margin-bottom:6px;font-size:14px;letter-spacing:.2px}
+  .callout b{color:var(--text)}
+  .soon{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--warn);border:1px solid rgba(255,209,102,.42);background:rgba(255,209,102,.10);}
+  .concl{background:linear-gradient(135deg,rgba(76,201,240,.08),rgba(240,114,192,.08));border:1px solid var(--line);border-radius:18px;padding:30px 26px;margin:42px 0 10px;text-align:center;}
+  .concl h2{margin:0 0 12px;border:none;padding:0;font-size:23px}
+  .concl p{color:var(--muted);max-width:520px;margin:0 auto 22px;font-size:16px}
+  .crosslinks{margin:36px 0 10px}
+  .crosslinks h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:16px}
+  .cl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .cl{display:block;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:18px 20px;transition:transform .15s ease,border-color .15s ease}
+  .cl:hover{border-color:var(--accent);transform:translateY(-3px)}
+  .cl .clt{font-size:12px;color:var(--accent);font-weight:700;margin-bottom:6px}
+  .cl b{font-size:16px;font-weight:800;line-height:1.3;display:block}
+  .art-foot{border-top:1px solid var(--line);margin-top:42px;padding:26px 0 60px;text-align:center}
+  .art-foot a{color:var(--accent);font-weight:700}
+  @media (max-width:560px){
+    .cl-grid{grid-template-columns:1fr}
+    .top-actions .back-link{display:none}
+    .art-body{font-size:16.5px}
+    .art-head{padding:34px 0 6px}
+    .dek{font-size:17.5px}
+    .brand-mini b{font-size:17px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a class="brand-mini" href="../presentation.html" aria-label="Guso Facile">
+      <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="gfGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cc9f0"/><stop offset=".55" stop-color="#7b9eff"/><stop offset="1" stop-color="#f072c0"/></linearGradient></defs>
+        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#gfGrad)"/>
+        <g fill="#fff"><ellipse cx="17" cy="34" rx="6.6" ry="5" transform="rotate(-18 17 34)"/><rect x="22.1" y="12.5" width="2.9" height="21.5" rx="1.4"/><path d="M25 12.5c6.2 1.3 9.8 4.3 8.2 9.6 0-3.9-3.6-6-8.2-6.4z"/></g>
+        <path d="M35.5 13.5l1.25 3 3 1.25-3 1.25-1.25 3-1.25-3-3-1.25 3-1.25z" fill="#fff" opacity=".95"/>
+      </svg>
+      <b class="grad-text">Guso Facile</b>
+    </a>
+    <div class="top-actions">
+      <a class="back-link" href="../blog.html">← Tous les articles</a>
+      <a class="btn btn-primary" href="../presentation.html">✨ Demander un accès</a>
+    </div>
+  </div>
+</div>
+
+<article class="article">
+  <header class="art-head">
+    <span class="tag">🎪 Développement</span>
+    <h1>Organiser une tournée qui tient la route</h1>
+    <p class="dek">Reprogrammer les bonnes salles, trouver les nouvelles, ne pas rouler pour rien : préparer une tournée, c'est autant de logistique que d'artistique. Voici comment s'appuyer sur ce qu'on a déjà joué.</p>
+    <div class="art-meta"><span>4 min de lecture</span><span class="dot"></span><span>Pour les artistes</span></div>
+  </header>
+
+  <div class="art-body">
+    <p class="scene">Léa veut remonter une tournée cet automne. Son idée : recontacter les salles qui l'ont accueillie l'an dernier, celles où ça s'était bien passé. Sauf que les coordonnées sont éparpillées dans un an de mails, de SMS et de bouts de papier. Rien que retrouver « qui contacter » lui prend une soirée.</p>
+
+    <p class="lead">Une tournée se construit sur la mémoire de ce qu'on a déjà fait : où on a joué, avec qui, comment c'était. Guso Facile transforme ton historique de dates en <b>outil de développement</b>, sans que tu aies à re-saisir quoi que ce soit.</p>
+
+    <h2>La carte : voir ses trajets d'un coup d'œil</h2>
+    <p>Le module <b>Carte</b> place toutes tes dates sur une carte, avec ton domicile au centre. Il calcule les <b>kilomètres parcourus</b> (aller-retour) et peut <b>relier les dates dans l'ordre chronologique</b> : la boucle de ta tournée apparaît, du départ au retour à la maison. Léa voit tout de suite si son projet d'automne dessine un itinéraire cohérent ou un zigzag épuisant.</p>
+
+    <div class="callout">
+      <span class="ct">💡 Dans l'app</span>
+      Le bouton <b>« 🗺️ Carte »</b> ouvre la vue cartographique. Un lieu mal reconnu ? Tu le renseignes à la main avec l'autocomplétion, et le trajet se recalcule.
+    </div>
+
+    <h2>Un carnet de contacts qui se remplit tout seul</h2>
+    <p>Chaque fois que tu renseignes l'organisateur d'une date, il vient nourrir ton <b>carnet de contacts</b>. Structure, référent, email, téléphone : tout est regroupé, dédoublonné, prêt à l'emploi. Tu peux aussi ajouter des contacts à la main pour les pistes que tu prospectes.</p>
+    <p>Mieux : chaque contact garde son <b>historique</b>. Léa voit, pour chaque salle, la <b>dernière fois</b> qu'elle y a joué, mise en avant. Idéal pour relancer avec un « on s'était vus en octobre dernier… » qui fait toute la différence.</p>
+
+    <div class="callout">
+      <span class="ct">💡 Dans l'app</span>
+      Le module <b>« 🎪 Tournée »</b> réunit trois onglets : <b>Carnet de contacts</b> (auto-alimenté par tes dates), <b>Concerts passés</b> (filtrables par année et par recherche) et <b>Mails types</b>.
+    </div>
+
+    <h2>Des mails types, pré-remplis pour toi</h2>
+    <p>Vient le moment d'écrire. Plutôt que de partir d'une page blanche, l'app propose quatre <b>modèles</b> : relance, présentation, candidature à un festival, remerciement. Tu choisis un modèle et un contact : l'objet et le corps se pré-remplissent avec ton nom, celui de la structure, et — pour une relance — <b>la dernière date jouée ensemble</b>. Tu ajustes, puis tu copies le tout d'un bouton pour le coller dans ton mail.</p>
+
+    <div class="concl">
+      <h2>Ta tournée s'appuie sur ta mémoire, pas sur ta soirée</h2>
+      <p>Retrouver un contact, mesurer un trajet, écrire une relance : ce qui prenait des heures devient l'affaire de quelques clics. C'est de l'énergie récupérée pour ce qui compte — construire des dates et jouer.</p>
+      <a class="btn btn-primary" href="../presentation.html">✨ Demander un accès</a>
+    </div>
+
+    <nav class="crosslinks">
+      <h3>À lire ensuite</h3>
+      <div class="cl-grid">
+        <a class="cl" href="evaluer-si-une-date-est-un-bon-plan.html">
+          <span class="clt">🎪 Négociation</span>
+          <b>Évaluer si une date est un bon plan</b>
+        </a>
+        <a class="cl" href="structure-accompagner-ses-artistes.html">
+          <span class="clt">🏢 Structures</span>
+          <b>Accompagner ses artistes sans tableur</b>
+        </a>
+      </div>
+    </nav>
+  </div>
+
+  <footer class="art-foot">
+    <a href="../blog.html">← Tous les articles</a>
+  </footer>
+</article>
+
+</body>
+</html>

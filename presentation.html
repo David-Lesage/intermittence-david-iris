@@ -166,6 +166,31 @@
   .tile h4{font-size:15px;font-weight:700;margin-bottom:5px}
   .tile p{font-size:13px;color:var(--muted);line-height:1.5}
 
+  /* Univers de fonctionnalités */
+  .universes{display:flex;flex-direction:column;gap:22px}
+  .universe{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 26px 24px;position:relative;overflow:hidden;
+  }
+  .universe::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad)}
+  .universe.soonverse::before{background:linear-gradient(90deg,var(--warn),var(--iris))}
+  .universe.soonverse{background:linear-gradient(180deg,rgba(255,209,102,.06),var(--panel))}
+  .uni-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+  .uni-ico{font-size:28px;line-height:1;flex:0 0 auto}
+  .uni-head h3{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .uni-head .uni-sub{flex:1 1 100%;color:var(--muted);font-size:14.5px;margin-top:2px;line-height:1.5}
+  .uni-items{display:grid;grid-template-columns:1fr 1fr;gap:13px 24px}
+  .uni-item{display:flex;gap:11px;align-items:flex-start;font-size:14.5px;color:var(--muted);line-height:1.55}
+  .uni-item .ui{flex:0 0 auto;font-size:18px;line-height:1.5}
+  .uni-item b{color:var(--text);font-weight:700}
+  .uni-item .soon{margin-left:4px}
+  .andmore{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:24px}
+  .andmore .chip{padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:13.5px;font-weight:600;color:var(--text);display:flex;gap:7px;align-items:center}
+  .andmore .chip span{color:var(--muted);font-weight:600}
+  .blog-link{text-align:center;margin-top:26px}
+  .blog-link a{color:var(--accent);font-weight:700;font-size:15px;border-bottom:1px solid rgba(76,201,240,.35);padding-bottom:2px}
+
   /* Steps */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
   .step{text-align:center;padding:10px}
@@ -281,6 +306,7 @@
   @media (max-width:760px){
     section{padding:48px 0}
     .audience{grid-template-columns:1fr}
+    .uni-items{grid-template-columns:1fr;gap:13px}
     .grid{grid-template-columns:repeat(2,1fr)}
     .steps{grid-template-columns:1fr}
     .cases{grid-template-columns:1fr}
@@ -434,26 +460,94 @@
   </div>
 </section>
 
-<!-- FONCTIONNALITÉS CLÉS -->
+<!-- FONCTIONNALITÉS PAR UNIVERS -->
 <section class="problem">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow grad-text">Fonctionnalités clés</span>
-      <h2>Tout ce qu'il faut, rien de superflu</h2>
+      <span class="eyebrow grad-text">Tout ce que fait l'app</span>
+      <h2>Bien plus qu'un compteur d'heures</h2>
+      <p>Guso Facile t'accompagne du premier cachet jusqu'à la tournée : tes droits, ton organisation, ta structure, et bientôt ton cercle.</p>
     </div>
-    <div class="grid">
-      <div class="tile"><div class="ti">⏱️</div><h4>Compteur 507 h</h4><p>Ta progression vers l'ouverture de droits, toujours visible.</p></div>
-      <div class="tile"><div class="ti">🔔</div><h4>Échéances</h4><p>Rien n'est oublié : chaque étape à faire, au bon moment.</p></div>
-      <div class="tile"><div class="ti">📋</div><h4>DPAE & GUSO</h4><p>Déclarations et feuillets suivis de bout en bout.</p></div>
-      <div class="tile"><div class="ti">🧾</div><h4>Factures</h4><p>Émises, en attente, payées — d'un coup d'œil.</p></div>
-      <div class="tile"><div class="ti">📅</div><h4>Récap mensuel</h4><p>Prêt à pointer contre l'actualisation France Travail.</p></div>
-      <div class="tile"><div class="ti">💡</div><h4>Bon plan ?</h4><p>Chaque offre comparée à tes conditions idéales.</p></div>
-      <div class="tile"><div class="ti">📈</div><h4>Projection</h4><p>Graphique de l'année et dates possibles à venir.</p></div>
-      <div class="tile"><div class="ti">🔄</div><h4>Synchro temps réel</h4><p>Artistes et structures toujours à jour ensemble.</p></div>
-      <div class="tile"><div class="ti">🎸</div><h4>Vue Groupe solidaire <span class="soon">Bientôt</span></h4><p>Où en est chaque membre, pour se soutenir avant que ça coince.</p></div>
-      <div class="tile"><div class="ti">🛟</div><h4>Points de vigilance <span class="soon">Bientôt</span></h4><p>Côté structure : qui approche du seuil, qui a besoin d'un coup de main.</p></div>
-      <div class="tile"><div class="ti">🤗</div><h4>J'ai besoin d'aide <span class="soon">Bientôt</span></h4><p>Un geste simple pour être aidé — et prévenir les bonnes personnes.</p></div>
+
+    <div class="universes">
+
+      <!-- Univers 1 : Tes droits -->
+      <div class="universe">
+        <div class="uni-head">
+          <span class="uni-ico">🎯</span>
+          <h3>Tes droits, maîtrisés</h3>
+          <span class="uni-sub">Le cœur de Guso Facile : ne plus jamais perdre une heure ni rater une échéance.</span>
+        </div>
+        <div class="uni-items">
+          <div class="uni-item"><span class="ui">⏱️</span><div><b>Jauge des 507 h</b> — ta progression vers l'ouverture de droits, toujours visible, avec une vraie célébration le jour où tu y arrives.</div></div>
+          <div class="uni-item"><span class="ui">🔔</span><div><b>« À faire maintenant »</b> — DPAE, feuillets GUSO et factures à venir classés par urgence (J-3, J-7…). Rien ne passe à la trappe.</div></div>
+          <div class="uni-item"><span class="ui">🛡️</span><div><b>Badges de sécurité</b> — « Droits sécurisés » dès 507 h, et une alerte cliquable dès qu'une incohérence se glisse dans tes dates.</div></div>
+          <div class="uni-item"><span class="ui">📅</span><div><b>Récap mensuel</b> — GUSO, cachets, heures et brut mois par mois, prêt à pointer contre ton actualisation France Travail.</div></div>
+          <div class="uni-item"><span class="ui">🔍</span><div><b>Bilan imprimable</b> — un contrôle de cohérence complet de ta période, exporté en un document propre à imprimer.</div></div>
+          <div class="uni-item"><span class="ui">📈</span><div><b>Graphique de l'année</b> — vois tes heures acquises et ce que tes dates « possibles » ajouteraient à ta projection.</div></div>
+        </div>
+      </div>
+
+      <!-- Univers 2 : Ta tournée -->
+      <div class="universe">
+        <div class="uni-head">
+          <span class="uni-ico">🎪</span>
+          <h3>Ta tournée, organisée</h3>
+          <span class="uni-sub">Développer, relancer, négocier — et savoir avant de dire oui.</span>
+        </div>
+        <div class="uni-items">
+          <div class="uni-item"><span class="ui">🗺️</span><div><b>La carte de tes dates</b> — tous tes concerts géolocalisés ; l'app calcule tes kilomètres parcourus depuis chez toi, utile pour tes frais.</div></div>
+          <div class="uni-item"><span class="ui">🧭</span><div><b>Ta tournée reliée</b> — les dates s'enchaînent chronologiquement sur la carte, lieux à confirmer signalés, adresses en autocomplétion.</div></div>
+          <div class="uni-item"><span class="ui">📇</span><div><b>Carnet de contacts</b> — les organisateurs de tes dates rassemblés automatiquement, avec l'historique de ce que vous avez joué ensemble.</div></div>
+          <div class="uni-item"><span class="ui">✉️</span><div><b>Mails types prêts à copier</b> — relance, présentation, remerciement, pré-remplis avec ta dernière date jouée ensemble.</div></div>
+          <div class="uni-item"><span class="ui">🎯</span><div><b>« Bon plan ? »</b> — compare l'offre reçue à tes conditions idéales : un verdict vert / jaune / rouge avant de t'engager.</div></div>
+          <div class="uni-item"><span class="ui">🏢</span><div><b>Suivi de négociation</b> — statut du contrat, échéance de signature, infos manquantes, et une demande d'infos prête à envoyer à l'organisateur.</div></div>
+        </div>
+      </div>
+
+      <!-- Univers 3 : Ta structure -->
+      <div class="universe">
+        <div class="uni-head">
+          <span class="uni-ico">🏢</span>
+          <h3>Ta structure, connectée</h3>
+          <span class="uni-sub">Pour celles et ceux qui emploient et accompagnent les artistes.</span>
+        </div>
+        <div class="uni-items">
+          <div class="uni-item"><span class="ui">🗂️</span><div><b>Back-office transversal</b> — toutes les DPAE, feuillets GUSO et factures à faire, tous artistes confondus, au même endroit.</div></div>
+          <div class="uni-item"><span class="ui">👥</span><div><b>Fiches artistes</b> — état civil, n° de sécu, n° GUSO… en un clic pour remplir une DPAE sans jamais redemander.</div></div>
+          <div class="uni-item"><span class="ui">📆</span><div><b>DPAE regroupées</b> — les dates proches (±7 jours) rassemblées pour tout déclarer d'un coup.</div></div>
+          <div class="uni-item"><span class="ui">🧾</span><div><b>Factures & salaires</b> — dépôt des factures, « facture réglée », « salaire reçu » : tu vois qui est payé et ce qui reste dû.</div></div>
+          <div class="uni-item"><span class="ui">🪪</span><div><b>Profils & multi-artistes</b> — conditions idéales, IBAN/RIB, contrats, plusieurs artistes gérés côte à côte.</div></div>
+          <div class="uni-item"><span class="ui">🔄</span><div><b>Tout synchronisé</b> — ce que l'artiste renseigne apparaît côté structure en temps réel, et inversement.</div></div>
+        </div>
+      </div>
+
+      <!-- Univers 4 : Ton cercle (à venir) -->
+      <div class="universe soonverse">
+        <div class="uni-head">
+          <span class="uni-ico">🫂</span>
+          <h3>Ton cercle, solidaire <span class="soon">Bientôt</span></h3>
+          <span class="uni-sub">Parce qu'on avance mieux à plusieurs. Ces fonctions arrivent prochainement.</span>
+        </div>
+        <div class="uni-items">
+          <div class="uni-item"><span class="ui">🎸</span><div><b>Vue Groupe solidaire</b> <span class="soon">Bientôt</span> — où en est chaque membre du groupe, pour se soutenir avant que ça coince.</div></div>
+          <div class="uni-item"><span class="ui">🤗</span><div><b>« J'ai besoin d'aide »</b> <span class="soon">Bientôt</span> — 3 questions, un premier conseil concret, et tu préviens qui tu veux.</div></div>
+          <div class="uni-item"><span class="ui">🛟</span><div><b>Points de vigilance structure</b> <span class="soon">Bientôt</span> — côté accompagnant : qui approche du seuil, qui a besoin d'un coup de main.</div></div>
+          <div class="uni-item"><span class="ui">🔒</span><div><b>Confidentialité graduée</b> <span class="soon">Bientôt</span> — tu choisis exactement ce que chaque structure voit de tes données.</div></div>
+        </div>
+      </div>
+
     </div>
+
+    <div class="andmore">
+      <span class="chip">💾 <span>Export / import de tes données</span></span>
+      <span class="chip">📱 <span>100 % mobile, sans installation</span></span>
+      <span class="chip">🔗 <span>Liens directs vers une date</span></span>
+      <span class="chip">👥 <span>Multi-comptes sécurisés</span></span>
+      <span class="chip">🐛 <span>Un bouton pour signaler un bug</span></span>
+    </div>
+
+    <p class="blog-link"><a href="blog.html">→ Voir des cas d'usage concrets sur le blog</a></p>
   </div>
 </section>
 
@@ -536,7 +630,7 @@
 <footer>
   <div class="wrap">
     Guso Facile — une gestion claire et simplifiée de l'intermittence.<br>
-    <a href="#" data-open-request>Demander un accès</a> · <a href="beta.html">Se connecter</a>
+    <a href="#" data-open-request>Demander un accès</a> · <a href="beta.html">Se connecter</a> · <a href="blog.html">📚 Blog</a>
   </div>
 </footer>
 

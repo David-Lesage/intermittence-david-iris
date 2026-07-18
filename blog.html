@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le blog de Guso Facile — Des situations réelles, des solutions concrètes</title>
+<meta name="description" content="Le blog de Guso Facile : des cas d'usage concrets pour aider les musiciens intermittents à travailler ensemble, sereinement, et à mettre leur énergie dans la musique plutôt que dans la paperasse.">
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171f29; --panel2:#1e2a38; --line:#2a3a4d;
+    --text:#e8eef5; --muted:#8aa0b8; --accent:#4cc9f0; --accent2:#7b9eff;
+    --iris:#f072c0; --ok:#3ddc97; --warn:#ffd166;
+    --grad:linear-gradient(90deg,#4cc9f0,#7b9eff 55%,#f072c0);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(60vw 40vw at 15% -5%, rgba(76,201,240,.10), transparent 60%),
+      radial-gradient(55vw 40vw at 100% 10%, rgba(240,114,192,.09), transparent 60%);
+  }
+  .grad-text{
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .logo{width:44px;height:44px;flex:0 0 auto;filter:drop-shadow(0 6px 18px rgba(76,201,240,.25))}
+
+  /* Topbar */
+  .topbar{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;
+    background:rgba(15,20,25,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;padding-bottom:14px}
+  .brand-mini{display:flex;align-items:center;gap:12px}
+  .brand-mini b{font-size:19px;font-weight:800;letter-spacing:-.4px}
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 20px;border-radius:12px;font-weight:700;font-size:14.5px;
+    border:1px solid transparent;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+  }
+  .btn-primary{background:var(--grad);color:#0b1017;box-shadow:0 8px 26px rgba(76,201,240,.28)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(123,158,255,.36)}
+  .btn-ghost{background:rgba(255,255,255,.03);border-color:var(--line);color:var(--text)}
+  .btn-ghost:hover{background:rgba(255,255,255,.07);transform:translateY(-2px)}
+  .back-link{color:var(--muted);font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
+  .back-link:hover{color:var(--text)}
+
+  /* Hero */
+  .b-hero{text-align:center;padding:64px 0 44px}
+  .eyebrow{display:block;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px}
+  .b-hero h1{font-size:clamp(30px,6vw,50px);font-weight:800;letter-spacing:-1px;line-height:1.05;margin-bottom:16px}
+  .b-hero p{color:var(--muted);max-width:640px;margin:0 auto;font-size:17px}
+
+  /* Grille articles */
+  .posts{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;padding-bottom:70px}
+  .post{
+    display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px;
+    position:relative;overflow:hidden;transition:transform .15s ease,border-color .15s ease;
+  }
+  .post::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad)}
+  .post:hover{transform:translateY(-4px);border-color:var(--accent)}
+  .post-tag{
+    display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
+    padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);margin-bottom:16px;
+  }
+  .post h2{font-size:19.5px;font-weight:800;letter-spacing:-.3px;line-height:1.3;margin-bottom:10px}
+  .post .excerpt{font-size:14.5px;color:var(--muted);line-height:1.6;flex:1 1 auto}
+  .post .meta{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:13px;color:var(--muted);font-weight:600}
+  .post .arrow{margin-left:auto;color:var(--accent);font-weight:800}
+
+  .b-foot{border-top:1px solid var(--line);padding:34px 0;text-align:center;color:var(--muted);font-size:13.5px}
+  .b-foot a{color:var(--accent);font-weight:700}
+  .b-cta{text-align:center;padding:10px 0 64px}
+  .b-cta .card{
+    background:linear-gradient(135deg,rgba(76,201,240,.10),rgba(240,114,192,.10));
+    border:1px solid var(--line);border-radius:22px;padding:40px 26px;max-width:720px;margin:0 auto;
+  }
+  .b-cta h3{font-size:clamp(22px,4vw,30px);font-weight:800;margin-bottom:12px;letter-spacing:-.4px}
+  .b-cta p{color:var(--muted);max-width:480px;margin:0 auto 24px;font-size:15.5px}
+
+  @media (max-width:860px){ .posts{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:560px){
+    .posts{grid-template-columns:1fr}
+    .top-actions .btn-ghost{display:none}
+    .b-hero{padding:44px 0 32px}
+    .btn{padding:11px 16px}
+    .brand-mini b{font-size:17px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a class="brand-mini" href="presentation.html" aria-label="Retour à Guso Facile">
+      <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="gfGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4cc9f0"/><stop offset=".55" stop-color="#7b9eff"/><stop offset="1" stop-color="#f072c0"/>
+        </linearGradient></defs>
+        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#gfGrad)"/>
+        <g fill="#fff">
+          <ellipse cx="17" cy="34" rx="6.6" ry="5" transform="rotate(-18 17 34)"/>
+          <rect x="22.1" y="12.5" width="2.9" height="21.5" rx="1.4"/>
+          <path d="M25 12.5c6.2 1.3 9.8 4.3 8.2 9.6 0-3.9-3.6-6-8.2-6.4z"/>
+        </g>
+        <path d="M35.5 13.5l1.25 3 3 1.25-3 1.25-1.25 3-1.25-3-3-1.25 3-1.25z" fill="#fff" opacity=".95"/>
+      </svg>
+      <b class="grad-text">Guso Facile</b>
+    </a>
+    <div class="top-actions">
+      <a class="back-link" href="presentation.html">← Guso Facile</a>
+      <a class="btn btn-primary" href="presentation.html">✨ Demander un accès</a>
+    </div>
+  </div>
+</div>
+
+<header class="b-hero">
+  <div class="wrap">
+    <span class="eyebrow grad-text">Le blog</span>
+    <h1>Des situations réelles,<br><span class="grad-text">des solutions concrètes</span></h1>
+    <p>Ici, pas de théorie sur l'intermittence. On raconte des cas précis — Léa qui court après ses heures, Marco qui pointe, Sophie qui gère quatre artistes — et comment travailler ensemble de façon structurée. Le but est simple : moins d'énergie dans l'admin, plus dans la musique.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="posts">
+
+    <a class="post" href="blog/atteindre-507-heures-sans-angoisse.html">
+      <span class="post-tag">🎯 Suivi des heures</span>
+      <h2>Atteindre ses 507 heures sans angoisse</h2>
+      <p class="excerpt">En mars, Léa était à 380 h et se réveillait la nuit. Voici comment transformer ce compte à rebours en un plan clair, mois par mois.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/ne-plus-jamais-oublier-une-dpae.html">
+      <span class="post-tag">🎯 Échéances</span>
+      <h2>Ne plus jamais oublier une DPAE</h2>
+      <p class="excerpt">Trois concerts la même semaine, autant de DPAE à ne pas rater. Comment l'app te dit quoi faire, pour qui, et avant quand.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/pointage-france-travail-sans-stress.html">
+      <span class="post-tag">🎯 France Travail</span>
+      <h2>Pointer France Travail en 5 minutes</h2>
+      <p class="excerpt">Chaque 28 du mois, Marco redoutait son actualisation. Un récap où 1 GUSO = 1 ligne, et l'affaire est pliée.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/organiser-une-tournee-qui-tient-la-route.html">
+      <span class="post-tag">🎪 Développement</span>
+      <h2>Organiser une tournée qui tient la route</h2>
+      <p class="excerpt">Reprogrammer les salles de l'an dernier sans fouiller ses mails : carnet de contacts auto, carte des trajets et mails types.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/evaluer-si-une-date-est-un-bon-plan.html">
+      <span class="post-tag">🎪 Négociation</span>
+      <h2>Évaluer si une date est un bon plan</h2>
+      <p class="excerpt">« 90 € et logé chez l'habitant » : bon plan ou pas ? Comment dire non — ou négocier — sans culpabiliser.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/travailler-a-deux-artistes-dates-partagees.html">
+      <span class="post-tag">🎯 Duo &amp; groupe</span>
+      <h2>Travailler à deux : les dates partagées</h2>
+      <p class="excerpt">Léa et Marco jouent en duo mais n'ont pas la même date anniversaire. Une seule saisie, deux compteurs justes.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/structure-accompagner-ses-artistes.html">
+      <span class="post-tag">🏢 Structures</span>
+      <h2>Accompagner ses artistes sans tableur</h2>
+      <p class="excerpt">Sophie gère quatre artistes. Un back-office qui regroupe toutes les DPAE, GUSO et factures à faire, tous artistes confondus.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+    <a class="post" href="blog/studio-et-cheque-intermittents.html">
+      <span class="post-tag">🎯 Studio</span>
+      <h2>Déclarer une session studio</h2>
+      <p class="excerpt">Deux jours d'enregistrement au chèque-intermittents, hors GUSO. Pourquoi l'app les compte quand même dans tes heures.</p>
+      <div class="meta"><span>4 min de lecture</span><span class="arrow">→</span></div>
+    </a>
+
+  </section>
+
+  <section class="b-cta">
+    <div class="card">
+      <h3>Envie d'essayer sur tes vraies dates ?</h3>
+      <p>Guso Facile est en phase de test, l'accès se fait sur demande. Chaque demande est étudiée personnellement.</p>
+      <a class="btn btn-primary" href="presentation.html">✨ Demander un accès</a>
+    </div>
+  </section>
+</main>
+
+<footer class="b-foot">
+  <div class="wrap">
+    Guso Facile — une gestion claire et simplifiée de l'intermittence.<br>
+    <a href="presentation.html">Découvrir l'app</a> · <a href="beta.html">Se connecter</a>
+  </div>
+</footer>
+
+</body>
+</html>
