@@ -73,6 +73,56 @@
     border:1px solid var(--line);border-radius:var(--radius);padding:26px;
   }
 
+  /* Badge « Bientôt » */
+  .soon{
+    display:inline-flex;align-items:center;gap:5px;vertical-align:middle;
+    padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;
+    letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;
+    color:var(--warn);border:1px solid rgba(255,209,102,.42);
+    background:rgba(255,209,102,.10);
+  }
+  .soon::before{content:"◔";font-size:12px;line-height:1}
+
+  /* Section entraide : cartes cas d'usage */
+  .care{background:linear-gradient(180deg,rgba(240,114,192,.05),transparent 60%)}
+  .cases{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .case{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px;
+    position:relative;overflow:hidden;display:flex;flex-direction:column;
+  }
+  .case::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad)}
+  .case-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .case-ico{font-size:30px;line-height:1;flex:0 0 auto}
+  .case h3{font-size:19px;font-weight:800;letter-spacing:-.3px;flex:1 1 auto;min-width:0}
+  .case p{font-size:14.5px;color:var(--muted);line-height:1.6}
+  .care-privacy{
+    margin-top:26px;padding:18px 22px;border-radius:var(--radius);
+    border:1px solid var(--line);background:rgba(255,255,255,.02);
+    text-align:center;font-size:15px;color:var(--text);line-height:1.6;
+  }
+  .care-privacy b{color:var(--accent)}
+
+  /* Section « J'ai besoin d'aide » */
+  .help-flow{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start}
+  .help-panel{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;
+  }
+  .help-panel h3{font-size:19px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .help-q{
+    padding:12px 16px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);font-size:14.5px;color:var(--text);
+    margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;
+  }
+  .help-q:last-child{margin-bottom:0}
+  .help-q .qi{flex:0 0 auto;color:var(--iris);font-weight:800}
+  .help-then{display:flex;flex-direction:column;gap:16px}
+  .help-then .card{padding:22px 24px}
+  .help-then h4{font-size:16px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+  .help-then p{font-size:14px;color:var(--muted);line-height:1.55}
+  .help-quote{margin-top:22px;text-align:center;font-size:17px;font-weight:700;color:var(--text)}
+
   .section-head{text-align:center;max-width:680px;margin:0 auto 40px}
   .section-head h2{font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.5px;margin-bottom:12px}
   .section-head p{color:var(--muted);font-size:16px}
@@ -233,6 +283,8 @@
     .audience{grid-template-columns:1fr}
     .grid{grid-template-columns:repeat(2,1fr)}
     .steps{grid-template-columns:1fr}
+    .cases{grid-template-columns:1fr}
+    .help-flow{grid-template-columns:1fr}
     .hero{padding:52px 0 40px}
     .btn{width:100%;justify-content:center}
     .hero-actions{flex-direction:column}
@@ -266,7 +318,7 @@
       <h1 class="grad-text">Guso Facile</h1>
     </div>
     <p class="tagline">Toute la gestion de l'intermittence, simplifiée — pour les artistes et les structures qui les accompagnent.</p>
-    <p class="sub">Fini la charge mentale administrative : suivi des heures, échéances, DPAE, GUSO, factures et pointage France Travail réunis dans une seule application claire.</p>
+    <p class="sub">Fini la charge mentale administrative : suivi des heures, échéances, DPAE, GUSO, factures et pointage France Travail réunis dans une seule application claire — <b style="color:var(--text)">et un cercle d'entraide pour ne jamais rester seul face à l'admin.</b></p>
     <div class="hero-actions">
       <button class="btn btn-primary" type="button" data-open-request>✨ Demander un accès</button>
       <a class="btn btn-ghost" href="#fonctionnalites">Voir les fonctionnalités</a>
@@ -290,6 +342,51 @@
       <span class="chip">📄 GUSO <span>à éditer</span></span>
       <span class="chip">🧾 Factures <span>à suivre</span></span>
       <span class="chip">📅 France Travail <span>à pointer</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ON VEILLE LES UNS SUR LES AUTRES -->
+<section class="care">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow grad-text">L'entraide au cœur</span>
+      <h2>🫂 On veille les uns sur les autres</h2>
+      <p>La paperasse, c'est aussi de l'angoisse et un sentiment d'illégitimité. Guso Facile ne se contente pas de gérer des GUSO : elle soutient chaque personne, et relie celles qui avancent ensemble.</p>
+    </div>
+
+    <div class="cases">
+
+      <div class="case">
+        <div class="case-top">
+          <span class="case-ico">🎸</span>
+          <h3>Le groupe</h3>
+          <span class="soon">Bientôt</span>
+        </div>
+        <p>Dans ton groupe, chacun a sa date anniversaire et son compteur. La vue Groupe montre où en est chaque membre — heures validées, dates possibles, jours restants. Quand Marius est à la traîne, tout le monde le voit AVANT que ce soit grave : on lui donne les prochaines répètes, on cale deux dates de plus. C'est ça, être un groupe.</p>
+      </div>
+
+      <div class="case">
+        <div class="case-top">
+          <span class="case-ico">🏛️</span>
+          <h3>La structure qui accompagne</h3>
+          <span class="soon">Bientôt</span>
+        </div>
+        <p>Des Sons et Des Liens voit d'un coup d'œil quels artistes approchent du seuil et lesquels ont besoin d'un coup de main. Fini le tableur et les relances au doigt mouillé : des points de vigilance clairs, et chaque artiste choisit ce qu'il partage.</p>
+      </div>
+
+      <div class="case">
+        <div class="case-top">
+          <span class="case-ico">🎤</span>
+          <h3>L'artiste seul face à l'admin</h3>
+        </div>
+        <p>L'app te dit toujours le prochain pas : « DPAE à faire pour samedi », « feuillet GUSO manquant ». Une jauge qui célèbre tes 507 h. Des encouragements, pas des reproches. Tu n'es plus jamais seul devant la paperasse.</p>
+      </div>
+
+    </div>
+
+    <div class="care-privacy">
+      À chaque étape, c'est <b>TOI</b> qui décides ce que tu partages : tout, seulement tes heures, ou rien. La confiance ne se décrète pas, elle se choisit.
     </div>
   </div>
 </section>
@@ -353,7 +450,46 @@
       <div class="tile"><div class="ti">💡</div><h4>Bon plan ?</h4><p>Chaque offre comparée à tes conditions idéales.</p></div>
       <div class="tile"><div class="ti">📈</div><h4>Projection</h4><p>Graphique de l'année et dates possibles à venir.</p></div>
       <div class="tile"><div class="ti">🔄</div><h4>Synchro temps réel</h4><p>Artistes et structures toujours à jour ensemble.</p></div>
+      <div class="tile"><div class="ti">🎸</div><h4>Vue Groupe solidaire <span class="soon">Bientôt</span></h4><p>Où en est chaque membre, pour se soutenir avant que ça coince.</p></div>
+      <div class="tile"><div class="ti">🛟</div><h4>Points de vigilance <span class="soon">Bientôt</span></h4><p>Côté structure : qui approche du seuil, qui a besoin d'un coup de main.</p></div>
+      <div class="tile"><div class="ti">🤗</div><h4>J'ai besoin d'aide <span class="soon">Bientôt</span></h4><p>Un geste simple pour être aidé — et prévenir les bonnes personnes.</p></div>
     </div>
+  </div>
+</section>
+
+<!-- J'AI BESOIN D'AIDE -->
+<section class="care">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow grad-text">Demander de l'aide, simplement</span>
+      <h2>🤗 J'ai besoin d'aide <span class="soon">Bientôt</span></h2>
+      <p>Un bouton dans l'app, un questionnaire ultra-rapide — 3 questions, réponses simples — pour cerner ton besoin sans jamais te juger.</p>
+    </div>
+
+    <div class="help-flow">
+
+      <div class="help-panel">
+        <h3>3 questions, c'est tout</h3>
+        <div class="help-q"><span class="qi">?</span><div>Je ne sais pas quel est mon <b>prochain pas</b>.</div></div>
+        <div class="help-q"><span class="qi">?</span><div>Je suis <b>en retard sur mes heures</b>.</div></div>
+        <div class="help-q"><span class="qi">?</span><div>J'ai un <b>blocage administratif précis</b>.</div></div>
+        <div class="help-q"><span class="qi">?</span><div>J'ai un <b>doute plus perso</b> sur ma valeur ou ma légitimité.</div></div>
+      </div>
+
+      <div class="help-then">
+        <div class="card">
+          <h4>💡 Un premier conseil, tout de suite</h4>
+          <p>Selon ta réponse, l'app te donne immédiatement un premier geste concret pour te remettre en mouvement — pas une brochure, une action.</p>
+        </div>
+        <div class="card">
+          <h4>🤝 Prévenir les bonnes personnes</h4>
+          <p>Si tu le veux, l'app prévient ton groupe, ta structure, ou une personne précise. Toi seul choisis qui, et quoi.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="help-quote">« Demander de l'aide devient un geste simple, pas un aveu. »</p>
   </div>
 </section>
 
