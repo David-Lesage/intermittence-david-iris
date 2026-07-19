@@ -1226,10 +1226,10 @@
       <div class="full"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--txt)" data-tip="Coche si ces heures sont déclarées en TECHNICIEN (annexe 8). Elles comptent quand même dans tes 507 h, mais sont suivies à part.">
         <input type="checkbox" id="f_tech" onchange="updateFormHelp()" style="width:auto;flex:0 0 auto;transform:scale(1.3)"> 🔧 Heures en tant que technicien (annexe 8)</label></div>
       <div class="full"><div class="form-help" id="formHelp"></div></div>
-      <div><label>Date début</label><input type="date" id="f_start" required oninput="autoFillEnd()"></div>
-      <div><label>Date fin</label><input type="date" id="f_end" data-tip="En général 1 seule date par GUSO : se remplit automatiquement = date de début. Modifiable si la date s'étale sur plusieurs jours."></div>
-      <div class="full"><label>Titre / objet du concert</label><input id="f_lieu" placeholder="ex. Showcase Neotone, Spectacle Solune…"></div>
-      <div class="full"><label>Lieu (salle / ville)</label><input id="f_place" placeholder="ex. Le Nid, Paris…"></div>
+      <div><label>Date début</label><input type="date" id="f_start" required oninput="autoFillEnd();grpAvailInputChanged()"></div>
+      <div><label>Date fin</label><input type="date" id="f_end" oninput="grpAvailInputChanged()" data-tip="En général 1 seule date par GUSO : se remplit automatiquement = date de début. Modifiable si la date s'étale sur plusieurs jours."></div>
+      <div class="full"><label>Titre / objet du concert</label><input id="f_lieu" placeholder="ex. Showcase Neotone, Spectacle Solune…" oninput="grpAvailPlaceChanged()"></div>
+      <div class="full"><label>Lieu (salle / ville)</label><input id="f_place" placeholder="ex. Le Nid, Paris…" oninput="grpAvailPlaceChanged()"></div>
       <div><label>Répétition — du (facultatif)</label><input type="date" id="f_repetStart"></div>
       <div><label>Répétition — au</label><input type="date" id="f_repetEnd"></div>
       <div><label>Cachets (représentation)</label><input type="number" id="f_cachets" min="0" step="1" value="0"></div>
@@ -1238,7 +1238,7 @@
       <div><label>N° GUSO (si édité)</label><input id="f_num" placeholder="—"></div>
       <div><label>Brut (€)</label><input type="number" id="f_brut" min="0" step="0.01" value="0"></div>
       <div class="full" id="f_groupeRow" style="display:none"><label>🎸 Groupe <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label>
-        <input id="f_groupe" list="groupeList" placeholder="—" autocomplete="off" data-tip="Rattache cette date à l'un de tes groupes : elle nourrit la « vue groupe » (répartition des sources d'heures). Toujours facultatif.">
+        <input id="f_groupe" list="groupeList" placeholder="—" autocomplete="off" oninput="grpAvailInputChanged()" data-tip="Rattache cette date à l'un de tes groupes : elle nourrit la « vue groupe » (répartition des sources d'heures). Toujours facultatif.">
         <datalist id="groupeList"></datalist></div>
       <div class="full" style="display:flex;gap:10px;align-items:center">
         <button class="btn" type="submit" id="submitBtn" data-tip="Ajouter cette date comme confirmée — elle compte tout de suite dans tes heures">+ Ajouter (confirmée)</button>
@@ -1247,6 +1247,7 @@
         <span class="mini" id="calcPreview"></span>
       </div>
     </form>
+    <div id="grpAvailPanel" class="grpav-panel" style="display:none"></div>
    </div>
   </div>
 
@@ -1498,6 +1499,17 @@
 .grp-shareopt>span:last-child{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
 .grp-shareopt .gs-ic{font-size:20px;flex:0 0 auto}
 .grp-shareopt .gs-sub{color:var(--muted);font-size:12px;font-weight:500}
+.grpav-datesw input[type=checkbox]{margin-top:3px;flex:0 0 auto;width:auto;min-width:0;transform:scale(1.2)}
+/* Panneau de disponibilités du groupe (formulaire de date) */
+.grpav-panel{box-sizing:border-box;width:100%;margin-top:14px;background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.grpav-head{font-weight:700;color:var(--txt);margin-bottom:9px;overflow-wrap:anywhere}
+.grpav-load{color:var(--muted);font-weight:600}
+.grpav-allfree{background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.4);color:#bdf3d8;border-radius:10px;padding:8px 11px;font-weight:700;margin-bottom:10px}
+.grpav-m{padding:8px 0;border-top:1px solid var(--line)}
+.grpav-m:first-of-type{border-top:none}
+.grpav-m-h{font-weight:600;color:var(--txt)}
+.grpav-c{color:#ffb4b4;font-size:12.5px;margin-top:3px;overflow-wrap:anywhere}
+.grpav-a{color:#ffd089;font-size:12.5px;margin-top:3px;overflow-wrap:anywhere}
 .grp-warn-access{background:rgba(255,107,107,.10);border:1px solid rgba(255,107,107,.4);border-radius:10px;padding:10px 12px;margin-bottom:11px;font-size:12.5px;color:#ffc2c2;line-height:1.5}
 .grp-access-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .grp-access-row input{flex:1 1 120px;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px}
@@ -2826,6 +2838,14 @@ function copyArtistInfo(){ const p=_baPerson; if(!p) return; const txt=buildArti
    À CHAQUE DÉPLOIEMENT : copier le premier bloc, id++, le placer EN TÊTE (le plus récent en premier).
    Champs : {id, name, date:'YYYY-MM-DD', tags?:[], summary, details?:[], major?:true} */
 const CHANGELOG = [
+  { id:12, name:"🗓️ Propose une date, l'appli vérifie les dispos du groupe", date:'2026-07-19', major:true,
+    tags:['Groupe','Dates'],
+    summary:"Quand tu rattaches une nouvelle date à un de tes groupes, Guso Facile scanne en direct les agendas des membres et te dit qui est libre.",
+    details:[
+      "Dans le formulaire de date : un panneau montre chaque membre (✅ libre · 🔮 en option · ❌ déjà engagé · 🤐 agenda privé) et signale « tout le monde est libre ! ».",
+      "Détecte aussi les engagements de la veille et du lendemain, avec la distance en km jusqu'au lieu de ta nouvelle date (trajet tranquille / faisable / risqué en 24 h).",
+      "Nouveau réglage « 📅 Mes disponibilités » dans « Ce que je partage » : tu choisis si le groupe voit tes dates engagées/en option — jamais tes montants.",
+      "Purement informatif : ça n'empêche jamais d'enregistrer la date." ] },
   { id:11, name:'📖 Nouveau guide + notifications de nouveautés', date:'2026-07-19', major:true,
     tags:['Guide','Nouveautés'],
     summary:"Un guide complet et cherchable remplace l'ancien mini-guide, avec une cloche de nouveautés et un abonnement email.",
@@ -2938,7 +2958,7 @@ const GUIDE_SECTIONS = [
     +"<li><b>Studio</b> (musicien de studio, chèque-intermittents, convention 2121) — hors circuit GUSO, 1 cachet = 12 h.</li></ul>"
     +"<p>Pour une date pas encore sûre, mets-la en <b>🔮 date possible</b> : elle compte dans la projection sans fausser tes heures validées.</p>"
     +"<p>Une date peut être <b>partagée David &amp; Iris</b> (champ propriétaire) : elle apparaît chez les deux et compte pour chacun, avec des heures de répétition propres à chacun.</p>"
-    +"<p>Champ <b>🎸 Groupe</b> optionnel pour alimenter la Vue Groupe. Sur chaque date, des <b>étapes administratives cochables</b> (DPAE, feuillet GUSO, facture réglée, salaire reçu) suivent l'avancement.</p>" },
+    +"<p>Champ <b>🎸 Groupe</b> optionnel pour alimenter la Vue Groupe. Dès que tu renseignes ce champ avec un de tes groupes et une date de début, un <b>panneau de disponibilités</b> apparaît sous le formulaire et te dit qui est libre ce jour-là (voir « Mon cercle »). Sur chaque date, des <b>étapes administratives cochables</b> (DPAE, feuillet GUSO, facture réglée, salaire reçu) suivent l'avancement.</p>" },
   { id:'mon-suivi', icon:'📊', title:'Mon suivi', html:
     "<p>Le tableau de bord affiche la <b>jauge des 507 h</b>, ce qu'il te reste à trouver, les jours avant ta date anniversaire, le rythme conseillé et un <b>plan mois par mois</b>.</p>"
     +"<p><b>📅 Récap mensuel</b> — un récapitulatif GUSO / cachets / heures / brut par mois, à pointer contre l'actualisation France Travail (chaque ligne = une déclaration).</p>"
@@ -2958,6 +2978,8 @@ const GUIDE_SECTIONS = [
     +"<p>Sur une date concert, <b>🎯 Bon plan ?</b> compare les conditions proposées à tes conditions idéales, et <b>🏢 Organisateur</b> suit la négociation (statut, échéance de signature, infos manquantes à réclamer).</p>" },
   { id:'mon-cercle', icon:'🫂', title:'Mon cercle', html:
     "<p><b>🎸 Groupe</b> — veiller les uns sur les autres. Tu crées ou rejoins un groupe (par email ou par <b>code</b>), chacun <b>consent</b> explicitement à ce qu'il partage et choisit son <b>niveau de partage</b>. Le tableau de bord montre des cartes 🔴🟡🟢 par membre (jauge, jours restants) — <b>jamais les montants</b>. Un <b>hub d'infos</b> permet de partager des messages au groupe.</p>"
+    +"<p><b>🗓️ Vérification des disponibilités</b> — quand tu ajoutes une date et que tu la rattaches à un de tes groupes, un panneau s'affiche sous le formulaire : il scanne en direct les agendas des membres et te dit qui est <b>✅ libre</b>, <b>🔮 en option</b>, <b>❌ déjà engagé</b> ou <b>🤐 agenda privé</b>, avec un bandeau « tout le monde est libre ! » le cas échéant. Il repère aussi les engagements de la <b>veille</b> et du <b>lendemain</b> et estime la <b>distance en km</b> jusqu'au lieu de ta nouvelle date. C'est purement informatif : ça n'empêche jamais d'enregistrer.</p>"
+    +"<p><b>Réglage « 📅 Mes disponibilités »</b> — dans l'onglet <b>Membres &amp; partage</b>, sous « Ce que je partage avec le groupe », tu choisis si le groupe peut voir tes dates <b>engagées / en option</b> pour cette vérification. <b>Jamais tes montants.</b> Tu peux le couper à tout moment pour garder ton agenda privé.</p>"
     +"<p><b>🤗 Besoin d'aide</b> — quand tu bloques, choisis parmi 4 situations : <b>prochain pas</b>, <b>retard d'heures</b>, <b>blocage administratif</b> ou <b>doute perso</b>. L'app te donne d'abord un conseil concret (ton vrai prochain pas, tes vrais chiffres) ; partager ta demande à un proche, un groupe ou une structure reste <b>ton choix</b>.</p>" },
   { id:'mes-documents', icon:'📄', title:'Mes documents', html:
     "<p>Sur chaque date, tu peux déposer le <b>feuillet GUSO</b> et la <b>facture</b> (PDF ou image, jusqu'à 10 Mo). Ils sont <b>hébergés en ligne</b> de façon sécurisée et s'ouvrent en un clic (<b>📄 Ouvrir le GUSO</b>, <b>🧾 Ouvrir la facture</b>).</p>"
@@ -3854,7 +3876,7 @@ let _lastAutoEnd='';
 function autoFillEnd(){ const s=document.getElementById('f_start'), e=document.getElementById('f_end');
   if(!e.value || e.value===_lastAutoEnd){ e.value=s.value; _lastAutoEnd=s.value; } }  // 1 seule date par défaut
 function resetForm(){ document.getElementById('ficheForm').reset(); _lastAutoEnd=''; f_owner.value=currentPerson;
-  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; updatePersonFields(); updateFormHelp(); }
+  document.getElementById('f_hypo').value='non'; document.getElementById('confirmArea').innerHTML=''; document.getElementById('calcPreview').textContent=''; if(typeof grpAvailReset==='function') grpAvailReset(); updatePersonFields(); updateFormHelp(); }
 function addPossible(){ document.getElementById('f_hypo').value='oui';
   const form=document.getElementById('ficheForm');
   if(form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit',{cancelable:true})); }
@@ -3876,6 +3898,7 @@ function startEdit(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   document.getElementById('addPossibleBtn').style.display='none';
   updateFormHelp();
   closeDetail(); openAdd();
+  grpAvailInputChanged();
   toast('Modifie les champs puis « Enregistrer »');
 }
 function finishEdit(){ editId=null; resetForm();
@@ -3888,7 +3911,7 @@ function openAdd(){ document.getElementById('addBg').classList.add('show');
   refreshGroupDatalist();
   setTimeout(()=>{var s=document.getElementById('f_start'); if(s&&!editId)s.focus();},100); }
 function closeAdd(ev){ if(ev&&ev.target!==ev.currentTarget) return;
-  document.getElementById('addBg').classList.remove('show'); }
+  document.getElementById('addBg').classList.remove('show'); if(typeof grpAvailReset==='function') grpAvailReset(); }
 function cancelEdit(){ finishEdit(); toast('Modification annulée'); }
 function toggleHypoStatus(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   f.hypo=!f.hypo; save(); render(); openDetail(id,_detailFrom);
@@ -4912,11 +4935,12 @@ async function loadMyGroups(){
   if(!sb||!_user){ _myGroups=_myGroups||[]; return _myGroups; }
   try{
     const r=await sb.from('music_group_members')
-      .select('id,group_id,person_key,consent,invited_by,share,music_groups(id,name,created_by)')
+      .select('id,group_id,person_key,consent,invited_by,share,share_dates,music_groups(id,name,created_by)')
       .eq('user_id',_user.id);
     if(r.error) throw r.error;
     _myGroups=(r.data||[]).map(m=>({
       memberId:m.id, group_id:m.group_id, person_key:m.person_key, consent:m.consent, share:m.share||'standard',
+      share_dates:(m.share_dates!==false),
       name:(m.music_groups&&m.music_groups.name)||'(groupe)',
       created_by:m.music_groups&&m.music_groups.created_by }));
   }catch(e){ console.warn('loadMyGroups',e); _myGroups=_myGroups||[]; }
@@ -5206,8 +5230,12 @@ function grpRenderShare(gid){
   const box=document.getElementById('grpShareBox'); if(!box) return;
   const me=(myAcceptedGroups().find(g=>g.group_id===gid))||{}; const cur=me.share||'standard';
   const opt=(val,ic,t,sub)=>'<label class="grp-shareopt'+(cur===val?' on':'')+'"><input type="radio" name="grpShare" value="'+val+'"'+(cur===val?' checked':'')+' onchange="grpSetShare(\''+_escA(gid)+'\',\''+val+'\')"><span class="gs-ic">'+ic+'</span><span><b>'+t+'</b><br><span class="gs-sub">'+sub+'</span></span></label>';
+  const sd = me.share_dates!==false;   // défaut : true
   box.innerHTML=opt('standard','🔓','Standard','Heures, dates possibles, sources et anniversaire')
-    +opt('minimal','🔐','Minimal','Heures et alerte seulement — le reste reste privé');
+    +opt('minimal','🔐','Minimal','Heures et alerte seulement — le reste reste privé')
+    +'<label class="grp-shareopt grpav-datesw'+(sd?' on':'')+'">'
+    +'<input type="checkbox"'+(sd?' checked':'')+' onchange="grpSetShareDates(\''+_escA(gid)+'\',this.checked)">'
+    +'<span class="gs-ic">📅</span><span><b>Mes disponibilités</b><br><span class="gs-sub">Le groupe voit mes dates engagées / en option pour la vérification de dispo — <b>jamais les montants</b>.</span></span></label>';
 }
 async function grpSetShare(gid,share){
   try{
@@ -5217,6 +5245,93 @@ async function grpSetShare(gid,share){
     toast(share==='minimal'?'🔐 Partage minimal activé':'🔓 Partage standard activé');
     grpRenderShare(gid);
   }catch(e){ console.warn('grpSetShare',e); toast('Changement impossible pour le moment'); }
+}
+async function grpSetShareDates(gid,val){
+  try{
+    const r=await sb.from('music_group_members').update({share_dates:val}).eq('group_id',gid).eq('user_id',_user.id);
+    if(r.error) throw r.error;
+    const me=myAcceptedGroups().find(g=>g.group_id===gid); if(me) me.share_dates=val;
+    toast(val?'📅 Tes disponibilités sont partagées avec le groupe':'📅 Tes disponibilités restent privées');
+    grpRenderShare(gid);
+  }catch(e){ console.warn('grpSetShareDates',e); toast('Changement impossible pour le moment'); }
+}
+
+/* ---------- Panneau « disponibilités du groupe » dans le formulaire de date ---------- */
+let _grpAvailTimer=null, _grpAvailGeoTimer=null, _grpAvailSeq=0;
+let _grpAvailData=null, _grpAvailCtx=null, _grpAvailDestGeo=null, _grpAvailDestKey='';
+function grpAvailReset(){
+  _grpAvailSeq++; _grpAvailData=null; _grpAvailCtx=null; _grpAvailDestGeo=null; _grpAvailDestKey='';
+  clearTimeout(_grpAvailTimer); clearTimeout(_grpAvailGeoTimer);
+  const p=document.getElementById('grpAvailPanel'); if(p){ p.style.display='none'; p.innerHTML=''; }
+}
+function grpAvailInputChanged(){ clearTimeout(_grpAvailTimer); _grpAvailTimer=setTimeout(grpAvailCheck,500); }
+function grpAvailPlaceChanged(){
+  const p=document.getElementById('grpAvailPanel');
+  if(!p || p.style.display==='none' || !_grpAvailData) return;
+  clearTimeout(_grpAvailGeoTimer);
+  _grpAvailGeoTimer=setTimeout(()=>grpAvailEnsureDestGeo(_grpAvailSeq),500);
+}
+async function grpAvailCheck(){
+  const panel=document.getElementById('grpAvailPanel'); if(!panel) return;
+  const gname=(document.getElementById('f_groupe').value||'').trim();
+  const dstart=document.getElementById('f_start').value;
+  const dendRaw=document.getElementById('f_end').value;
+  const grp=(myAcceptedGroups().find(g=>g.name===gname))||null;
+  if(!sb || !grp || !dstart){ grpAvailReset(); return; }   // groupe vide / pas de date → masqué
+  const seq=++_grpAvailSeq;
+  panel.style.display='';
+  panel.innerHTML='<div class="grpav-load">🔄 vérification…</div>';
+  const d_end=(dendRaw && dendRaw!==dstart)?dendRaw:null;
+  let r;
+  try{ r=await sb.rpc('group_date_check',{gid:grp.group_id, d_start:dstart, d_end:d_end}); }
+  catch(e){ if(seq===_grpAvailSeq){ panel.style.display='none'; panel.innerHTML=''; } return; }
+  if(seq!==_grpAvailSeq) return;                            // réponse périmée
+  if(!r || r.error || !r.data){ panel.style.display='none'; panel.innerHTML=''; return; }  // erreur réseau silencieuse
+  _grpAvailData=r.data; _grpAvailCtx={grp:grp, dstart:dstart};
+  _grpAvailRender();
+  grpAvailEnsureDestGeo(seq);
+}
+async function grpAvailEnsureDestGeo(seq){
+  const key=_placeQuery({ place:document.getElementById('f_place').value, lieu:document.getElementById('f_lieu').value });
+  if(!key){ _grpAvailDestGeo=null; _grpAvailDestKey=''; _grpAvailRender(); return; }
+  if(key===_grpAvailDestKey && _grpAvailDestGeo) return;    // déjà géocodé
+  _grpAvailDestKey=key; _grpAvailDestGeo=null;
+  const g=await _geocode(key);                              // silencieux si échec
+  if(seq!==_grpAvailSeq || key!==_grpAvailDestKey) return;
+  if(g){ _grpAvailDestGeo=g; _grpAvailRender(); }
+}
+function grpAvailKmVerdict(km){
+  if(km<=300) return 'trajet tranquille';
+  if(km<=600) return 'faisable';
+  return '⚠️ risqué en 24h';
+}
+function _grpAvailRender(){
+  const panel=document.getElementById('grpAvailPanel'); if(!panel || !_grpAvailData || !_grpAvailCtx) return;
+  const d=_grpAvailData, grp=_grpAvailCtx.grp, dstart=_grpAvailCtx.dstart;
+  const ic={libre:'✅',option:'🔮',engage:'❌',non_partage:'🤐'};
+  let h='<div class="grpav-head">👥 Disponibilités de '+_esc(grp.name)+' le '+_esc(frDate(dstart))+'</div>';
+  if(d.all_free){ h+='<div class="grpav-allfree">✅ Tout le monde est libre !</div>'; }
+  (d.members||[]).forEach(function(m){
+    h+='<div class="grpav-m"><div class="grpav-m-h">'+(ic[m.status]||'•')+' '+_esc(m.full_name||m.person||'—')+'</div>';
+    (m.conflicts||[]).forEach(function(c){
+      if(c.private){ h+='<div class="grpav-c">🔒 occupé (privé)</div>'; }
+      else { h+='<div class="grpav-c">❌ déjà engagé : '+_esc(c.lieu||c.place||'date privée')+'</div>'; }
+    });
+    (m.adjacent||[]).forEach(function(a){
+      const when=(a.when==='veille')?'veille':((a.when==='lendemain')?'lendemain':(a.when||''));
+      let line='⚠️ '+_esc(when)+' : '+_esc(a.type||'engagement');
+      const lieu=a.lieu||a.place;
+      if(lieu) line+=' à '+_esc(lieu);
+      if(a.lat!=null && a.lng!=null && _grpAvailDestGeo){
+        const km=Math.round(haversineKm({lat:a.lat,lng:a.lng}, _grpAvailDestGeo));
+        line+=' — 📍 ~'+km+' km · '+grpAvailKmVerdict(km);
+      }
+      h+='<div class="grpav-a">'+line+'</div>';
+    });
+    h+='</div>';
+  });
+  panel.style.display='';
+  panel.innerHTML=h;
 }
 
 /* ---------- Onglet « Infos du groupe » (music_groups.info jsonb) ---------- */
