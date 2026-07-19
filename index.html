@@ -1422,6 +1422,26 @@
 .grp-src-leg{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
 .grp-src-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .grp-foot{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+/* Groupe v2 — onglets, partage, hub */
+.grp-tabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap}
+.grp-tab{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--panel2);border:1.5px solid var(--line);border-radius:11px;padding:9px 8px;cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:700;line-height:1.2;transition:border-color .12s,color .12s}
+.grp-tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp-tab:hover{border-color:var(--accent)}
+.grp-tab.on{border-color:var(--accent);color:var(--txt);background:rgba(124,131,255,.10)}
+.grp-pending{background:rgba(255,209,102,.10);border:1px solid rgba(255,209,102,.4);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#ffe49b;line-height:1.5}
+.grp-card .gc-min{font-size:12px}
+.grp-invres{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:13.5px;line-height:1.5}
+.grp-shareopt{display:flex;align-items:flex-start;gap:11px;background:var(--panel2);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px;cursor:pointer;font-size:13.5px;line-height:1.4}
+.grp-shareopt.on{border-color:var(--accent);background:rgba(124,131,255,.10)}
+.grp-shareopt input[type=radio]{margin-top:3px;flex:0 0 auto;width:auto;min-width:0}
+.grp-shareopt>span:last-child{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+.grp-shareopt .gs-ic{font-size:20px;flex:0 0 auto}
+.grp-shareopt .gs-sub{color:var(--muted);font-size:12px;font-weight:500}
+.grp-warn-access{background:rgba(255,107,107,.10);border:1px solid rgba(255,107,107,.4);border-radius:10px;padding:10px 12px;margin-bottom:11px;font-size:12.5px;color:#ffc2c2;line-height:1.5}
+.grp-access-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.grp-access-row input{flex:1 1 120px;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px}
+.grp-access-row .gar-secret{display:flex;gap:4px;flex:1 1 140px;min-width:0;align-items:center}
+.grp-access-row .gar-secret input{flex:1 1 auto}
 /* Besoin d'aide — questionnaire */
 .help-q{font-size:16px;font-weight:800;margin:6px 0 14px;line-height:1.4}
 .help-opts{display:flex;flex-direction:column;gap:11px}
@@ -1959,21 +1979,60 @@ function factureLine(f){ const i=factureInfo(f); if(!i) return '';
   if(multi) return '🧾 Facturé <b>'+e0(i.t)+'</b> <span class="fdet">('+det.replace('salaire net','salaires nets')+', global)</span> — couvre '+i.who;
   return '🧾 Facturé à l\'organisateur : <b>'+e0(i.t)+'</b> <span class="fdet">('+det+')</span>';
 }
-/* --- Facture par date : lien Drive officiel, sinon fichier déposé (dataURL), sinon lien Drive collé --- */
+/* ============================================================= */
+/* ===== Stockage en ligne (Supabase Storage, bucket privé) ==== */
+/* ============================================================= */
+const GF_BUCKET='gf-files';
+const GF_MAX=10*1024*1024;           // 10 Mo — plafond du chemin « hébergé en ligne »
+const GF_EXT_BY_MIME={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/webp':'webp','image/heic':'heic','image/heif':'heic'};
+const GF_OK_EXT=['pdf','png','jpg','jpeg','webp','heic','heif'];
+function gfSlug(s){ return String(s||'fichier')
+  .normalize('NFD').replace(/[̀-ͯ]/g,'')      // enlève accents
+  .replace(/\.[^.]+$/,'')                               // enlève l'extension
+  .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'fichier'; }
+function gfExt(file){ const byMime=GF_EXT_BY_MIME[(file&&file.type)||'']; if(byMime) return byMime;
+  const m=String(file&&file.name||'').toLowerCase().match(/\.([a-z0-9]+)$/); const e=m?m[1]:''; return (e==='jpeg')?'jpg':(e||'bin'); }
+function gfTypeOk(file){ if(!file) return false;
+  if(GF_EXT_BY_MIME[file.type||'']) return true;
+  const m=String(file.name||'').toLowerCase().match(/\.([a-z0-9]+)$/); return !!(m && GF_OK_EXT.indexOf(m[1])>=0); }
+function gfMo(bytes){ return Math.round(bytes/1024/1024*10)/10; }
+/* Construit le chemin de stockage imposé : <space>/<ficheId>/<type>-<date|sans-date>-<slug>.<ext> */
+function gfPath(type, ficheId, dateStr, file){ return _spaceId+'/'+ficheId+'/'+type+'-'+(dateStr||'sans-date')+'-'+gfSlug(file&&file.name)+'.'+gfExt(file); }
+async function gfUpload(path, file){
+  try{ const r=await sb.storage.from(GF_BUCKET).upload(path, file, {contentType:file.type||'application/octet-stream', upsert:true});
+    if(r.error) return {ok:false, error:r.error}; return {ok:true, data:r.data}; }
+  catch(e){ return {ok:false, error:e}; }
+}
+async function gfOpenStorage(path){
+  if(!sb){ toast('⚠️ Connexion requise pour ouvrir ce fichier'); return; }
+  try{ const r=await sb.storage.from(GF_BUCKET).createSignedUrl(path,3600);
+    if(r.error||!r.data||!r.data.signedUrl){ toast('⚠️ Ouverture impossible (hors-ligne ou fichier introuvable)'); return; }
+    window.open(r.data.signedUrl,'_blank'); }
+  catch(e){ console.warn('gfOpenStorage',e); toast('⚠️ Ouverture impossible pour le moment'); }
+}
+function gfErrMsg(err){ const m=(err&&(err.message||err.error||err.statusText))||''; if(/network|fetch|failed/i.test(m)) return 'hors-ligne'; if(/mime|type|not allowed|invalid/i.test(m)) return 'type refusé'; if(/exceed|large|size|payload/i.test(m)) return 'trop lourd'; return m||'erreur'; }
+function gfCanUpload(){ return !!(sb && _spaceId); }
+
+/* --- Facture par date : lien Drive officiel, fichier hébergé (Storage), ancien dataURL, ou lien Drive collé --- */
 const FACT_MAX=350*1024;
-function factureAccessUrl(f){ return factureOnline(f) || (f&&f.factureUrl) || (f&&f.factureFile?f.factureFile.data:'') || ''; }
+function factureAccessUrl(f){ return factureOnline(f) || (f&&f.factureUrl) || (f&&f.factureFile&&f.factureFile.data?f.factureFile.data:'') || ''; }
 function openFacture(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
   const on=factureOnline(f); if(on){ window.open(on,'_blank'); return; }
   if(f.factureUrl){ window.open(f.factureUrl,'_blank'); return; }
-  if(f.factureFile){ openDataUrl(f.factureFile.data,f.factureFile.type); } }
+  if(f.factureFile&&f.factureFile.storagePath){ gfOpenStorage(f.factureFile.storagePath); return; }   // hébergé en ligne
+  if(f.factureFile&&f.factureFile.data){ openDataUrl(f.factureFile.data,f.factureFile.type); } }      // ancien dataURL (rétro-compat)
 function factDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag'); }
 function factDragLeave(e){ e.currentTarget.classList.remove('drag'); }
 function factDrop(e,id){ e.preventDefault(); e.currentTarget.classList.remove('drag'); factPick(e.dataTransfer.files,id); }
-function factPick(files,id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; const file=files&&files[0]; if(!file) return;
-  if(!(file.type==='application/pdf'||file.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
-  if(file.size>FACT_MAX){ toast('⚠️ Facture trop lourde ('+Math.round(file.size/1024)+' Ko, max '+(FACT_MAX/1024)+' Ko). Dépose-la sur ton Drive et colle le lien ci-dessous.'); return; }
-  const rd=new FileReader(); rd.onload=()=>{ f.factureFile={name:file.name,type:file.type,data:rd.result}; save(); openDetail(f.id,_detailFrom); toast('🧾 Facture ajoutée à cette date'); };
-  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(file);
+async function factPick(files,id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; const file=files&&files[0]; if(!file) return;
+  if(!gfTypeOk(file)){ toast('⚠️ Formats acceptés : PDF, PNG, JPEG, WebP ou HEIC'); return; }
+  if(file.size>GF_MAX){ toast('⚠️ Facture trop lourde ('+gfMo(file.size)+' Mo, max 10 Mo). Dépose-la sur ton Drive et colle le lien ci-dessous.'); return; }
+  if(!gfCanUpload()){ toast('⚠️ Connexion requise pour héberger en ligne. Colle plutôt un lien Drive ci-dessous.'); return; }
+  const z=document.getElementById('factZone'); if(z) z.innerHTML='<div class="pf-drop-txt">⬆️ Envoi en ligne…<br><span>merci de patienter</span></div>';
+  const path=gfPath('facture', f.id, f.start, file);
+  const r=await gfUpload(path,file);
+  if(!r.ok){ console.warn('factUpload',r.error); toast('⚠️ Envoi en ligne impossible ('+gfErrMsg(r.error)+'). Tu peux coller un lien Drive à la place.'); openDetail(f.id,_detailFrom); return; }
+  f.factureFile={storagePath:path, name:file.name, type:file.type}; save(); openDetail(f.id,_detailFrom); toast('✅ Facture hébergée en ligne');
 }
 function factRemove(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; delete f.factureFile; delete f.factureUrl; save(); openDetail(f.id,_detailFrom); toast('🗑 Facture retirée'); }
 function factSetUrl(id,v){ const f=state.fiches.find(x=>x.id===id); if(!f) return; v=(v||'').trim(); if(v) f.factureUrl=v; else delete f.factureUrl; save(); openDetail(f.id,_detailFrom); toast(v?'🔗 Lien de facture enregistré':'🔗 Lien retiré'); }
@@ -1983,7 +2042,8 @@ function factureBlock(f){
   if(has){
     let inner='<b>🧾 Facture disponible</b> ';
     if(on) inner+='<span style="opacity:.8">(Drive officiel)</span>';
-    else if(f.factureFile) inner+='<span style="opacity:.8">('+_esc(f.factureFile.name)+' · '+_dataKo(f.factureFile.data)+')</span>';
+    else if(f.factureFile&&f.factureFile.storagePath) inner+='<span style="opacity:.8">('+_esc(f.factureFile.name)+')</span> <span style="color:#7ee0a8;font-weight:700">✅ Hébergé en ligne</span>';
+    else if(f.factureFile) inner+='<span style="opacity:.8">('+_esc(f.factureFile.name)+(f.factureFile.data?' · '+_dataKo(f.factureFile.data):'')+')</span>';
     else inner+='<span style="opacity:.8">(lien Drive)</span>';
     inner+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'
       +'<button class="btn pdf sm" style="background:#e0a458;color:#2a1a06" onclick="openFacture(\''+f.id+'\')" data-tip="Ouvrir la facture">🧾 Ouvrir la facture</button>';
@@ -2000,6 +2060,37 @@ function factureBlock(f){
     +'<input type="text" id="fact_url" placeholder="https://drive.google.com/..." style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px" '
     +'onblur="factSetUrl(\''+f.id+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}"></div>'
     +'</div>';
+}
+/* --- Dépôt du feuillet GUSO d'une date non-studio (Storage) --- */
+function openGuso(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return;
+  if(f.gusoFile&&f.gusoFile.storagePath){ gfOpenStorage(f.gusoFile.storagePath); return; }
+  const on=pdfOnline(f); if(on){ window.open(on,'_blank'); return; } }
+function gusoDrop(e,id){ e.preventDefault(); e.currentTarget.classList.remove('drag'); gusoPick(e.dataTransfer.files,id); }
+async function gusoPick(files,id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; const file=files&&files[0]; if(!file) return;
+  if(!gfTypeOk(file)){ toast('⚠️ Formats acceptés : PDF, PNG, JPEG, WebP ou HEIC'); return; }
+  if(file.size>GF_MAX){ toast('⚠️ Fichier trop lourd ('+gfMo(file.size)+' Mo, max 10 Mo).'); return; }
+  if(!gfCanUpload()){ toast('⚠️ Connexion requise pour héberger en ligne.'); return; }
+  const z=document.getElementById('gusoZone'); if(z) z.innerHTML='<div class="pf-drop-txt">⬆️ Envoi en ligne…<br><span>merci de patienter</span></div>';
+  const path=gfPath('guso', f.id, f.start, file);
+  const r=await gfUpload(path,file);
+  if(!r.ok){ console.warn('gusoUpload',r.error); toast('⚠️ Envoi en ligne impossible ('+gfErrMsg(r.error)+').'); openDetail(f.id,_detailFrom); return; }
+  f.gusoFile={storagePath:path, name:file.name, type:file.type}; save(); openDetail(f.id,_detailFrom); toast('✅ Feuillet GUSO hébergé en ligne');
+}
+function gusoRemove(id){ const f=state.fiches.find(x=>x.id===id); if(!f) return; delete f.gusoFile; save(); openDetail(f.id,_detailFrom); toast('🗑 Feuillet GUSO retiré'); }
+function gusoBlock(f){
+  if(f.type==='studio') return '';                 // studio = hors circuit GUSO
+  if(pdfOnline(f)) return '';                       // feuillet déjà accessible (Drive/officiel) → rien à déposer
+  const box=inner=>'<div style="background:rgba(124,131,255,.10);border:1px solid rgba(124,131,255,.4);border-radius:10px;padding:11px 13px;margin:14px 0;font-size:13px;color:#c9ccff">'+inner+'</div>';
+  if(f.gusoFile&&f.gusoFile.storagePath){
+    return box('<b>📄 Feuillet GUSO hébergé en ligne</b> <span style="opacity:.8">('+_esc(f.gusoFile.name)+')</span> <span style="color:#7ee0a8;font-weight:700">✅</span>'
+      +'<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button class="btn pdf sm" onclick="openGuso(\''+f.id+'\')" data-tip="Ouvrir le feuillet GUSO">📄 Ouvrir le GUSO</button>'
+      +'<button class="btn ghost sm" onclick="gusoRemove(\''+f.id+'\')" data-tip="Retirer le feuillet de cette date">🗑 Retirer</button></div>');
+  }
+  return box('<b>📄 Feuillet GUSO — pas encore hébergé</b>'
+    +'<div id="gusoZone" class="pf-drop" style="margin-top:9px" ondragover="factDragOver(event)" ondragleave="factDragLeave(event)" ondrop="gusoDrop(event,\''+f.id+'\')" onclick="document.getElementById(\'guso_file\').click()">'
+    +'<div class="pf-drop-txt">📄 Dépose le feuillet GUSO ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div></div>'
+    +'<input type="file" id="guso_file" accept="application/pdf,image/*" style="display:none" onchange="gusoPick(this.files,\''+f.id+'\')">');
 }
 let _detailFrom='';
 function openDetail(id,from){ _detailFrom=from||''; const f=state.fiches.find(x=>x.id===id); if(!f) return;
@@ -2048,12 +2139,15 @@ function openDetail(id,from){ _detailFrom=from||''; const f=state.fiches.find(x=
       <span class="ev-detailhint">Compare l'offre à tes conditions idéales${f.owner==='both'?' (évalué pour '+currentPerson+')':''}</span>
     </div>`:''}
     ${factureBlock(f)}
+    ${gusoBlock(f)}
     <div class="modal-actions">
       ${href
         ? `<a class="btn pdf sm" href="${href}" target="_blank" rel="noopener" data-tip="Ouvrir le ${f.type==='studio'?'contrat':'feuillet GUSO'} (PDF) de cette date dans un nouvel onglet">📄 ${f.type==='studio'?'Contrat':'GUSO'}</a>`
-        : (f.pdf||f.num)
-          ? `<span class="btn pdf disabled sm" data-tip="Le document est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 ${f.type==='studio'?'Contrat':('Feuillet '+(f.num?'n° '+f.num:'GUSO'))} · hors ligne</span>`
-          : ''}
+        : (f.gusoFile&&f.gusoFile.storagePath)
+          ? `<button class="btn pdf sm" onclick="openGuso('${f.id}')" data-tip="Ouvrir le feuillet GUSO hébergé en ligne">📄 Ouvrir le ${f.type==='studio'?'Contrat':'GUSO'}</button>`
+          : (f.pdf||f.num)
+            ? `<span class="btn pdf disabled sm" data-tip="Le document est sur l'ordinateur de David et dans le Drive — il n'est pas hébergé en ligne (données personnelles).">📄 ${f.type==='studio'?'Contrat':('Feuillet '+(f.num?'n° '+f.num:'GUSO'))} · hors ligne</span>`
+            : ''}
       <button class="btn ghost sm" onclick="startEdit('${f.id}')" data-tip="Modifier les informations de cette date (dates, lieu, heures, etc.)">✏️ Modifier</button>
       <button class="btn ghost sm" onclick="copyDateLink('${f.id}')" data-tip="Copier un lien qui ouvre directement cette date (à partager, ou pour les futurs emails de rappel)">🔗 Lien</button>
       <button class="btn ghost sm" onclick="toggleHypoStatus('${f.id}')" data-tip="${f.hypo?'Valider cette date : elle comptera dans tes heures':'Repasser cette date en possible : elle sortira de tes heures validées'}">${f.hypo?'✅ Confirmer':'🔮 Potentielle'}</button>
@@ -2577,7 +2671,7 @@ function buildArtistInfoText(p){ const pr=_baProfile(p); const v=x=>(x!=null&&St
     'Banque : '+v(pr.banque),
     'BIC : '+v(pr.bic)].join('\n');
 }
-function showArtistRib(p){ const r=_baProfile(p).rib; if(r&&r.data) openDataUrl(r.data,r.type); }
+function showArtistRib(p){ const r=_baProfile(p).rib; if(!r) return; if(r.storagePath) gfOpenStorage(r.storagePath); else if(r.data) openDataUrl(r.data,r.type); }
 function copyArtistInfo(){ const p=_baPerson; if(!p) return; const txt=buildArtistInfoText(p);
   if(navigator.clipboard&&navigator.clipboard.writeText)
     navigator.clipboard.writeText(txt).then(()=>toast('📋 Infos de '+fullName(p)+' copiées'),()=>prompt('Copie ces infos :',txt));
@@ -2840,9 +2934,10 @@ let _pfRib=null;
 const RIB_MAX=300*1024;   // fichier brut max embarqué ; au-delà → lien Drive
 function _dataKo(dataUrl){ const c=dataUrl.length-(dataUrl.indexOf(',')+1); const b=Math.round(c*3/4);
   return b>1048576?(b/1048576).toFixed(1)+' Mo':Math.max(1,Math.round(b/1024))+' Ko'; }
+function gfRibSize(r){ return r.storagePath ? '<span class="pf-rib-sz" style="color:#7ee0a8">☁️ en ligne</span>' : '<span class="pf-rib-sz">'+(r.data?_dataKo(r.data):'')+'</span>'; }
 function pfRibInner(){ const r=_pfRib;
   const inner = r
-    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> <span class="pf-rib-sz">'+_dataKo(r.data)+'</span>'
+    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> '+gfRibSize(r)
        +'<span class="pf-rib-btns"><button type="button" class="btn ghost sm" onclick="showPfRib()" data-tip="Ouvrir le fichier RIB">👁 Afficher</button>'
        +'<button type="button" class="btn ghost sm" onclick="removePfRib()" data-tip="Retirer ce fichier">🗑 Retirer</button></span></div>'
     : '<div class="pf-drop-txt">📎 Glisse ton <b>RIB / IBAN officiel</b> ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div>';
@@ -2855,20 +2950,24 @@ function _pfRerenderRib(){ const b=document.getElementById('pfRibBlock'); if(b) 
 function pfDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag'); }
 function pfDragLeave(e){ e.currentTarget.classList.remove('drag'); }
 function pfDrop(e){ e.preventDefault(); e.currentTarget.classList.remove('drag'); pfPickRib(e.dataTransfer.files); }
-function pfPickRib(files){ const f=files&&files[0]; if(!f) return;
-  if(!(f.type==='application/pdf'||f.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
-  if(f.size>RIB_MAX){ toast('⚠️ Fichier trop lourd ('+Math.round(f.size/1024)+' Ko, max '+(RIB_MAX/1024)+' Ko). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
-  const rd=new FileReader(); rd.onload=()=>{ _pfRib={name:f.name,type:f.type,data:rd.result}; _pfRerenderRib(); toast('📎 RIB ajouté — enregistre le profil pour le conserver'); };
-  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(f);
+async function pfPickRib(files){ const f=files&&files[0]; if(!f) return;
+  if(!gfTypeOk(f)){ toast('⚠️ Formats acceptés : PDF, PNG, JPEG, WebP ou HEIC'); return; }
+  if(f.size>GF_MAX){ toast('⚠️ Fichier trop lourd ('+gfMo(f.size)+' Mo, max 10 Mo). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
+  if(!gfCanUpload()){ toast('⚠️ Connexion requise pour héberger ton RIB en ligne.'); return; }
+  const z=document.getElementById('pfRibZone'); if(z) z.innerHTML='<div class="pf-drop-txt">⬆️ Envoi en ligne…</div>';
+  const path=gfPath('rib', 'profil-'+gfSlug(_profilePerson), null, f);
+  const r=await gfUpload(path,f);
+  if(!r.ok){ console.warn('pfRibUpload',r.error); toast('⚠️ Envoi impossible ('+gfErrMsg(r.error)+'). Colle un lien Drive à la place.'); _pfRerenderRib(); return; }
+  _pfRib={storagePath:path, name:f.name, type:f.type}; _pfRerenderRib(); toast('✅ RIB hébergé en ligne — enregistre le profil pour le conserver');
 }
 function removePfRib(){ _pfRib=null; _pfRerenderRib(); }
-function showPfRib(){ if(_pfRib) openDataUrl(_pfRib.data,_pfRib.type); }
+function showPfRib(){ if(!_pfRib) return; if(_pfRib.storagePath) gfOpenStorage(_pfRib.storagePath); else if(_pfRib.data) openDataUrl(_pfRib.data,_pfRib.type); }
 function openDataUrl(dataUrl,type){ try{ const c=dataUrl.split(','); const bin=atob(c[1]); const a=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); const url=URL.createObjectURL(new Blob([a],{type:type||'application/octet-stream'}));
   window.open(url,'_blank'); setTimeout(()=>URL.revokeObjectURL(url),60000); }catch(e){ window.open(dataUrl,'_blank'); } }
 function openProfile(person){ person=(person&&state.people[person])?person:currentPerson; _profilePerson=person;
   const pr=ensureProfile(person);
-  _pfRib = pr.rib ? {name:pr.rib.name,type:pr.rib.type,data:pr.rib.data} : null;   // fichier RIB : copie de travail
+  _pfRib = pr.rib ? Object.assign({}, pr.rib) : null;   // fichier RIB : copie de travail (garde storagePath ou data)
   renderPersonToggle('profileToggle',person,'openProfile');
   document.getElementById('pfTitle').textContent='👤 Profil — '+person;
   let h = pr.photo?('<div class="pf-photo"><img src="'+_escA(pr.photo)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'):'';
@@ -2922,7 +3021,7 @@ let _stRib=null;
 function ensureStructure(){ if(!state.structure) state.structure={}; return state.structure; }
 function stRibInner(){ const r=_stRib;
   const inner = r
-    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> <span class="pf-rib-sz">'+_dataKo(r.data)+'</span>'
+    ? '<div class="pf-rib-file">📄 <b>'+_esc(r.name)+'</b> '+gfRibSize(r)
        +'<span class="pf-rib-btns"><button type="button" class="btn ghost sm" onclick="showStRib()" data-tip="Ouvrir le fichier RIB">👁 Afficher</button>'
        +'<button type="button" class="btn ghost sm" onclick="removeStRib()" data-tip="Retirer ce fichier">🗑 Retirer</button></span></div>'
     : '<div class="pf-drop-txt">📎 Glisse le <b>RIB officiel de la structure</b> ici<br><span>PDF ou image · ou clique pour choisir un fichier</span></div>';
@@ -2933,17 +3032,21 @@ function stRibInner(){ const r=_stRib;
 }
 function _stRerenderRib(){ const b=document.getElementById('stRibBlock'); if(b) b.innerHTML=stRibInner(); }
 function stDrop(e){ e.preventDefault(); e.currentTarget.classList.remove('drag'); stPickRib(e.dataTransfer.files); }
-function stPickRib(files){ const f=files&&files[0]; if(!f) return;
-  if(!(f.type==='application/pdf'||f.type.indexOf('image/')===0)){ toast('⚠️ Formats acceptés : PDF ou image'); return; }
-  if(f.size>RIB_MAX){ toast('⚠️ Fichier trop lourd ('+Math.round(f.size/1024)+' Ko, max '+(RIB_MAX/1024)+' Ko). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
-  const rd=new FileReader(); rd.onload=()=>{ _stRib={name:f.name,type:f.type,data:rd.result}; _stRerenderRib(); toast('📎 RIB ajouté — enregistre pour le conserver'); };
-  rd.onerror=()=>toast('⚠️ Lecture du fichier impossible'); rd.readAsDataURL(f);
+async function stPickRib(files){ const f=files&&files[0]; if(!f) return;
+  if(!gfTypeOk(f)){ toast('⚠️ Formats acceptés : PDF, PNG, JPEG, WebP ou HEIC'); return; }
+  if(f.size>GF_MAX){ toast('⚠️ Fichier trop lourd ('+gfMo(f.size)+' Mo, max 10 Mo). Dépose-le sur ton Drive et colle le lien juste en dessous.'); return; }
+  if(!gfCanUpload()){ toast('⚠️ Connexion requise pour héberger le RIB en ligne.'); return; }
+  const z=document.getElementById('stRibZone'); if(z) z.innerHTML='<div class="pf-drop-txt">⬆️ Envoi en ligne…</div>';
+  const path=gfPath('rib', 'structure', null, f);
+  const r=await gfUpload(path,f);
+  if(!r.ok){ console.warn('stRibUpload',r.error); toast('⚠️ Envoi impossible ('+gfErrMsg(r.error)+'). Colle un lien Drive à la place.'); _stRerenderRib(); return; }
+  _stRib={storagePath:path, name:f.name, type:f.type}; _stRerenderRib(); toast('✅ RIB hébergé en ligne — enregistre pour le conserver');
 }
 function removeStRib(){ _stRib=null; _stRerenderRib(); }
-function showStRib(){ if(_stRib) openDataUrl(_stRib.data,_stRib.type); }
+function showStRib(){ if(!_stRib) return; if(_stRib.storagePath) gfOpenStorage(_stRib.storagePath); else if(_stRib.data) openDataUrl(_stRib.data,_stRib.type); }
 function openStructure(){ const s=ensureStructure();
   if(!s.nom) s.nom='Des Sons et Des Liens';
-  _stRib = s.rib ? {name:s.rib.name,type:s.rib.type,data:s.rib.data} : null;
+  _stRib = s.rib ? Object.assign({}, s.rib) : null;   // garde storagePath ou data
   let h='';
   STRUCT_FIELDS.forEach(f=>{
     if(f.sec){ h+='<div class="pf-sec">'+f.sec+'</div>'; return; }
@@ -4345,11 +4448,11 @@ async function loadMyGroups(){
   if(!sb||!_user){ _myGroups=_myGroups||[]; return _myGroups; }
   try{
     const r=await sb.from('music_group_members')
-      .select('id,group_id,person_key,consent,invited_by,music_groups(id,name,created_by)')
+      .select('id,group_id,person_key,consent,invited_by,share,music_groups(id,name,created_by)')
       .eq('user_id',_user.id);
     if(r.error) throw r.error;
     _myGroups=(r.data||[]).map(m=>({
-      memberId:m.id, group_id:m.group_id, person_key:m.person_key, consent:m.consent,
+      memberId:m.id, group_id:m.group_id, person_key:m.person_key, consent:m.consent, share:m.share||'standard',
       name:(m.music_groups&&m.music_groups.name)||'(groupe)',
       created_by:m.music_groups&&m.music_groups.created_by }));
   }catch(e){ console.warn('loadMyGroups',e); _myGroups=_myGroups||[]; }
@@ -4431,12 +4534,24 @@ async function grpRender(){
   // 3) groupe(s) accepté(s) → sélecteur + dashboard
   if(!_grpCurrentId || !accepted.some(g=>g.group_id===_grpCurrentId)) _grpCurrentId=accepted[0].group_id;
   if(accepted.length>1){
-    h+='<div class="grp-sec-t">Mes groupes</div><div style="margin-bottom:12px"><select id="grpSel" onchange="_grpCurrentId=this.value;grpDashboard()" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+    h+='<div class="grp-sec-t">Mes groupes</div><div style="margin-bottom:12px"><select id="grpSel" onchange="_grpCurrentId=this.value;grpShowTab(_grpTab)" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
       +accepted.map(g=>'<option value="'+_escA(g.group_id)+'"'+(g.group_id===_grpCurrentId?' selected':'')+'>'+_esc(g.name)+'</option>').join('')+'</select></div>';
   }
-  h+='<div id="grpDash"><div class="grp-loading">Chargement du tableau de bord…</div></div>';
-  h+='<details style="margin-top:16px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">➕ Créer ou rejoindre un autre groupe</summary>'+grpCreateJoinHtml()+'</details>';
+  const tab=(k,ic,lbl)=>'<button class="grp-tab'+(_grpTab===k?' on':'')+'" type="button" onclick="grpShowTab(\''+k+'\')">'+ic+' <span>'+lbl+'</span></button>';
+  h+='<div class="grp-tabs">'+tab('dash','🏠','Tableau de bord')+tab('invite','➕','Membres & partage')+tab('info','🗂️','Infos du groupe')+'</div>';
+  h+='<div id="grpTabBody"><div class="grp-loading">Chargement…</div></div>';
   box.innerHTML=h;
+  grpShowTab(_grpTab);
+}
+let _grpTab='dash';
+function grpShowTab(tab){
+  _grpTab=tab||'dash';
+  const box=document.getElementById('grpTabBody'); if(!box) return;
+  document.querySelectorAll('.grp-tab').forEach(el=>{ el.classList.toggle('on', (el.getAttribute('onclick')||'').indexOf("'"+_grpTab+"'")>=0); });
+  const gid=_grpCurrentId;
+  if(_grpTab==='invite'){ box.innerHTML=grpInvitePanel(gid); grpRenderShare(gid); return; }
+  if(_grpTab==='info'){ grpInfoPanel(gid); return; }
+  box.innerHTML='<div id="grpDash"><div class="grp-loading">Chargement du tableau de bord…</div></div>';
   grpDashboard();
 }
 function grpCreateJoinHtml(){
@@ -4445,9 +4560,9 @@ function grpCreateJoinHtml(){
     +'<div style="display:flex;gap:8px;margin-top:5px"><input id="grpNewName" placeholder="Nom du groupe (ex. Solune, Les Copains…)" autocomplete="off" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
     +'<button class="btn" type="button" onclick="grpCreate()" data-tip="Créer ce groupe — tu en seras membre automatiquement">➕ Créer</button></div></div>'
     +'<div style="margin-top:12px"><label style="font-size:13px;color:var(--muted)">Rejoindre avec un code</label>'
-    +'<div style="display:flex;gap:8px;margin-top:5px"><input id="grpJoinCode" placeholder="Colle ici le code du groupe" autocomplete="off" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+    +'<div style="display:flex;gap:8px;margin-top:5px"><input id="grpJoinCode" placeholder="Colle ici le code du groupe" autocomplete="off" style="flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
     +'<button class="btn" type="button" onclick="grpJoin()" data-tip="Rejoindre le groupe grâce au code partagé par son créateur">🔗 Rejoindre</button></div>'
-    +'<div style="font-size:12px;color:var(--muted);margin-top:5px">Le créateur du groupe te transmet ce code. L\'invitation par email arrivera bientôt.</div></div></div>';
+    +'<div style="font-size:12px;color:var(--muted);margin-top:5px">Le créateur du groupe te transmet ce code — ou t\'invite directement par email.</div></div></div>';
 }
 
 /* ---------- actions groupe ---------- */
@@ -4509,12 +4624,6 @@ async function grpDashboard(){
     if(err.code==='42501' || /forbidden/i.test(err.message||'')){
       dash.innerHTML='<div class="grp-wait">Tu n\'es pas (ou plus) membre accepté de ce groupe.</div>'+grpDashFoot(gid); return;
     }
-    if(/consent_pending/i.test(err.message||'')){
-      const names=(err.details||'').trim();
-      dash.innerHTML='<div class="grp-wait">⏳ En attente du consentement de : '
-        +(names?'<span class="gw-names">'+_esc(names)+'</span>':'<span class="gw-names">d\'autres membres du groupe</span>')
-        +'<br><span style="font-size:12.5px">Le tableau de bord s\'affiche quand chacun a accepté de partager sa situation.</span></div>'+grpDashFoot(gid); return;
-    }
     dash.innerHTML='<div class="grp-wait">Impossible d\'afficher le groupe pour le moment.</div>'+grpDashFoot(gid); return;
   }
   dash.innerHTML=grpDashHtml(res.data)+grpDashFoot(gid);
@@ -4535,23 +4644,40 @@ function grpDashHtml(d){
   if(d.vigilance&&d.vigilance.message){
     h+='<div class="grp-vig"><div class="gv-msg">🤝 '+_esc(d.vigilance.message)+'</div><div class="gv-sub">C\'est le moment de se serrer les coudes.</div></div>';
   }
+  // Message d'accueil quand je suis seul(e) dans le groupe
+  if(d.members.length<=1){
+    h+='<div class="grp-intro"><div class="warm">🎉 <b>Ton groupe est prêt !</b> Invite les membres par email ou partage le code du groupe (onglet « Membres & partage ») — leur situation apparaîtra ici dès qu\'ils auront accepté.</div></div>';
+  }
+  // Section « en attente »
+  const pending=(d.pending||[]).filter(x=>x&&(x.full_name||x.person_key));
+  if(pending.length){
+    const names=pending.map(x=>_esc(x.full_name||x.person_key)).join(', ');
+    h+='<div class="grp-pending">⏳ <b>En attente :</b> '+names+' <span style="opacity:.8">— ils n\'ont pas encore rejoint le groupe.</span></div>';
+  }
   if(!d.members.length) return h+'<div class="grp-wait">Aucun membre à afficher.</div>';
   d.members.forEach(m=>{
     const al=m.alerte||'inconnu';
+    const minimal=(m.share==='minimal');
     const valid=Number(m.heures_validees)||0, poss=Number(m.heures_possibles)||0;
     const vPct=Math.min(100, valid/507*100), pPct=Math.min(Math.max(0,100-vPct), poss/507*100);
-    const src=m.sources||null;
+    const src=(!minimal && m.sources)?m.sources:null;
     const ce=src?Number(src.ce_groupe)||0:0, au=src?Number(src.autres_groupes)||0:0, pe=src?Number(src.perso)||0:0;
     const tot=ce+au+pe;
     h+='<div class="grp-card"><div class="gc-head"><span class="grp-dot '+al+'"></span>'
-      +'<div><div class="gc-name">'+_esc(m.person||'—')+(m.full_name&&m.full_name!==m.person?' <span class="gc-full">· '+_esc(m.full_name)+'</span>':'')+'</div></div></div>';
+      +'<div><div class="gc-name">'+_esc(m.person||'—')+(m.full_name&&m.full_name!==m.person?' <span class="gc-full">· '+_esc(m.full_name)+'</span>':'')
+      +(minimal?' <span class="gc-min" title="Partage minimal : heures et alerte seulement">🔐</span>':'')+'</div></div></div>';
     if(m.heures_validees==null){
       h+='<div class="grp-line" style="color:var(--muted)">Date anniversaire non renseignée — situation non calculable.</div></div>'; return;
     }
-    h+='<div class="grp-gauge"><div class="gg-valid" style="width:'+vPct.toFixed(1)+'%"></div><div class="gg-poss" style="left:'+vPct.toFixed(1)+'%;width:'+pPct.toFixed(1)+'%"></div></div>'
-      +'<div class="grp-line"><span class="gl-strong">'+Math.round(valid)+' h</span> validées / 507'+(poss>0?' <span style="color:var(--hypo)">(+'+Math.round(poss)+' h possibles)</span>':'')+'</div>'
-      +'<div class="grp-line">reste <b>'+Math.round(Number(m.restant)||0)+' h</b> · ~'+Math.round(Number(m.rythme_necessaire)||0)+' h/mois nécessaires</div>'
-      +'<div class="grp-anniv">📅 anniversaire le '+_esc(grpFrDate(m.anniv))+(m.days_left!=null?' · J-'+m.days_left:'')+'</div>';
+    h+='<div class="grp-gauge"><div class="gg-valid" style="width:'+vPct.toFixed(1)+'%"></div>'+(minimal?'':'<div class="gg-poss" style="left:'+vPct.toFixed(1)+'%;width:'+pPct.toFixed(1)+'%"></div>')+'</div>'
+      +'<div class="grp-line"><span class="gl-strong">'+Math.round(valid)+' h</span> validées / 507'+((!minimal&&poss>0)?' <span style="color:var(--hypo)">(+'+Math.round(poss)+' h possibles)</span>':'')+'</div>'
+      +'<div class="grp-line">reste <b>'+Math.round(Number(m.restant)||0)+' h</b> · ~'+Math.round(Number(m.rythme_necessaire)||0)+' h/mois nécessaires</div>';
+    if(!minimal && m.anniv){
+      h+='<div class="grp-anniv">📅 anniversaire le '+_esc(grpFrDate(m.anniv))+(m.days_left!=null?' · J-'+m.days_left:'')+'</div>';
+    }
+    if(minimal){
+      h+='<div class="grp-anniv" style="opacity:.75">🔐 partage minimal — seulement heures et alerte</div>';
+    }
     if(tot>0){
       h+='<div class="grp-src"><span class="s-ce" style="width:'+(ce/tot*100).toFixed(1)+'%"></span><span class="s-au" style="width:'+(au/tot*100).toFixed(1)+'%"></span><span class="s-pe" style="width:'+(pe/tot*100).toFixed(1)+'%"></span></div>'
         +'<div class="grp-src-leg"><span><i class="s-ce" style="background:var(--accent)"></i>ce groupe '+Math.round(ce)+' h</span>'
@@ -4563,6 +4689,144 @@ function grpDashHtml(d){
   return h;
 }
 function grpFrDate(iso){ if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return isNaN(d)?iso:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); }
+
+/* ---------- Onglet « Membres & partage » ---------- */
+function grpInvitePanel(gid){
+  return '<div class="grp-sec-t">Inviter un membre par email</div>'
+    +'<div style="display:flex;gap:8px"><input id="grpInvEmail" type="email" placeholder="email@exemple.fr" autocomplete="off" style="flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();grpSearchInvite(\''+_escA(gid)+'\');}">'
+    +'<button class="btn" type="button" onclick="grpSearchInvite(\''+_escA(gid)+'\')" data-tip="Vérifier si cette personne est déjà sur Guso Facile">🔎 Chercher</button></div>'
+    +'<div id="grpInvResult" style="margin-top:10px"></div>'
+    +'<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">'
+    +'<div class="grp-sec-t">Rejoindre un groupe avec un code</div>'
+    +'<div style="display:flex;gap:8px"><input id="grpJoinCode" placeholder="Colle ici le code du groupe" autocomplete="off" style="flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">'
+    +'<button class="btn" type="button" onclick="grpJoin()" data-tip="Rejoindre le groupe grâce au code partagé par son créateur">🔗 Rejoindre</button></div>'
+    +'<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">'
+    +'<div class="grp-sec-t">Ce que je partage avec le groupe</div>'
+    +'<div id="grpShareBox"><div class="grp-loading">…</div></div>';
+}
+async function grpSearchInvite(gid){
+  const el=document.getElementById('grpInvEmail'); const email=(el&&el.value||'').trim();
+  const res=document.getElementById('grpInvResult');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ if(res) res.innerHTML='<div class="grp-wait">Entre une adresse email valide.</div>'; return; }
+  if(res) res.innerHTML='<div class="grp-loading">Recherche…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'searchUser', query:email}}); }
+  catch(e){ console.warn('searchUser',e); if(res) res.innerHTML='<div class="grp-wait">Recherche indisponible pour le moment.</div>'; return; }
+  const d=(r&&r.data)||{};
+  const emailA=_escA(email);
+  if(d.found){
+    const masked=_esc(d.email_masked||email), nm=_esc(d.full_name||'Cette personne');
+    if(res) res.innerHTML='<div class="grp-invres"><div>✅ <b>'+nm+'</b> ('+masked+') est sur Guso Facile.</div>'
+      +'<button class="btn" type="button" onclick="grpDoInvite(\''+_escA(gid)+'\',\''+emailA+'\')" data-tip="Inviter cette personne dans le groupe">➕ Inviter</button></div>';
+  } else {
+    if(res) res.innerHTML='<div class="grp-invres"><div>✉️ Pas encore sur Guso Facile — on lui envoie une invitation par email.</div>'
+      +'<button class="btn" type="button" onclick="grpDoInvite(\''+_escA(gid)+'\',\''+emailA+'\')" data-tip="Envoyer une invitation par email">✉️ Inviter par email</button></div>';
+  }
+}
+async function grpDoInvite(gid,email){
+  const res=document.getElementById('grpInvResult');
+  if(res) res.innerHTML='<div class="grp-loading">Envoi de l\'invitation…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'inviteToGroup', group_id:gid, email:email}}); }
+  catch(e){ console.warn('inviteToGroup',e); if(res) res.innerHTML='<div class="grp-wait">Invitation impossible pour le moment.</div>'; return; }
+  if(r&&r.error){ console.warn('inviteToGroup',r.error); if(res) res.innerHTML='<div class="grp-wait">Invitation impossible pour le moment.</div>'; return; }
+  const d=(r&&r.data)||{};
+  if(d.already){ toast('Déjà invité·e'); }
+  else if(d.delivery==='email'){ toast('Invitation envoyée par email ✉️'); }
+  else if(d.delivery==='in_app'){ toast((d.full_name||'La personne')+' verra l\'invitation à sa prochaine connexion 👋'); }
+  else { toast('Invitation enregistrée'); }
+  if(res) res.innerHTML='<div class="grp-invres"><div>'+(d.already?'✔️ Déjà invité·e.':'✅ Invitation enregistrée.')+'</div></div>';
+  const ein=document.getElementById('grpInvEmail'); if(ein) ein.value='';
+}
+function grpRenderShare(gid){
+  const box=document.getElementById('grpShareBox'); if(!box) return;
+  const me=(myAcceptedGroups().find(g=>g.group_id===gid))||{}; const cur=me.share||'standard';
+  const opt=(val,ic,t,sub)=>'<label class="grp-shareopt'+(cur===val?' on':'')+'"><input type="radio" name="grpShare" value="'+val+'"'+(cur===val?' checked':'')+' onchange="grpSetShare(\''+_escA(gid)+'\',\''+val+'\')"><span class="gs-ic">'+ic+'</span><span><b>'+t+'</b><br><span class="gs-sub">'+sub+'</span></span></label>';
+  box.innerHTML=opt('standard','🔓','Standard','Heures, dates possibles, sources et anniversaire')
+    +opt('minimal','🔐','Minimal','Heures et alerte seulement — le reste reste privé');
+}
+async function grpSetShare(gid,share){
+  try{
+    const r=await sb.from('music_group_members').update({share:share}).eq('group_id',gid).eq('user_id',_user.id);
+    if(r.error) throw r.error;
+    const me=myAcceptedGroups().find(g=>g.group_id===gid); if(me) me.share=share;
+    toast(share==='minimal'?'🔐 Partage minimal activé':'🔓 Partage standard activé');
+    grpRenderShare(gid);
+  }catch(e){ console.warn('grpSetShare',e); toast('Changement impossible pour le moment'); }
+}
+
+/* ---------- Onglet « Infos du groupe » (music_groups.info jsonb) ---------- */
+let _grpInfo={};
+async function grpInfoPanel(gid){
+  const box=document.getElementById('grpTabBody'); if(!box) return;
+  box.innerHTML='<div class="grp-loading">Chargement des infos du groupe…</div>';
+  let info={};
+  try{ const r=await sb.from('music_groups').select('info').eq('id',gid).maybeSingle();
+    if(r.error) throw r.error; info=(r.data&&r.data.info)||{}; }
+  catch(e){ console.warn('grpInfoLoad',e); box.innerHTML='<div class="grp-wait">Impossible de charger les infos pour le moment.</div>'; return; }
+  if(!info||typeof info!=='object') info={};
+  if(!Array.isArray(info.access)) info.access=[];
+  _grpInfo=info;
+  grpInfoRender(gid);
+}
+function grpField(id,label,ic,val,ph,type){
+  return '<div class="pf-row"><label>'+ic+' '+label+'</label><input type="'+(type||'text')+'" id="'+id+'" value="'+_escA(val||'')+'" placeholder="'+_escA(ph||'')+'" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px"></div>';
+}
+function grpInfoRender(gid){
+  const box=document.getElementById('grpTabBody'); if(!box) return;
+  const i=_grpInfo;
+  let h='<div class="grp-sec-t">Coordonnées du groupe</div>';
+  h+=grpField('gi_site','Site',' 🌐',i.site,'https://…','url');
+  h+=grpField('gi_email','Email du groupe','✉️',i.email,'contact@…','email');
+  h+=grpField('gi_tel','Téléphone','📞',i.tel,'','tel');
+  h+='<div class="grp-sec-t">Réseaux sociaux</div>';
+  h+=grpField('gi_insta','Instagram','📸',i.instagram,'@…');
+  h+=grpField('gi_fb','Facebook','📘',i.facebook,'');
+  h+=grpField('gi_yt','YouTube','▶️',i.youtube,'');
+  h+=grpField('gi_tt','TikTok','🎵',i.tiktok,'@…');
+  h+='<div class="grp-sec-t">🏦 Banque du groupe</div>';
+  h+=grpField('gi_btit','Titulaire du compte','',i.bank_titulaire,'');
+  h+=grpField('gi_iban','IBAN','',i.bank_iban,'');
+  h+=grpField('gi_bic','BIC','',i.bank_bic,'');
+  h+='<div class="grp-sec-t">🔑 Accès aux plateformes</div>';
+  h+='<div class="grp-warn-access">🔒 Visible par <b>tous les membres</b> du groupe. N\'y mets que ce que le groupe entier peut connaître — <b>jamais tes mots de passe personnels critiques</b>.</div>';
+  h+='<div id="grpAccessList">'+grpAccessRows()+'</div>';
+  h+='<button class="btn ghost sm" type="button" onclick="grpInfoAddRow()" data-tip="Ajouter une plateforme">➕ Ajouter un accès</button>';
+  h+='<div class="grp-sec-t" style="margin-top:16px">📝 Notes libres</div>';
+  h+='<div class="pf-row"><textarea id="gi_notes" style="width:100%;min-height:80px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px">'+_esc(i.notes||'')+'</textarea></div>';
+  h+='<div class="pf-actions" style="margin-top:14px"><button class="btn" type="button" onclick="grpInfoSave(\''+_escA(gid)+'\')">💾 Enregistrer les infos</button></div>';
+  box.innerHTML=h;
+}
+function grpAccessRows(){
+  const arr=_grpInfo.access||[];
+  if(!arr.length) return '<div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Aucun accès enregistré.</div>';
+  return arr.map((a,idx)=>'<div class="grp-access-row">'
+    +'<input type="text" placeholder="Nom (ex. Spotify)" value="'+_escA(a.nom||'')+'" oninput="_grpInfo.access['+idx+'].nom=this.value">'
+    +'<input type="text" placeholder="Identifiant" value="'+_escA(a.identifiant||'')+'" oninput="_grpInfo.access['+idx+'].identifiant=this.value">'
+    +'<div class="gar-secret"><input type="password" id="giSec'+idx+'" placeholder="Secret" value="'+_escA(a.secret||'')+'" oninput="_grpInfo.access['+idx+'].secret=this.value">'
+    +'<button type="button" class="btn ghost sm" onclick="grpInfoToggleSecret('+idx+')" data-tip="Afficher / masquer">👁</button></div>'
+    +'<input type="text" placeholder="Note" value="'+_escA(a.note||'')+'" oninput="_grpInfo.access['+idx+'].note=this.value">'
+    +'<button type="button" class="btn ghost sm" onclick="grpInfoDelRow('+idx+')" data-tip="Supprimer cette ligne">🗑</button></div>').join('');
+}
+function grpInfoAddRow(){ if(!Array.isArray(_grpInfo.access)) _grpInfo.access=[]; _grpInfo.access.push({nom:'',identifiant:'',secret:'',note:''}); const l=document.getElementById('grpAccessList'); if(l) l.innerHTML=grpAccessRows(); }
+function grpInfoDelRow(idx){ _grpInfo.access.splice(idx,1); const l=document.getElementById('grpAccessList'); if(l) l.innerHTML=grpAccessRows(); }
+function grpInfoToggleSecret(idx){ const el=document.getElementById('giSec'+idx); if(el) el.type=(el.type==='password'?'text':'password'); }
+function _giv(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+async function grpInfoSave(gid){
+  const info={
+    site:_giv('gi_site'), email:_giv('gi_email'), tel:_giv('gi_tel'),
+    instagram:_giv('gi_insta'), facebook:_giv('gi_fb'), youtube:_giv('gi_yt'), tiktok:_giv('gi_tt'),
+    bank_titulaire:_giv('gi_btit'), bank_iban:_giv('gi_iban'), bank_bic:_giv('gi_bic'),
+    notes:(document.getElementById('gi_notes')||{}).value||'',
+    access:(_grpInfo.access||[]).filter(a=>a && (a.nom||a.identifiant||a.secret||a.note))
+  };
+  try{
+    const r=await sb.from('music_groups').update({info:info}).eq('id',gid);
+    if(r.error) throw r.error;
+    _grpInfo=info; if(!Array.isArray(_grpInfo.access)) _grpInfo.access=[];
+    toast('💾 Infos du groupe enregistrées');
+  }catch(e){ console.warn('grpInfoSave',e); toast('Enregistrement impossible pour le moment'); }
+}
 
 /* ==================================================================== */
 /* ===== BESOIN D'AIDE ================================================ */
