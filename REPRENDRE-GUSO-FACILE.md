@@ -578,6 +578,17 @@ Contrôle de cohérence de la période en cours + bilan imprimable. Aucune régr
 
 ---
 
+## 9-octodecies. Fichiers en ligne + Groupe v2 + hub + menu + GUIDE/CHANGELOG (2026-07-19)
+> Tout déployé sur guso-facile.vercel.app (+ GitHub Pages). beta.html = redirection vers index.html (fusion des espaces).
+- **📄 Fichiers hébergés en ligne** : bucket Storage privé `gf-files` (10 Mo, PDF/images), chemin `<space_id>/<fiche_id>/<type>-<date>-<slug>.<ext>`, policies écrites (owner/membre/structure-full ; lecture aussi structure partner ; delete membres seuls). UI : dépôt facture/RIB/GUSO → upload + `{storagePath,name,type}` sur la fiche, ouverture par URL signée 1 h, rétro-compat dataURL. Réponse à David : RIEN ne va dans son Drive perso ; archivage Drive automatique = brique future proposée (pattern transfer-media Handpan). Supabase gratuit = 1 Go fichiers / 5 Go egress → large pour la beta.
+- **🎸 Groupe v2** : `share` par membre (standard/minimal), `group_dashboard` v2 (plus de consent_pending : members=accepted filtrés par share + pending[] + vigilance), EF `admin-users` v6 `searchUser` (email exact, email masqué) + `inviteToGroup` (existant→invitation in-app ; inexistant→VRAI email Supabase + beta). UI : 3 onglets (Dashboard/Membres&partage/Infos), invitation par email + code, niveau de partage. **Hub d'infos** `music_groups.info` jsonb (site/réseaux/banque/plateformes[{nom,identifiant,secret,note}]/notes), éditable par tout membre accepted (trigger : seul créateur change le nom), ⚠️ secrets en clair lisibles membres+admins → avertissement affiché dans l'UI.
+- **🤗 help_requests** : table posée (kind/urgency/1 destinataire groupe|structure|personne, RLS auteur+destinataires).
+- **☰ Menu réorganisé** : barre = 🏠/🔔 À faire/🛡️ Admin (badges) ; menus 📊 Mon suivi (Récap/Bilan/Profil) · 🎪 Ma tournée (Carte/Tournée) · 🫂 Mon cercle (Groupe badge/Aide) · ⋯ (Guide/Bug/Sauvegarder/Importer/Déconnexion). Mobile ☰ sectionné.
+- **📖 GUIDE COMPLET + CHANGELOG + NOTIFS + EMAIL** (duplication Handpan, améliorée) : `CHANGELOG` (11 entrées rétroactives, id monotone, plus récent EN TÊTE), `GUIDE_VERSION` auto, `GUIDE_SECTIONS` 13 sections avec recherche accent-insensible + surlignage ; cloche **🎁** (badge non-lus, clés `guso_last_seen_changelog_id`/`guso_toast_shown_id` distinctes) + toast démarrage non-bloquant ; case « ✉️ Recevoir les nouveautés » (profil, `email_subscriptions` opt-in défaut, backfillée à l'inscription via handle_new_user — piège Handpan évité) ; panneau admin « ✉️ Envoyer la mise à jour » (aperçu dry_run/test/masse). EF `send-update-email` (**Resend**, 1 secret au lieu de SMTP×5) + `unsubscribe-updates` (HMAC, page FR). **Envoi INACTIF tant que David n'a pas posé `RESEND_API_KEY` + `UNSUB_SECRET`** (Dashboard → Edge Functions → Secrets ; FROM_EMAIL après vérif de domaine Resend). Fix contrat : dry_run lit `recipientCount`.
+- **⚠️ RÈGLE PERMANENTE (comme Handpan)** : à CHAQUE déploiement visible → (1) nouvelle entrée `CHANGELOG` dans index.html (id++, EN TÊTE) ; (2) `GUIDE_SECTIONS` mis à jour si un menu/écran change. C'est ce qui alimente badge/toast/version/email. NE PAS déployer sans.
+
+---
+
 ## 📓 Journal chronologique du projet (généré depuis git)
 
 > Historique complet de l'évolution, un commit = un changement daté. Régénérable à tout moment via
