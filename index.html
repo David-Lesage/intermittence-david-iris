@@ -858,6 +858,7 @@
     <!-- Accès direct 1 clic (desktop + mobile) -->
     <button class="btn ghost sm hdr-home" onclick="openWelcome()" data-tip="Revenir à l'accueil : choisir l'espace artiste ou l'espace structure">🏠 Accueil</button>
     <button class="btn ghost sm hdr-todo" onclick="focusTodo()" data-tip="Voir tout ce qui reste à faire maintenant : DPAE à venir, feuillets GUSO à éditer, factures en attente, incohérences">🔔 À faire<span class="hdr-badge" id="todoBadge" hidden>0</span></button>
+    <button class="btn ghost sm hdr-news" id="btnNews" type="button" onclick="openNews()" aria-label="Nouveautés" data-tip="Nouveautés de Guso Facile : les dernières améliorations">🎁<span class="hdr-badge" id="newsBadge" hidden>0</span></button>
     <button class="btn ghost sm hdr-admin" id="btnAdmin" hidden onclick="openAdmin()" data-tip="Console d'administration : demandes d'accès et comptes">🛡️ Admin<span class="hdr-badge" id="adminBadge" hidden>0</span></button>
     <button class="btn ghost sm hdr-menu-btn" type="button" onclick="toggleHdrMenu(event)" aria-label="Menu" aria-expanded="false" data-tip="Ouvrir le menu">☰</button>
     <!-- Menus organisés : 3 thématiques + 1 utilitaire (déroulants desktop / sections mobile) -->
@@ -1068,15 +1069,15 @@
    <div class="modal guide-modal" onclick="event.stopPropagation()">
     <div class="g-hero">
       <button class="btn ghost sm bo-x" type="button" onclick="closeGuide()" data-tip="Fermer">✕</button>
-      <h2>📖 Guide d'utilisation</h2>
-      <div class="bo-sub">Choisis ton profil : chacun a ses propres actions.</div>
+      <h2>📖 Guide Guso Facile</h2>
+      <div class="g-hero-row">
+        <span class="g-ver" id="guideVer" data-tip="Version du guide (dernière nouveauté)">📘</span>
+        <input id="guideSearch" type="search" placeholder="🔎 Rechercher dans le guide…" autocomplete="off" oninput="guideSearch(this.value)">
+      </div>
     </div>
     <div class="g-body">
-      <div class="g-toggle">
-        <button class="g-tab" id="gTabArt" type="button" onclick="setGuideMode('artiste')">👤 Je suis artiste</button>
-        <button class="g-tab" id="gTabStr" type="button" onclick="setGuideMode('structure')">🛠️ Des Sons et Des Liens</button>
-      </div>
-      <div id="guideContent"></div>
+      <nav class="g-toc" id="guideToc"></nav>
+      <div class="g-content" id="guideContent"></div>
     </div>
    </div>
   </div>
@@ -1380,6 +1381,7 @@
    <div class="adm-tabs">
      <button type="button" id="admTabReq" class="active" onclick="admSwitch('req')">📥 Demandes d'accès<span class="hdr-badge" id="admTabReqBadge" hidden>0</span></button>
      <button type="button" id="admTabAcc" onclick="admSwitch('acc')">👥 Comptes</button>
+     <button type="button" id="admTabMail" onclick="admSwitch('mail')">✉️ Envoyer la mise à jour</button>
    </div>
 
    <!-- Onglet DEMANDES -->
@@ -1403,6 +1405,23 @@
          <tbody id="admAccBody"><tr><td colspan="5" style="color:var(--muted)">Chargement…</td></tr></tbody>
        </table>
      </div>
+   </div>
+
+   <!-- Onglet ENVOYER LA MISE À JOUR -->
+   <div id="admPaneMail" style="display:none">
+     <div class="hint" style="margin:0 0 10px">Sélectionne les nouveautés à annoncer (les majeures sont pré-cochées), vérifie l'aperçu, puis envoie aux abonnés (uniquement ceux qui ont accepté de recevoir les emails).</div>
+     <div id="admMailList"></div>
+     <div style="margin-top:12px">
+       <label style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px">Objet de l'email</label>
+       <input id="admMailSubject" type="text" value="Du nouveau sur Guso Facile ✨" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px">
+     </div>
+     <div class="admm-actions">
+       <button class="btn ghost sm" type="button" onclick="admMailSend('preview')" data-tip="Générer un aperçu sans rien envoyer (dry run)">👁 Aperçu</button>
+       <button class="btn ghost sm" type="button" onclick="admMailSend('test')" data-tip="M'envoyer l'email de test à moi seul">✉️ Test (à moi)</button>
+       <button class="btn sm" id="admMailSendBtn" type="button" onclick="admMailSend('send')" data-tip="Envoyer à tous les abonnés">🚀 Envoyer à tous</button>
+     </div>
+     <div id="admMailStatus" class="admm-note"></div>
+     <div id="admMailPreview" style="display:none;margin-top:10px"><iframe id="admMailFrame" title="Aperçu de l'email" sandbox=""></iframe></div>
    </div>
  </div>
 </div>
@@ -1504,6 +1523,88 @@
   .modal.grp-modal,.modal.help-modal{max-width:100%}
   .help-opt{font-size:15px;padding:16px}
   .help-inbox-item{flex-wrap:wrap}
+}
+</style>
+
+<!-- ===== PANNEAU NOUVEAUTÉS (cloche) ===== -->
+<div class="modal-bg" id="newsBg" style="z-index:88" onclick="closeNews(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px">
+    <button class="btn ghost sm bo-x" type="button" onclick="closeNews()" data-tip="Fermer">✕</button>
+    <div class="add-head"><h2 style="margin:0;font-size:19px">🎁 Nouveautés</h2></div>
+    <div class="bo-sub" style="margin-bottom:12px">Les dernières améliorations de Guso Facile.</div>
+    <div id="newsList"></div>
+    <div class="nw-actions">
+      <button class="btn ghost sm" type="button" onclick="newsMarkRead()">✓ Tout marquer comme lu</button>
+      <button class="btn sm" type="button" onclick="newsOpenGuide()">📖 Ouvrir le guide</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ===== Guide complet ===== */
+.modal.guide-modal{max-width:880px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.g-hero-row{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.g-ver{font-size:12px;font-weight:800;color:var(--accent);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap}
+#guideSearch{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font-size:14px}
+.g-body{display:flex;gap:16px;padding:16px 20px 20px;min-height:0;flex:1}
+.g-toc{flex:0 0 216px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;max-height:100%;border-right:1px solid var(--line);padding-right:8px}
+.g-toc-a{display:block;font-size:12.5px;color:var(--muted);padding:7px 9px;border-radius:8px;cursor:pointer;line-height:1.3}
+.g-toc-a:hover{background:var(--panel2);color:var(--txt)}
+.g-toc-a.active{background:rgba(124,131,255,.14);color:var(--txt);font-weight:700}
+.g-content{flex:1;min-width:0;overflow-y:auto;max-height:100%;padding-right:4px}
+.g-sec{margin-bottom:22px;scroll-margin-top:4px;border-radius:10px}
+.g-sec-t{font-size:16px;font-weight:800;margin:0 0 8px;color:var(--txt)}
+.g-sec-b{font-size:13.5px;line-height:1.6;color:var(--muted)}
+.g-sec-b b{color:var(--txt)}
+.g-sec-b ul{margin:6px 0 6px 2px;padding-left:18px}
+.g-sec-b li{margin:3px 0}
+.g-sec-b p{margin:6px 0}
+.g-sec.flash{animation:gFlash 1.1s ease}
+@keyframes gFlash{0%{background:rgba(124,131,255,.18)}100%{background:transparent}}
+.g-content mark{background:#ffd166;color:#141621;border-radius:3px;padding:0 1px}
+.g-nores{color:var(--muted);font-size:14px;padding:20px 4px}
+/* Cartes changelog (réutilisées dans le guide « Quoi de neuf ») */
+.cl-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--panel2)}
+.cl-card.major{border-color:rgba(124,131,255,.5);background:linear-gradient(135deg,rgba(76,201,240,.08),rgba(240,114,192,.06))}
+.cl-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cl-name{font-weight:800;font-size:14.5px;color:var(--txt)}
+.cl-date{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.cl-tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.cl-tag{font-size:10.5px;font-weight:700;color:var(--accent);background:rgba(124,131,255,.12);border-radius:999px;padding:2px 8px}
+.cl-sum{font-size:13px;color:var(--txt);margin:5px 0 3px}
+.cl-det{margin:4px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted)}
+.cl-det li{margin:2px 0}
+/* ===== Panneau + toast nouveautés ===== */
+.hdr-news{position:relative}
+.nw-item{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;background:var(--panel2)}
+.nw-item.new{border-color:rgba(255,209,102,.55)}
+.nw-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.nw-name{font-weight:800;font-size:14px;color:var(--txt)}
+.nw-badge{font-size:10px;font-weight:800;color:#141621;background:#ffd166;border-radius:999px;padding:1px 7px;vertical-align:middle}
+.nw-date{font-size:11px;color:var(--muted);white-space:nowrap}
+.nw-sum{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+.nw-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.nw-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);display:flex;align-items:center;gap:10px;background:#0f1117;color:#fff;border:1px solid var(--line);border-radius:999px;padding:10px 12px 10px 16px;box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:420;max-width:92vw}
+.nw-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.nw-t-ic{font-size:16px;flex:0 0 auto}
+.nw-t-txt{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50vw}
+.nw-t-go{background:linear-gradient(135deg,#7b9eff,#f072c0);color:#fff;border:0;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+.nw-t-x{background:transparent;border:0;color:#aeb4c2;font-size:14px;cursor:pointer;padding:4px 6px;flex:0 0 auto}
+/* ===== Admin : envoyer la mise à jour ===== */
+.admm-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13px}
+.admm-row input{flex:0 0 auto;width:auto;min-width:0}
+.admm-name{flex:1;color:var(--txt);font-weight:600}
+.admm-date{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.admm-note{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+.admm-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#admMailFrame{width:100%;height:320px;border:1px solid var(--line);border-radius:10px;background:#fff}
+@media(max-width:640px){
+  .modal.guide-modal{max-width:100%;max-height:100vh}
+  .g-body{flex-direction:column;gap:10px}
+  .g-toc{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line);padding:0 0 8px;max-height:134px}
+  .g-toc-a{font-size:12px;padding:6px 8px}
+  .g-content{max-height:none;overflow:visible}
+  .nw-t-txt{max-width:40vw}
 }
 </style>
 
@@ -2721,29 +2822,326 @@ function copyArtistInfo(){ const p=_baPerson; if(!p) return; const txt=buildArti
 }
 
 /* ===== Guide utilisateur : 2 profils (artiste vs structure), besoins/actions différents ===== */
-const GUIDE={
-  artiste:`<div class="g-intro">👤 <b>Espace artiste</b> — l'appli t'aide à suivre tes <b>507 heures sur 12 mois</b> pour garder tes droits d'intermittent, à partir de tes cachets et répétitions.</div>
-    <div class="g-step"><div class="g-num">1</div><div class="gt">Choisis ton <b>onglet</b> en haut (ton prénom).</div></div>
-    <div class="g-step"><div class="g-num">2</div><div class="gt">Clique <b>➕ Ajouter une date</b> : concert ou répétition, le lieu, les cachets et les heures. Pour une date pas encore sûre, mets-la en <b>🔮 date possible</b> — elle compte dans la projection sans fausser tes heures validées.</div></div>
-    <div class="g-step"><div class="g-num">3</div><div class="gt">Le <b>tableau de bord</b> te dit où tu en es : heures faites sur 507, ce qu'il reste, le nombre de jours avant ta date anniversaire, le rythme conseillé et un <b>plan mois par mois</b>.</div></div>
-    <div class="g-step"><div class="g-num">4</div><div class="gt">Le <b>bandeau preuve GUSO</b> distingue les heures déjà <b>prouvées</b> (feuillet tamponné) de celles encore <b>à tamponner</b> par Des Sons et Des Liens.</div></div>
-    <div class="g-step"><div class="g-num">5</div><div class="gt">Clique sur une date pour voir le <b>détail</b> : feuillet GUSO, facture, rapprochement (salaire / charges / frais), et l'avancement administratif.</div></div>
-    <div class="g-note">💾 Tes données se <b>sauvegardent et se synchronisent automatiquement</b> : toute modification apparaît en temps réel sur tous tes appareils.</div>`,
-  structure:`<div class="g-intro">🛠️ <b>Des Sons et Des Liens</b> — ton tableau de bord pour gérer l'administratif de tous les artistes, sans rien oublier.</div>
-    <div class="g-step"><div class="g-num">1</div><div class="gt">Ouvre l'onglet <b>🛠️ Des Sons et Des Liens</b> : tu vois d'un coup d'œil <b>tout ce qui reste à faire</b>, tous artistes confondus.</div></div>
-    <div class="g-step"><div class="g-num">2</div><div class="gt"><b>👥 Mes artistes</b> (en haut du back-office) : clique sur David ou Iris → sa <b>fiche administrative</b> (état civil, n° sécu 🔒 masqué, n° GUSO, adresse…) et <b>📋 Copier les infos</b> pour remplir une DPAE ou un feuillet GUSO sans rien redemander.</div></div>
-    <div class="g-step"><div class="g-num">3</div><div class="gt"><b>📋 DPAE à faire</b> : déclare la DPAE, puis ouvre la date et coche-la. Sur une <b>date partagée</b>, la DPAE est <b>nominative</b> → 2 cases distinctes (<b>DPAE David</b> et <b>DPAE Iris</b>), avec 2 PDF séparés. Si plusieurs dates tombent dans <b>±7 jours</b>, une seule DPAE <b>par personne</b> peut toutes les couvrir (marqueur <b>🔗</b>).</div></div>
-    <div class="g-step"><div class="g-num">4</div><div class="gt"><b>📄 Feuillets GUSO à éditer</b> : une fois la date passée, édite le feuillet puis coche.</div></div>
-    <div class="g-step"><div class="g-num">5</div><div class="gt"><b>💸 Factures / virements</b> : édite la facture à Résonances, puis coche quand le virement est fait.</div></div>
-    <div class="g-step"><div class="g-num">6</div><div class="gt">Chaque ligne est <b>cliquable</b> → ouvre la date. Dans une date, <b>🔗 Copier le lien</b> te donne un lien direct vers elle (pratique à partager).</div></div>
-    <div class="g-note">📧 Bientôt : <b>rappels email automatiques</b> (J-3 « faire la DPAE », J+1 « éditer le GUSO + la facture ») avec un lien direct vers la date concernée.</div>`
-};
-function openGuide(mode){ document.getElementById('guideBg').classList.add('show'); setGuideMode(mode||'artiste'); }
+/* ===== CHANGELOG — source de vérité des nouveautés =====
+   À CHAQUE DÉPLOIEMENT : copier le premier bloc, id++, le placer EN TÊTE (le plus récent en premier).
+   Champs : {id, name, date:'YYYY-MM-DD', tags?:[], summary, details?:[], major?:true} */
+const CHANGELOG = [
+  { id:11, name:'📖 Nouveau guide + notifications de nouveautés', date:'2026-07-19', major:true,
+    tags:['Guide','Nouveautés'],
+    summary:"Un guide complet et cherchable remplace l'ancien mini-guide, avec une cloche de nouveautés et un abonnement email.",
+    details:[
+      'Guide en 13 sections avec sommaire cliquable et recherche (insensible aux accents, surlignage des résultats).',
+      "Cloche 🎁 dans l'en-tête : un badge signale les nouveautés non lues, avec le détail des dernières.",
+      "Petite pilule « ✨ Nouveauté » au démarrage quand il y a du neuf (jamais bloquante).",
+      "Dans ton profil : case « ✉️ Recevoir les nouveautés par email » (tu choisis)." ] },
+  { id:10, name:"En-tête réorganisé — tout à portée de clic", date:'2026-07-19',
+    tags:['Ergonomie'],
+    summary:"La barre du haut est plus claire : 🏠 Accueil, 🔔 À faire et 🛡️ Admin en accès direct, le reste rangé dans 3 menus.",
+    details:[
+      'Menus « 📊 Mon suivi », « 🎪 Ma tournée » et « 🫂 Mon cercle ».',
+      "Menu « ⋯ » pour le guide, le signalement de bug, la sauvegarde/import et la déconnexion.",
+      'Sur mobile, tout se replie dans le menu ☰ sans jamais déborder.' ] },
+  { id:9, name:'Documents hébergés en ligne + hub du groupe', date:'2026-07-19',
+    tags:['Documents','Groupe'],
+    summary:"Feuillets GUSO, factures et RIB sont maintenant stockés en ligne (jusqu'à 10 Mo) et s'ouvrent en un clic.",
+    details:[
+      "Dépôt de fichiers sécurisé (Storage), rétro-compatible avec les anciens fichiers.",
+      "Vue Groupe enrichie : tableau de bord immédiat, invitation par email et niveau de partage choisi.",
+      "Hub d'infos partagées au sein du groupe." ] },
+  { id:8, name:'Vue Groupe + Besoin d\'aide', date:'2026-07-18', major:true,
+    tags:['Groupe','Entraide'],
+    summary:"Veiller les uns sur les autres : une vue de groupe bienveillante et un bouton « J'ai besoin d'aide ».",
+    details:[
+      "Vue Groupe : cartes 🔴🟡🟢 par membre, jauge et jours restants — jamais tes montants, et avec le consentement de chacun.",
+      "Besoin d'aide : 4 situations (prochain pas, retard d'heures, blocage admin, doute perso) ; un conseil d'abord, le partage reste ton choix.",
+      "Rejoindre un groupe par code." ] },
+  { id:7, name:'Connexion sécurisée (multi-comptes)', date:'2026-07-17',
+    tags:['Compte','Sécurité'],
+    summary:"Chacun son compte : connexion par mot de passe ou lien magique, données isolées et protégées.",
+    details:[
+      "Bascule des données vers des comptes individuels (fini le code d'accès partagé).",
+      "Console d'administration pour les demandes d'accès et les comptes.",
+      "Partage gradué de tes données avec une structure (tu choisis ce qui est visible)." ] },
+  { id:6, name:'🎪 Préparation de tournée', date:'2026-07-15',
+    tags:['Tournée'],
+    summary:"Un carnet de contacts, l'historique de tes concerts et des mails types prêts à envoyer.",
+    details:[
+      "Carnet de contacts (auto depuis les organisateurs + ajouts manuels), avec la dernière date jouée ensemble.",
+      "Concerts passés filtrables par année et par recherche.",
+      "4 mails types (relance, présentation, festival, remerciement) pré-remplis et copiables." ] },
+  { id:5, name:'🗺️ Carte des dates + kilomètres', date:'2026-07-15',
+    tags:['Carte'],
+    summary:"Tous tes plans géolocalisés sur une carte, avec les kilomètres parcourus depuis chez toi.",
+    details:[
+      "Lieux à renseigner (autocomplétion) et lieux supposés à confirmer/corriger.",
+      "Option « relier les dates » pour visualiser la tournée.",
+      "Kilomètres aller-retour calculés depuis l'adresse de ton profil." ] },
+  { id:4, name:'🐛 Signaler un bug / une idée', date:'2026-07-15',
+    tags:['Feedback'],
+    summary:"Un formulaire simple pour remonter un bug ou proposer une amélioration.",
+    details:[ 'Type, catégorie, gravité et description ; envoi direct à l\'équipe.' ] },
+  { id:3, name:'🔍 Vérifier & bilan imprimable', date:'2026-07-14',
+    tags:['Suivi'],
+    summary:"Un contrôle de cohérence de ta période + un bilan récapitulatif que tu peux imprimer.",
+    details:[
+      "Repère les DPAE manquantes, feuillets GUSO à éditer, factures en attente et incohérences.",
+      "Bilan imprimable (heures, cachets, brut, dates, points à régler)." ] },
+  { id:2, name:'🔔 À faire maintenant + badges de droits', date:'2026-07-14',
+    tags:['Tableau de bord'],
+    summary:"Un bloc « À faire maintenant » trie tes démarches par urgence, et des badges clarifient tes droits.",
+    details:[
+      "Échéances à venir (J-X) en premier, puis les retards.",
+      "Badge « Droits à sécuriser / sécurisés » et badge « incohérences à vérifier » cliquable." ] },
+  { id:1, name:'📅 Récap mensuel France Travail', date:'2026-07-06',
+    tags:['Suivi'],
+    summary:"Un récapitulatif mois par mois (GUSO, cachets, heures, brut) à pointer contre ton actualisation France Travail.",
+    details:[ 'Chaque ligne = une déclaration GUSO, comme sur « Mes activités » de France Travail.' ] }
+];
+function _frGdate(d,short){ try{ const p=(d||'').split('-'); const dt=new Date(+p[0],(+p[1]||1)-1,+p[2]||1);
+    return dt.toLocaleDateString('fr-FR',{day:'numeric',month:short?'short':'long',year:'numeric'}); }catch(e){ return d; } }
+function frDate(d){ return _frGdate(d,false); }
+function frDateShort(d){ return _frGdate(d,true); }
+function latestChangelogId(){ return CHANGELOG.reduce((m,e)=>Math.max(m,e.id),0); }
+function _clSorted(){ return CHANGELOG.slice().sort((a,b)=>b.id-a.id); }
+function latestEntry(){ return _clSorted()[0]; }
+const GUIDE_VERSION = 'v'+latestChangelogId()+' · '+frDateShort(latestEntry().date);
+function renderChangelogHtml(){
+  return _clSorted().map(function(e){
+    const tags=(e.tags||[]).map(t=>'<span class="cl-tag">'+_esc(t)+'</span>').join('');
+    const det=(e.details||[]).map(d=>'<li>'+_esc(d)+'</li>').join('');
+    return '<div class="cl-card'+(e.major?' major':'')+'">'
+      +'<div class="cl-head"><span class="cl-name">'+(e.major?'⭐ ':'')+_esc(e.name)+'</span><span class="cl-date">'+frDateShort(e.date)+'</span></div>'
+      +(tags?'<div class="cl-tags">'+tags+'</div>':'')
+      +(e.summary?'<div class="cl-sum">'+_esc(e.summary)+'</div>':'')
+      +(det?'<ul class="cl-det">'+det+'</ul>':'')
+      +'</div>';
+  }).join('');
+}
+
+/* ===== GUIDE COMPLET — 13 sections décrivant l'app réelle ===== */
+const GUIDE_SECTIONS = [
+  { id:'quoi-de-neuf', icon:'✨', title:'Quoi de neuf', special:'changelog', html:'' },
+  { id:'bienvenue', icon:'👋', title:'Bienvenue', html:
+    "<p><b>Guso Facile</b> t'aide à suivre tes <b>507 heures sur 12 mois</b> — le seuil qui renouvelle tes droits d'intermittent — à partir de tes cachets (concerts, studio) et de tes heures de répétition, déclarés via les feuillets GUSO.</p>"
+    +"<p>L'idée : <b>alléger la charge mentale administrative</b> pour te laisser te concentrer sur ta musique. Tout est clair, visuel et rassurant.</p>"
+    +"<p>Guso Facile porte aussi une <b>philosophie d'entraide</b> : veiller les uns sur les autres (Vue Groupe), demander un coup de main quand on bloque (Besoin d'aide), et partager sereinement avec sa structure — toujours avec ton consentement.</p>" },
+  { id:'a-faire', icon:'🔔', title:'À faire maintenant', html:
+    "<p>Le bouton <b>🔔 À faire</b> de l'en-tête (et le bloc en haut du tableau de bord) rassemble tout ce qui reste à traiter, <b>trié par urgence</b> :</p>"
+    +"<ul><li>Les <b>incohérences à vérifier</b> d'abord.</li>"
+    +"<li>Les dates passées avec un <b>feuillet GUSO manquant</b>, une <b>DPAE en retard</b> ou une facture/salaire en attente.</li>"
+    +"<li>Les <b>DPAE des dates à venir</b> avec un badge <b>J-X</b> (rouge si c'est dans 3 jours ou moins).</li></ul>"
+    +"<p>Chaque ligne est cliquable et t'amène directement sur la date. Deux badges de tête résument ta situation : <b>🛡️ Droits à sécuriser / sécurisés</b> (selon tes 507 h) et <b>⚠️ incohérences à vérifier</b>.</p>" },
+  { id:'mes-dates', icon:'📅', title:'Mes dates', html:
+    "<p>Clique <b>➕ Ajouter une date</b> pour saisir un engagement. Choisis le <b>type</b> :</p>"
+    +"<ul><li><b>Concert</b> — un cachet compte pour 12 h.</li>"
+    +"<li><b>Répétition</b> — saisis le nombre d'heures.</li>"
+    +"<li><b>Studio</b> (musicien de studio, chèque-intermittents, convention 2121) — hors circuit GUSO, 1 cachet = 12 h.</li></ul>"
+    +"<p>Pour une date pas encore sûre, mets-la en <b>🔮 date possible</b> : elle compte dans la projection sans fausser tes heures validées.</p>"
+    +"<p>Une date peut être <b>partagée David &amp; Iris</b> (champ propriétaire) : elle apparaît chez les deux et compte pour chacun, avec des heures de répétition propres à chacun.</p>"
+    +"<p>Champ <b>🎸 Groupe</b> optionnel pour alimenter la Vue Groupe. Sur chaque date, des <b>étapes administratives cochables</b> (DPAE, feuillet GUSO, facture réglée, salaire reçu) suivent l'avancement.</p>" },
+  { id:'mon-suivi', icon:'📊', title:'Mon suivi', html:
+    "<p>Le tableau de bord affiche la <b>jauge des 507 h</b>, ce qu'il te reste à trouver, les jours avant ta date anniversaire, le rythme conseillé et un <b>plan mois par mois</b>.</p>"
+    +"<p><b>📅 Récap mensuel</b> — un récapitulatif GUSO / cachets / heures / brut par mois, à pointer contre l'actualisation France Travail (chaque ligne = une déclaration).</p>"
+    +"<p><b>🔍 Vérifier &amp; bilan</b> — contrôle de cohérence de ta période (DPAE, feuillets GUSO, factures) et bilan imprimable.</p>"
+    +"<p>Un <b>graphique annuel</b> distingue Concert / Répétition / Technicien / Studio.</p>" },
+  { id:'carte', icon:'🗺️', title:'Carte', html:
+    "<p><b>🗺️ Carte</b> (menu « Ma tournée ») place tous tes plans sur une carte et calcule les <b>kilomètres parcourus</b> (aller-retour) depuis l'adresse de ton profil.</p>"
+    +"<ul><li>Les <b>lieux à confirmer</b> se renseignent avec une autocomplétion (code postal inclus).</li>"
+    +"<li>Les <b>lieux supposés</b> (déduits du titre) se confirment ou se corrigent.</li>"
+    +"<li>Option <b>« relier les dates »</b> pour visualiser l'itinéraire de la tournée.</li></ul>"
+    +"<p>Pense à renseigner ton adresse dans le profil pour activer le calcul des kilomètres.</p>" },
+  { id:'tournee', icon:'🎪', title:'Tournée', html:
+    "<p><b>🎪 Préparation de tournée</b> réunit trois outils :</p>"
+    +"<ul><li><b>📇 Contacts</b> — carnet alimenté automatiquement par les organisateurs de tes dates + ajouts manuels, avec l'historique et la dernière date jouée ensemble.</li>"
+    +"<li><b>📜 Concerts passés</b> — filtrables par année et par recherche.</li>"
+    +"<li><b>✉️ Mails types</b> — relance, présentation, festival, remerciement : pré-remplis et copiables.</li></ul>"
+    +"<p>Sur une date concert, <b>🎯 Bon plan ?</b> compare les conditions proposées à tes conditions idéales, et <b>🏢 Organisateur</b> suit la négociation (statut, échéance de signature, infos manquantes à réclamer).</p>" },
+  { id:'mon-cercle', icon:'🫂', title:'Mon cercle', html:
+    "<p><b>🎸 Groupe</b> — veiller les uns sur les autres. Tu crées ou rejoins un groupe (par email ou par <b>code</b>), chacun <b>consent</b> explicitement à ce qu'il partage et choisit son <b>niveau de partage</b>. Le tableau de bord montre des cartes 🔴🟡🟢 par membre (jauge, jours restants) — <b>jamais les montants</b>. Un <b>hub d'infos</b> permet de partager des messages au groupe.</p>"
+    +"<p><b>🤗 Besoin d'aide</b> — quand tu bloques, choisis parmi 4 situations : <b>prochain pas</b>, <b>retard d'heures</b>, <b>blocage administratif</b> ou <b>doute perso</b>. L'app te donne d'abord un conseil concret (ton vrai prochain pas, tes vrais chiffres) ; partager ta demande à un proche, un groupe ou une structure reste <b>ton choix</b>.</p>" },
+  { id:'mes-documents', icon:'📄', title:'Mes documents', html:
+    "<p>Sur chaque date, tu peux déposer le <b>feuillet GUSO</b> et la <b>facture</b> (PDF ou image, jusqu'à 10 Mo). Ils sont <b>hébergés en ligne</b> de façon sécurisée et s'ouvrent en un clic (<b>📄 Ouvrir le GUSO</b>, <b>🧾 Ouvrir la facture</b>).</p>"
+    +"<p>Ton <b>RIB / IBAN officiel</b> se dépose dans le profil (et celui de la structure dans « Ma structure »). Si un fichier est trop lourd, tu peux coller un lien Drive à la place.</p>" },
+  { id:'espace-structure', icon:'🏢', title:'Espace structure', html:
+    "<p>Le back-office <b>Des Sons et Des Liens</b> est une vue transversale de <b>tout ce qui reste à faire</b>, tous artistes confondus :</p>"
+    +"<ul><li><b>📋 DPAE à faire</b> — sur une date partagée, la DPAE est <b>nominative</b> (2 cases : DPAE David / DPAE Iris). Une seule DPAE peut couvrir plusieurs dates dans <b>±7 jours</b> (marqueur 🔗).</li>"
+    +"<li><b>📄 Feuillets GUSO à éditer</b> une fois la date passée.</li>"
+    +"<li><b>💸 Factures / virements</b> à Résonances.</li></ul>"
+    +"<p><b>👥 Mes artistes</b> : la fiche administrative de chacun (état civil, n° sécu 🔒 masqué, n° GUSO, adresse) avec <b>📋 Copier les infos</b> pour remplir une DPAE ou un feuillet GUSO sans rien redemander. <b>🏢 Ma structure</b> pré-remplit le SIRET et l'IBAN pour les contrats et paiements.</p>" },
+  { id:'mon-compte', icon:'👤', title:'Mon compte', html:
+    "<p>Ton <b>👤 Profil</b> (menu « Mon suivi ») rassemble ton identité, tes coordonnées bancaires, tes instruments et tes <b>conditions idéales</b> (base de l'évaluateur « Bon plan ? »).</p>"
+    +"<p>Tu te connectes par <b>mot de passe</b> ou <b>lien magique</b> ; tes données sont isolées et synchronisées automatiquement sur tous tes appareils. Le mot de passe se change depuis l'écran de connexion (« mot de passe oublié »).</p>"
+    +"<p>Dans le profil, la case <b>✉️ Recevoir les nouveautés par email</b> te laisse choisir d'être prévenu (ou non) des améliorations. <b>🚪 Déconnexion</b> se trouve dans le menu « ⋯ ».</p>" },
+  { id:'administration', icon:'🛡️', title:'Administration', html:
+    "<p>Réservé aux administrateurs (bouton <b>🛡️ Admin</b>). La console comporte trois onglets :</p>"
+    +"<ul><li><b>📥 Demandes d'accès</b> — approuver ou refuser les demandes envoyées depuis la page de présentation (l'approbation crée le compte et envoie l'invitation).</li>"
+    +"<li><b>👥 Comptes</b> — liste des comptes, offrir/retirer l'accès, nommer/retirer un administrateur.</li>"
+    +"<li><b>✉️ Envoyer la mise à jour</b> — choisir les nouveautés à annoncer, prévisualiser l'email (<b>👁 Aperçu</b>), s'envoyer un <b>test</b>, puis <b>envoyer à tous</b> les abonnés.</li></ul>" },
+  { id:'faq', icon:'❓', title:'FAQ — données & sécurité', html:
+    "<p><b>Qui voit mes données ?</b> Toi seul, via ton compte. David et Iris se partagent leur espace (cas particulier assumé). Une structure ne voit que ce que tu autorises (partage gradué : complet, partenaire ou totaux seuls).</p>"
+    +"<p><b>Où sont hébergés mes fichiers ?</b> Feuillets GUSO, factures et RIB sont stockés en ligne de façon sécurisée, accessibles seulement depuis ton compte.</p>"
+    +"<p><b>La Vue Groupe expose-t-elle mes montants ?</b> Non, jamais. Le groupe voit ta progression (heures, jours restants), pas tes revenus.</p>"
+    +"<p><b>J'ai perdu mon accès / mon code.</b> Le code d'accès partagé n'existe plus : utilise « mot de passe oublié » sur l'écran de connexion, ou demande à un administrateur (onglet 👥 Comptes) de te réinviter.</p>" }
+];
+
+/* ---------- Guide : rendu, navigation, recherche ---------- */
+function guideRenderToc(){
+  return GUIDE_SECTIONS.map(s=>'<a class="g-toc-a" data-sec="'+s.id+'" onclick="guideGo(\''+s.id+'\')">'+s.icon+' '+_esc(s.title)+'</a>').join('');
+}
+function guideRenderContent(){
+  return GUIDE_SECTIONS.map(function(s){
+    const body = s.special==='changelog' ? renderChangelogHtml() : s.html;
+    return '<section class="g-sec" id="gsec-'+s.id+'"><h3 class="g-sec-t">'+s.icon+' '+_esc(s.title)+'</h3><div class="g-sec-b">'+body+'</div></section>';
+  }).join('');
+}
+/* Pliage accent 1:1 (longueur préservée → indices alignés pour le surlignage) */
+function _fold(s){ return (s||'').toLowerCase()
+  .replace(/[àáâãäå]/g,'a').replace(/ç/g,'c').replace(/[èéêë]/g,'e')
+  .replace(/[ìíîï]/g,'i').replace(/ñ/g,'n').replace(/[òóôõö]/g,'o')
+  .replace(/[ùúûü]/g,'u').replace(/[ýÿ]/g,'y'); }
+function _hlNode(root,q){ if(!root||!q) return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null); const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(n){ const txt=n.nodeValue, norm=_fold(txt); let idx=norm.indexOf(q); if(idx<0) return;
+    const frag=document.createDocumentFragment(); let last=0;
+    while(idx>=0){ frag.appendChild(document.createTextNode(txt.slice(last,idx)));
+      const m=document.createElement('mark'); m.textContent=txt.slice(idx,idx+q.length); frag.appendChild(m);
+      last=idx+q.length; idx=norm.indexOf(q,last); }
+    frag.appendChild(document.createTextNode(txt.slice(last)));
+    n.parentNode.replaceChild(frag,n); });
+}
+function guideSearch(q){
+  const cont=document.getElementById('guideContent'); if(!cont) return;
+  cont.innerHTML=guideRenderContent();               // repart d'un contenu propre (sans <mark>)
+  const nq=_fold((q||'').trim());
+  const toc=document.querySelectorAll('.g-toc-a');
+  const ne=document.getElementById('gNoRes'); if(ne) ne.remove();
+  if(nq.length<2){ toc.forEach(a=>a.style.display=''); return; }
+  let any=false;
+  GUIDE_SECTIONS.forEach(function(s){
+    const sec=document.getElementById('gsec-'+s.id);
+    const link=document.querySelector('.g-toc-a[data-sec="'+s.id+'"]');
+    const match=_fold(sec.textContent).indexOf(nq)>=0;
+    sec.style.display=match?'':'none'; if(link) link.style.display=match?'':'none';
+    if(match){ any=true; _hlNode(sec.querySelector('.g-sec-b'),nq); }
+  });
+  if(!any){ const d=document.createElement('div'); d.id='gNoRes'; d.className='g-nores'; d.textContent='Aucun résultat pour « '+q+' ».'; cont.appendChild(d); }
+}
+function guideGo(id){ const el=document.getElementById('gsec-'+id); if(!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  document.querySelectorAll('.g-toc-a').forEach(a=>a.classList.toggle('active',a.getAttribute('data-sec')===id));
+}
+function openGuide(sectionId){ try{ closeHdrMenu(); }catch(e){} try{ closeAllHdrGroups(); }catch(e){}
+  document.getElementById('guideToc').innerHTML=guideRenderToc();
+  document.getElementById('guideContent').innerHTML=guideRenderContent();
+  const v=document.getElementById('guideVer'); if(v) v.textContent='📘 '+GUIDE_VERSION;
+  const s=document.getElementById('guideSearch'); if(s) s.value='';
+  document.getElementById('guideBg').classList.add('show');
+  if(sectionId){ setTimeout(()=>guideGo(sectionId),40); }
+  else { const c=document.getElementById('guideContent'); if(c) c.scrollTop=0; }
+}
 function closeGuide(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('guideBg').classList.remove('show'); }
-function setGuideMode(mode){ if(mode!=='structure') mode='artiste';
-  document.getElementById('guideContent').innerHTML=GUIDE[mode];
-  document.getElementById('gTabArt').classList.toggle('on',mode==='artiste');
-  document.getElementById('gTabStr').classList.toggle('on',mode==='structure'); }
+
+/* ===== Nouveautés : cloche + toast (2 clés localStorage distinctes) ===== */
+const LS_SEEN='guso_last_seen_changelog_id', LS_TOAST='guso_toast_shown_id';
+function _int(v){ const n=parseInt(v,10); return isNaN(n)?0:n; }
+function newsUnreadCount(){ const seen=_int(localStorage.getItem(LS_SEEN)); return CHANGELOG.filter(e=>e.id>seen).length; }
+function updateNewsBadge(){ const b=document.getElementById('newsBadge'); if(!b) return;
+  const n = (localStorage.getItem(LS_SEEN)==null) ? 0 : newsUnreadCount();
+  if(n>0){ b.textContent=n>9?'9+':String(n); b.removeAttribute('hidden'); } else { b.setAttribute('hidden',''); } }
+function markAllRead(){ localStorage.setItem(LS_SEEN,String(latestChangelogId())); updateNewsBadge(); }
+function openNews(){ try{ closeHdrMenu(); }catch(e){} try{ closeAllHdrGroups(); }catch(e){}
+  const seen=_int(localStorage.getItem(LS_SEEN)), seeded=localStorage.getItem(LS_SEEN)!=null;
+  const list=_clSorted().slice(0,6);
+  document.getElementById('newsList').innerHTML=list.map(function(e){
+    const isNew=seeded && e.id>seen;
+    return '<div class="nw-item'+(isNew?' new':'')+'"><div class="nw-top"><span class="nw-name">'+(e.major?'⭐ ':'')+_esc(e.name)+(isNew?' <span class="nw-badge">nouveau</span>':'')+'</span><span class="nw-date">'+frDateShort(e.date)+'</span></div>'
+      +(e.summary?'<div class="nw-sum">'+_esc(e.summary)+'</div>':'')+'</div>';
+  }).join('');
+  document.getElementById('newsBg').classList.add('show');
+}
+function closeNews(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('newsBg').classList.remove('show'); }
+function newsMarkRead(){ markAllRead(); openNews(); toast('✓ Nouveautés marquées comme lues'); }
+function newsOpenGuide(){ markAllRead(); closeNews(); openGuide('quoi-de-neuf'); }
+let _nwToastTimer=null;
+function maybeWhatsNewToast(){ if(!_appStarted) return;
+  const latest=latestChangelogId(), seenRaw=localStorage.getItem(LS_SEEN);
+  if(seenRaw==null){ /* tout 1er lancement : on initialise en silence, aucun toast */
+    localStorage.setItem(LS_SEEN,String(latest)); localStorage.setItem(LS_TOAST,String(latest)); updateNewsBadge(); return; }
+  updateNewsBadge();
+  const seen=_int(seenRaw), shown=_int(localStorage.getItem(LS_TOAST));
+  if(latest>seen && shown<latest){ showWhatsNewToast(latestEntry()); localStorage.setItem(LS_TOAST,String(latest)); }
+}
+function showWhatsNewToast(e){
+  let el=document.getElementById('nwToast');
+  if(!el){ el=document.createElement('div'); el.id='nwToast'; el.className='nw-toast'; document.body.appendChild(el); }
+  el.innerHTML='<span class="nw-t-ic">✨</span><span class="nw-t-txt">'+_esc(e.name)+'</span>'
+    +'<button class="nw-t-go" type="button" onclick="nwToastDiscover()">Découvrir</button>'
+    +'<button class="nw-t-x" type="button" onclick="nwToastClose()" aria-label="Fermer">✕</button>';
+  el.classList.add('show'); clearTimeout(_nwToastTimer); _nwToastTimer=setTimeout(nwToastClose,6000);
+}
+function nwToastClose(){ const el=document.getElementById('nwToast'); if(el) el.classList.remove('show'); clearTimeout(_nwToastTimer); }
+function nwToastDiscover(){ nwToastClose(); markAllRead(); openGuide('quoi-de-neuf'); }
+
+/* ===== Abonnement email aux nouveautés (table email_subscriptions, RLS self) ===== */
+async function loadEmailOptIn(){ const box=document.getElementById('pf_emailopt'); if(!box) return;
+  if(!sb||!_user) return;
+  try{ const r=await sb.from('email_subscriptions').select('email_updates_opt_in').eq('user_id',_user.id).maybeSingle();
+    box.checked = (r.data && typeof r.data.email_updates_opt_in==='boolean') ? r.data.email_updates_opt_in : true;
+  }catch(e){ /* défaut coché */ } }
+async function saveEmailOptIn(on){ const note=document.getElementById('pf_emailnote');
+  if(!sb||!_user){ if(note) note.textContent='Connecte-toi pour régler cette préférence.'; return; }
+  try{ const r=await sb.from('email_subscriptions').upsert({user_id:_user.id, email_updates_opt_in:!!on},{onConflict:'user_id'});
+    if(r.error) throw r.error;
+    if(note) note.textContent = on?'✅ Tu recevras les nouveautés par email.':'Tu ne recevras plus les emails de nouveautés.';
+    toast(on?'✉️ Abonné aux nouveautés':'✉️ Désabonné des nouveautés');
+  }catch(e){ console.warn('emailOptIn',e); if(note) note.textContent='⚠️ Enregistrement impossible pour le moment.'; } }
+
+/* ===== Admin : envoyer la mise à jour (Edge Function send-update-email) ===== */
+let _admMailInit=false;
+function admMailRender(){ const box=document.getElementById('admMailList'); if(!box) return;
+  box.innerHTML=_clSorted().map(function(e){
+    return '<label class="admm-row"><input type="checkbox" class="admm-cb" value="'+e.id+'"'+(e.major?' checked':'')+'>'
+      +'<span class="admm-name">'+(e.major?'⭐ ':'')+admEsc(e.name)+'</span><span class="admm-date">'+frDateShort(e.date)+'</span></label>';
+  }).join('');
+  _admMailInit=true;
+}
+function _admMailSelected(){ const ids=Array.from(document.querySelectorAll('.admm-cb:checked')).map(c=>_int(c.value));
+  return _clSorted().filter(e=>ids.indexOf(e.id)>=0); }
+async function admMailSend(mode){
+  const status=document.getElementById('admMailStatus'), prev=document.getElementById('admMailPreview');
+  const entries=_admMailSelected();
+  if(!entries.length){ status.textContent='⚠️ Sélectionne au moins une nouveauté.'; return; }
+  const subject=(document.getElementById('admMailSubject').value||'').trim()||'Du nouveau sur Guso Facile ✨';
+  if(mode==='send' && !confirm('Envoyer cette mise à jour à TOUS les abonnés ?')) return;
+  const body={ entries:entries, subject:subject };
+  if(mode==='preview') body.dry_run=true;
+  if(mode==='test') body.test_email=(_user&&_user.email)||'';
+  const btn=document.getElementById('admMailSendBtn'); if(btn && mode==='send') btn.disabled=true;
+  status.textContent='⏳ '+(mode==='preview'?'Génération de l’aperçu…':mode==='test'?'Envoi du test…':'Envoi en cours…');
+  if(prev) prev.style.display='none';
+  try{
+    const r=await sb.functions.invoke('send-update-email',{ body:body });
+    if(r.error){ let msg=r.error.message||'Erreur';
+      try{ const j=await r.error.context.json(); if(j&&j.error) msg=j.error; }catch(e){}
+      status.innerHTML='❌ '+admEsc(msg)+'<div class="admm-note">Pose les secrets Resend dans Supabase pour activer l’envoi.</div>';
+      return; }
+    const d=r.data||{};
+    if(mode==='preview'){
+      const html=d.previewHtml||d.html||d.preview||'';
+      const rec=(d.recipientCount!=null?d.recipientCount:(d.recipients!=null?d.recipients:(d.count!=null?d.count:(d.total!=null?d.total:'?'))));
+      status.textContent='👁 Aperçu — '+rec+' destinataire(s)';
+      if(prev){ prev.style.display=''; const ifr=document.getElementById('admMailFrame');
+        ifr.srcdoc=html||'<p style="font-family:sans-serif;padding:16px;color:#555">Aucun aperçu renvoyé par le serveur.</p>'; }
+    } else {
+      const sent=(d.sent!=null?d.sent:'?'), failed=(d.failed!=null?d.failed:0);
+      status.textContent='✅ '+(mode==='test'?'Test envoyé':'Envoyé')+' · '+sent+' envoyé(s)'+(failed?(' · '+failed+' échec(s)'):'');
+      toast(mode==='test'?'✉️ Email de test envoyé':'🚀 Mise à jour envoyée');
+    }
+  }catch(e){ console.warn('send-update-email',e); status.textContent='❌ Envoi impossible pour le moment.'; }
+  finally{ if(btn) btn.disabled=false; }
+}
 
 /* ===== Récap mensuel — rapprochement France Travail =====
    Regroupe les dates confirmées PAR n° GUSO (1 déclaration = 1 ligne, comme sur France Travail),
@@ -3025,10 +3423,14 @@ function openProfile(person){ person=(person&&state.people[person])?person:curre
     else h+='<div class="pf-row"><label>'+f.l+(f.sensitive?' 🔒':'')+'</label><input type="'+(f.type||'text')+'" id="pf_'+f.k+'" value="'+_escA(v)+'"></div>';
   });
   h+='<div class="pf-sec">Modèles de contrats (liens Drive, un par ligne)</div><div class="pf-row"><textarea id="pf_contrats" placeholder="https://drive.google.com/...">'+_esc(pr.contrats||'')+'</textarea></div>';
-  h+='<div class="pf-note">🔒 Les infos sensibles (n° sécu…) sont chiffrées et stockées dans tes données synchronisées — jamais dans le code public du site.</div>';
+  h+='<div class="pf-note">🔒 Les infos sensibles (n° sécu…) sont stockées dans tes données synchronisées, isolées par ton compte — jamais dans le code public du site.</div>';
+  h+='<div class="pf-sec">Mon compte</div>';
+  h+='<label class="pf-check"><input type="checkbox" id="pf_emailopt" checked onchange="saveEmailOptIn(this.checked)"> ✉️ Recevoir les nouveautés de Guso Facile par email</label>';
+  h+='<div class="pf-note" id="pf_emailnote" style="margin-top:6px">Préférence liée à ton compte (pas à un artiste en particulier). Tu peux te désabonner à tout moment.</div>';
   h+='<div class="pf-actions"><button class="btn" type="button" onclick="saveProfile()">💾 Enregistrer</button></div>';
   document.getElementById('profileContent').innerHTML=h;
   document.getElementById('profileBg').classList.add('show');
+  loadEmailOptIn();
 }
 function saveProfile(){ const p=_profilePerson, pr=ensureProfile(p);
   PROFILE_FIELDS.forEach(f=>{ if(f.sec) return;
@@ -3746,10 +4148,13 @@ function openAdmin(){ try{ closeHdrMenu(); }catch(e){}
   admSwitch('req'); loadAdminRequests(); loadAdminAccounts(); }
 function closeAdmin(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('adminBg').classList.remove('show'); }
 function admSwitch(which){
-  document.getElementById('admTabReq').classList.toggle('active', which==='req');
-  document.getElementById('admTabAcc').classList.toggle('active', which==='acc');
-  document.getElementById('admPaneReq').style.display = which==='req' ? '' : 'none';
-  document.getElementById('admPaneAcc').style.display = which==='acc' ? '' : 'none';
+  ['Req','Acc','Mail'].forEach(function(w){
+    const key=w.toLowerCase();
+    const tab=document.getElementById('admTab'+w), pane=document.getElementById('admPane'+w);
+    if(tab) tab.classList.toggle('active', which===key);
+    if(pane) pane.style.display = which===key ? '' : 'none';
+  });
+  if(which==='mail' && !_admMailInit) admMailRender();
 }
 function setAdminBadge(n){
   [['adminBadge'],['admTabReqBadge']].forEach(function(pair){
@@ -3996,6 +4401,8 @@ async function enterApp(user){
   if(ba){ if(isAdmin()){ ba.removeAttribute('hidden'); } else { ba.setAttribute('hidden',''); } }
   startApp();
   if(isAdmin()){ loadAdminRequests(); }   /* alimente le badge « demandes en attente » */
+  updateNewsBadge();                        /* cloche : badge des nouveautés non lues */
+  maybeWhatsNewToast();                     /* pilule « ✨ » si du neuf (jamais au 1er lancement) */
 }
 
 /* ---------- amorçage ---------- */
