@@ -39,19 +39,26 @@
   header .sub{color:var(--txt);font-size:13px;margin-top:4px;opacity:.9}
   header .sub2{color:var(--muted);font-size:11.5px;margin-top:2px;font-style:italic}
   .hdr-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:relative}
-  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .hdr-menu-btn{display:none}
-  .hdr-data-mob{display:none}
-  .hdr-todo{position:relative;display:inline-flex;align-items:center;gap:6px}
+  .hdr-todo,.hdr-admin{position:relative;display:inline-flex;align-items:center;gap:6px}
   .hdr-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;
     border-radius:999px;background:var(--warn);color:#3a2b00;font-size:11px;font-weight:800;line-height:1}
   .hdr-badge[hidden]{display:none}
-  .hdr-more-btn{font-weight:800;letter-spacing:1px}
-  .hdr-more{display:none;position:absolute;top:calc(100% + 8px);right:0;flex-direction:column;gap:6px;
+  /* Panneau des menus : 3 menus thématiques + 1 menu utilitaire (desktop = rangée de déroulants) */
+  #hdrPanel{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .hdr-group{position:relative}
+  .hdr-group-btn{display:inline-flex;align-items:center;gap:6px}
+  .hdr-group-btn .lbl-mob{display:none}
+  .hdr-chevron{font-size:10px;opacity:.65;transition:transform .15s}
+  .hdr-group.open .hdr-chevron{transform:rotate(180deg)}
+  .hdr-group.open>.hdr-group-btn{border-color:var(--accent2)}
+  .hdr-group-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;left:auto;flex-direction:column;gap:6px;
     background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px;z-index:140;
-    box-shadow:0 14px 34px rgba(0,0,0,.5);min-width:180px}
-  .hdr-more.open{display:flex}
-  .hdr-more .btn{width:100%;text-align:left;justify-content:flex-start}
+    box-shadow:0 14px 34px rgba(0,0,0,.5);min-width:210px}
+  .hdr-group.open>.hdr-group-menu{display:flex}
+  .hdr-group-menu .btn{width:100%;text-align:left;justify-content:flex-start;min-height:40px}
+  .hdr-group-menu .btn:focus-visible{outline:2px solid var(--accent2);outline-offset:1px}
+  .hdr-sep{height:1px;background:var(--line);margin:4px 2px}
   .fab{display:none}
   #yearChart svg{width:100%;height:auto;display:block}
   .wrap{max-width:1000px;margin:0 auto;padding:22px;display:flex;flex-direction:column}
@@ -266,17 +273,26 @@
     header h1{font-size:21px}
     .brand .logo{width:42px;height:42px}
     /* En-tête : Accueil visible + menu ☰ regroupant les actions secondaires */
-    .hdr-menu-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;font-size:14px;font-weight:700}
-    .hdr-home{min-height:44px;display:inline-flex;align-items:center}
-    .hdr-actions{display:none;position:absolute;top:calc(100% + 8px);left:0;right:auto;flex-direction:column;
-      background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:8px;gap:6px;
-      z-index:140;box-shadow:0 14px 34px rgba(0,0,0,.55);width:min(240px,calc(100vw - 32px))}
-    .hdr-actions.open{display:flex}
-    .hdr-actions .btn{width:100%;text-align:left;justify-content:flex-start;min-height:44px;padding:11px 14px;font-size:14px;border-radius:10px}
-    /* Sur mobile : le menu ⋯ desktop est masqué, les actions données rejoignent le menu ☰ */
-    .hdr-more-btn{display:none}
-    .hdr-more{display:none!important}
-    .hdr-data-mob{display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px;padding-top:8px;border-top:1px solid var(--line)}
+    .hdr-menu-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;font-size:16px;font-weight:700}
+    .hdr-home,.hdr-todo,.hdr-admin{min-height:44px;display:inline-flex;align-items:center}
+    /* Panneau ☰ : sections empilées (Mon suivi / Ma tournée / Mon cercle / Aide & données) */
+    #hdrPanel{display:none;position:absolute;top:calc(100% + 8px);right:0;left:auto;flex-direction:column;flex-wrap:nowrap;gap:2px;
+      background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px;
+      z-index:140;box-shadow:0 14px 34px rgba(0,0,0,.55);width:min(290px,calc(100vw - 24px));
+      max-height:calc(100vh - 96px);overflow-y:auto}
+    #hdrPanel.open{display:flex}
+    .hdr-group{position:static}
+    .hdr-group+.hdr-group{border-top:1px solid var(--line);margin-top:4px;padding-top:2px}
+    #hdrPanel .hdr-group-btn{width:100%;justify-content:flex-start;pointer-events:none;cursor:default;
+      background:transparent;border:none;box-shadow:none;min-height:0;padding:9px 8px 3px;
+      font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+    .hdr-group-btn .hdr-chevron{display:none}
+    .hdr-group-btn .lbl-desk{display:none}
+    .hdr-group-btn .lbl-mob{display:inline}
+    .hdr-group-menu{display:flex!important;position:static;flex-direction:column;gap:4px;
+      background:transparent;border:none;box-shadow:none;padding:0;min-width:0}
+    .hdr-group-menu .btn{width:100%;text-align:left;justify-content:flex-start;min-height:44px;padding:11px 14px;font-size:14px;border-radius:10px}
+    .hdr-sep{display:none}
     /* FAB « Ajouter une date » toujours accessible au pouce */
     .action-bar{display:none}
     .fab{display:flex;position:fixed;right:16px;bottom:80px;z-index:210;width:60px;height:60px;border-radius:50%;
@@ -839,32 +855,58 @@
     </div>
   </div>
   <div class="hdr-tools">
+    <!-- Accès direct 1 clic (desktop + mobile) -->
     <button class="btn ghost sm hdr-home" onclick="openWelcome()" data-tip="Revenir à l'accueil : choisir l'espace artiste ou l'espace structure">🏠 Accueil</button>
-    <button class="btn ghost sm hdr-menu-btn" type="button" onclick="toggleHdrMenu(event)" aria-label="Menu" aria-expanded="false" data-tip="Ouvrir le menu">☰ Menu</button>
-    <div class="hdr-actions" id="hdrActions">
-      <button class="btn ghost sm hdr-todo" onclick="focusTodo()" data-tip="Voir tout ce qui reste à faire maintenant : DPAE à venir, feuillets GUSO à éditer, factures en attente, incohérences">🔔 À faire<span class="hdr-badge" id="todoBadge" hidden>0</span></button>
-      <button class="btn ghost sm" onclick="openHelp()" data-tip="Demander un coup de main : prochain pas, retard d'heures, blocage admin ou simple doute. Tu restes libre de partager ou non.">🤗 Besoin d'aide</button>
-      <button class="btn ghost sm" onclick="openGroup()" data-tip="Vue groupe : veiller les uns sur les autres, en toute transparence et avec le consentement de chacun (jamais tes montants)">🎸 Groupe<span class="hdr-badge" id="grpInviteBadge" hidden>0</span></button>
-      <button class="btn ghost sm" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
-      <button class="btn ghost sm" onclick="openBilan()" data-tip="Vérifier que tout est en ordre (DPAE, feuillets GUSO, factures) sur la période en cours et sortir un bilan imprimable">🔍 Bilan</button>
-      <button class="btn ghost sm" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
-      <button class="btn ghost sm" onclick="openMap()" data-tip="Carte de tous tes plans géolocalisés + kilomètres parcourus depuis chez toi">🗺️ Carte</button>
-      <button class="btn ghost sm" onclick="openTour()" data-tip="Préparation de tournée : carnet de contacts organisateurs, concerts passés et mails types pour relancer / démarcher">🎪 Tournée</button>
-      <button class="btn ghost sm" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
-      <button class="btn ghost sm" onclick="openBug()" data-tip="Signaler un bug ou proposer une idée d'amélioration">🐛 Signaler un bug</button>
-      <button class="btn ghost sm" id="btnAdmin" hidden onclick="openAdmin()" data-tip="Console d'administration : demandes d'accès et comptes">🛡️ Admin<span class="hdr-badge" id="adminBadge" hidden>0</span></button>
-      <button class="btn ghost sm" id="btnLogout" onclick="doLogout()" data-tip="Se déconnecter de ton espace Guso Facile">🚪 Déconnexion</button>
-      <!-- Actions données (rarement utilisées) : visibles uniquement dans le menu mobile ☰ -->
-      <div class="hdr-data-mob">
-        <button class="btn ghost sm" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
-        <button class="btn ghost sm" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
+    <button class="btn ghost sm hdr-todo" onclick="focusTodo()" data-tip="Voir tout ce qui reste à faire maintenant : DPAE à venir, feuillets GUSO à éditer, factures en attente, incohérences">🔔 À faire<span class="hdr-badge" id="todoBadge" hidden>0</span></button>
+    <button class="btn ghost sm hdr-admin" id="btnAdmin" hidden onclick="openAdmin()" data-tip="Console d'administration : demandes d'accès et comptes">🛡️ Admin<span class="hdr-badge" id="adminBadge" hidden>0</span></button>
+    <button class="btn ghost sm hdr-menu-btn" type="button" onclick="toggleHdrMenu(event)" aria-label="Menu" aria-expanded="false" data-tip="Ouvrir le menu">☰</button>
+    <!-- Menus organisés : 3 thématiques + 1 utilitaire (déroulants desktop / sections mobile) -->
+    <div id="hdrPanel">
+      <!-- 📊 Mon suivi -->
+      <div class="hdr-group">
+        <button class="btn ghost sm hdr-group-btn" type="button" onclick="toggleHdrGroup(this,event)" aria-haspopup="true" aria-expanded="false" data-tip="Ton suivi : récap mensuel, vérification/bilan et profil">
+          <span class="hdr-group-lbl">📊 Mon suivi</span><span class="hdr-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="hdr-group-menu" role="menu">
+          <button class="btn ghost sm" role="menuitem" onclick="openRecap()" data-tip="Récap mensuel : nombre de GUSO, cachets, heures et brut par mois — à pointer contre l'actualisation France Travail">📅 Récap mensuel</button>
+          <button class="btn ghost sm" role="menuitem" onclick="openBilan()" data-tip="Vérifier que tout est en ordre (DPAE, feuillets GUSO, factures) sur la période en cours et sortir un bilan imprimable">🔍 Vérifier &amp; bilan</button>
+          <button class="btn ghost sm" role="menuitem" onclick="openProfile()" data-tip="Ton profil : identité, instruments, conditions idéales, modèles de contrats — à partager avec une structure">👤 Profil</button>
+        </div>
       </div>
-    </div>
-    <!-- Menu secondaire « données » (desktop) : Sauvegarder / Importer -->
-    <button class="btn ghost sm hdr-more-btn" type="button" onclick="toggleHdrMore(event)" aria-label="Plus d'actions" aria-expanded="false" data-tip="Sauvegarder / importer tes données">⋯</button>
-    <div class="hdr-more" id="hdrMore">
-      <button class="btn ghost sm" onclick="closeHdrMore();exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">⬇ Sauvegarder</button>
-      <button class="btn ghost sm" onclick="closeHdrMore();document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">⬆ Importer</button>
+      <!-- 🎪 Ma tournée -->
+      <div class="hdr-group">
+        <button class="btn ghost sm hdr-group-btn" type="button" onclick="toggleHdrGroup(this,event)" aria-haspopup="true" aria-expanded="false" data-tip="Ta tournée : carte des plans et préparation">
+          <span class="hdr-group-lbl">🎪 Ma tournée</span><span class="hdr-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="hdr-group-menu" role="menu">
+          <button class="btn ghost sm" role="menuitem" onclick="openMap()" data-tip="Carte de tous tes plans géolocalisés + kilomètres parcourus depuis chez toi">🗺️ Carte</button>
+          <button class="btn ghost sm" role="menuitem" onclick="openTour()" data-tip="Préparation de tournée : carnet de contacts organisateurs, concerts passés et mails types pour relancer / démarcher">🎪 Préparation de tournée</button>
+        </div>
+      </div>
+      <!-- 🫂 Mon cercle -->
+      <div class="hdr-group">
+        <button class="btn ghost sm hdr-group-btn" type="button" onclick="toggleHdrGroup(this,event)" aria-haspopup="true" aria-expanded="false" data-tip="Ton cercle : ton groupe et l'entraide bienveillante">
+          <span class="hdr-group-lbl">🫂 Mon cercle</span><span class="hdr-badge" id="grpInviteBadge" hidden>0</span><span class="hdr-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="hdr-group-menu" role="menu">
+          <button class="btn ghost sm" role="menuitem" onclick="openGroup()" data-tip="Vue groupe : veiller les uns sur les autres, en toute transparence et avec le consentement de chacun (jamais tes montants)">🎸 Groupe</button>
+          <button class="btn ghost sm" role="menuitem" onclick="openHelp()" data-tip="Demander un coup de main : prochain pas, retard d'heures, blocage admin ou simple doute. Tu restes libre de partager ou non.">🤗 Besoin d'aide</button>
+        </div>
+      </div>
+      <!-- ⋯ Aide & données -->
+      <div class="hdr-group hdr-group-util">
+        <button class="btn ghost sm hdr-group-btn" type="button" onclick="toggleHdrGroup(this,event)" aria-haspopup="true" aria-expanded="false" aria-label="Aide et données" data-tip="Guide, signalement de bug, sauvegarde/import et déconnexion">
+          <span class="hdr-group-lbl lbl-desk">⋯</span><span class="hdr-group-lbl lbl-mob">Aide &amp; données</span>
+        </button>
+        <div class="hdr-group-menu" role="menu">
+          <button class="btn ghost sm" role="menuitem" onclick="openGuide()" data-tip="Guide d'utilisation : comment ça marche selon que tu es artiste ou Des Sons et Des Liens">❓ Guide</button>
+          <button class="btn ghost sm" role="menuitem" onclick="openBug()" data-tip="Signaler un bug ou proposer une idée d'amélioration">🐛 Signaler un bug</button>
+          <button class="btn ghost sm" role="menuitem" onclick="exportData()" data-tip="Télécharger une copie de toutes tes données sur ton ordinateur (sauvegarde de secours)">💾 Sauvegarder</button>
+          <button class="btn ghost sm" role="menuitem" onclick="document.getElementById('importf').click()" data-tip="Restaurer tes données depuis un fichier de sauvegarde téléchargé précédemment">📂 Importer</button>
+          <div class="hdr-sep" role="separator"></div>
+          <button class="btn ghost sm" role="menuitem" id="btnLogout" onclick="doLogout()" data-tip="Se déconnecter de ton espace Guso Facile">🚪 Déconnexion</button>
+        </div>
+      </div>
     </div>
     <input type="file" id="importf" accept="application/json" style="display:none" onchange="importData(this)">
   </div>
@@ -4007,34 +4049,49 @@ function openFromHash(){
 window.addEventListener('hashchange',()=>{ _hashOpened=false; openFromHash(); });
 // connectSync() est déjà exécuté (et attendu) par enterApp() avant startApp().
 function startApp(){ ensureDpaeIris(state); renderTabs(); renderOwnerOptions(); setPerson(defaultPerson()); renderSaveStatus(); openFromHash(); if(!_hashOpened) openWelcome(); }
-/* ===== Menu compact de l'en-tête (mobile) ===== */
+/* ===== En-tête : menus déroulants thématiques (desktop) + panneau ☰ sectionné (mobile) ===== */
+// Ferme tous les déroulants desktop (sauf éventuellement celui passé en argument).
+function closeAllHdrGroups(except){
+  document.querySelectorAll('.hdr-group.open').forEach(function(g){
+    if(g!==except){ g.classList.remove('open');
+      const b=g.querySelector('.hdr-group-btn'); if(b) b.setAttribute('aria-expanded','false'); }
+  });
+}
+// Bascule un menu déroulant thématique (desktop). Sur mobile, les sections sont toujours ouvertes → no-op.
+function toggleHdrGroup(btn,ev){ if(ev) ev.stopPropagation();
+  if(window.matchMedia('(max-width:640px)').matches) return;
+  const g=btn.closest('.hdr-group'); if(!g) return;
+  const willOpen=!g.classList.contains('open');
+  closeAllHdrGroups(g);
+  g.classList.toggle('open',willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
+}
+// Panneau ☰ (mobile) : contient toutes les sections.
 function toggleHdrMenu(ev){ if(ev) ev.stopPropagation();
-  const a=document.getElementById('hdrActions'); if(!a) return;
-  const open=a.classList.toggle('open');
+  const p=document.getElementById('hdrPanel'); if(!p) return;
+  const open=p.classList.toggle('open');
   const b=document.querySelector('.hdr-menu-btn'); if(b) b.setAttribute('aria-expanded',open?'true':'false');
 }
 function closeHdrMenu(){
-  const a=document.getElementById('hdrActions'); if(a) a.classList.remove('open');
+  const p=document.getElementById('hdrPanel'); if(p) p.classList.remove('open');
   const b=document.querySelector('.hdr-menu-btn'); if(b) b.setAttribute('aria-expanded','false');
 }
-function toggleHdrMore(ev){ if(ev) ev.stopPropagation();
-  const m=document.getElementById('hdrMore'); if(!m) return;
-  const open=m.classList.toggle('open');
-  const b=document.querySelector('.hdr-more-btn'); if(b) b.setAttribute('aria-expanded',open?'true':'false');
-}
-function closeHdrMore(){
-  const m=document.getElementById('hdrMore'); if(m) m.classList.remove('open');
-  const b=document.querySelector('.hdr-more-btn'); if(b) b.setAttribute('aria-expanded','false');
-}
+// Conservé pour compatibilité (appelé par focusTodo) : referme les déroulants.
+function closeHdrMore(){ closeAllHdrGroups(); }
 document.addEventListener('click',function(e){
-  const a=document.getElementById('hdrActions');
-  if(a&&a.classList.contains('open')&&!e.target.closest('.hdr-menu-btn')){
+  // Clic sur un item d'un menu → exécute l'action puis referme le déroulant et le panneau mobile.
+  if(e.target.closest('.hdr-group-menu .btn')){ closeAllHdrGroups(); closeHdrMenu(); return; }
+  // Clic hors d'un groupe → referme les déroulants desktop.
+  if(!e.target.closest('.hdr-group')){ closeAllHdrGroups(); }
+  // Clic hors du panneau ☰ ouvert → referme.
+  const p=document.getElementById('hdrPanel');
+  if(p&&p.classList.contains('open')&&!e.target.closest('.hdr-menu-btn')&&!e.target.closest('#hdrPanel')){
     closeHdrMenu();
   }
-  const m=document.getElementById('hdrMore');
-  if(m&&m.classList.contains('open')&&!e.target.closest('.hdr-more-btn')&&!e.target.closest('#hdrMore')){
-    closeHdrMore();
-  }
+});
+// Échap ferme déroulants + panneau ☰.
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){ closeAllHdrGroups(); closeHdrMenu(); }
 });
 /* ===== Écran d'accueil : choix Espace artiste / Espace structure ===== */
 function openWelcome(){
