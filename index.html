@@ -891,6 +891,8 @@
         </button>
         <div class="hdr-group-menu" role="menu">
           <button class="btn ghost sm" role="menuitem" onclick="openGroup()" data-tip="Vue groupe : veiller les uns sur les autres, en toute transparence et avec le consentement de chacun (jamais tes montants)">🎸 Groupe</button>
+          <button class="btn ghost sm" role="menuitem" id="menuMyStructures" hidden onclick="openMyStructures()" data-tip="Les structures qui t'accompagnent : demandes, statut et niveau de confidentialité que TU choisis.">🏢 Mes structures</button>
+          <button class="btn ghost sm" role="menuitem" id="menuMyArtists" hidden onclick="openMyArtists()" data-tip="Les artistes que ta structure accompagne : demandes reçues, statut et ajout d'un artiste.">🏢 Mes artistes</button>
           <button class="btn ghost sm" role="menuitem" onclick="openHelp()" data-tip="Demander un coup de main : prochain pas, retard d'heures, blocage admin ou simple doute. Tu restes libre de partager ou non.">🤗 Besoin d'aide</button>
         </div>
       </div>
@@ -1382,6 +1384,7 @@
    <div class="adm-tabs">
      <button type="button" id="admTabReq" class="active" onclick="admSwitch('req')">📥 Demandes d'accès<span class="hdr-badge" id="admTabReqBadge" hidden>0</span></button>
      <button type="button" id="admTabAcc" onclick="admSwitch('acc')">👥 Comptes</button>
+     <button type="button" id="admTabStruct" onclick="admSwitch('struct')">🏢 Structures</button>
      <button type="button" id="admTabMail" onclick="admSwitch('mail')">✉️ Envoyer la mise à jour</button>
    </div>
 
@@ -1424,7 +1427,44 @@
      <div id="admMailStatus" class="admm-note"></div>
      <div id="admMailPreview" style="display:none;margin-top:10px"><iframe id="admMailFrame" title="Aperçu de l'email" sandbox=""></iframe></div>
    </div>
+
+   <!-- Onglet STRUCTURES -->
+   <div id="admPaneStruct" style="display:none">
+     <div class="hint" style="margin:0 0 10px">Affilier une structure à l'espace d'un artiste, choisir ce qu'elle voit, ou révoquer l'accès.</div>
+     <div class="aff-adminform">
+       <div class="grp-sec-t" style="margin-top:0">Affilier un artiste à une structure</div>
+       <div class="aff-frow"><input id="admAffStructEmail" type="email" placeholder="Email du compte structure" autocomplete="off"></div>
+       <div class="aff-frow"><input id="admAffArtistEmail" type="email" placeholder="Email de l'artiste" autocomplete="off"></div>
+       <button class="btn sm" type="button" onclick="admAffiliate(this)" data-tip="Créer l'affiliation (la structure pourra voir l'espace de l'artiste selon le niveau choisi)">🔗 Affilier</button>
+       <div id="admAffMsg" class="admm-note"></div>
+     </div>
+     <div style="display:flex;align-items:center;gap:8px;margin:14px 0 10px">
+       <div class="grp-sec-t" style="flex:1;margin:0">Structures &amp; affiliations</div>
+       <button class="btn ghost sm" type="button" onclick="loadAdminStructures()" data-tip="Recharger la liste">↻</button>
+     </div>
+     <div id="admStructList"><div style="color:var(--muted);font-size:13px;padding:14px 0">Chargement…</div></div>
+   </div>
  </div>
+</div>
+
+<!-- ===== MES STRUCTURES (compte artiste) ===== -->
+<div class="modal-bg" id="affArtistBg" style="z-index:81" onclick="closeMyStructures(event)">
+  <div class="modal grp-modal" onclick="event.stopPropagation()">
+    <button class="bo-x" type="button" onclick="closeMyStructures()" data-tip="Fermer">✕</button>
+    <h3>🏢 Mes structures</h3>
+    <div class="msub">Les structures qui t'accompagnent. Tu choisis pour chacune ce qu'elle peut voir de tes données.</div>
+    <div id="affArtistBody"><div class="grp-loading">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ===== MES ARTISTES (compte structure) ===== -->
+<div class="modal-bg" id="affStructBg" style="z-index:81" onclick="closeMyArtists(event)">
+  <div class="modal grp-modal" onclick="event.stopPropagation()">
+    <button class="bo-x" type="button" onclick="closeMyArtists()" data-tip="Fermer">✕</button>
+    <h3>🏢 Mes artistes</h3>
+    <div class="msub">Les artistes que ta structure accompagne. C'est l'artiste qui décide de ce que tu vois.</div>
+    <div id="affStructBody"><div class="grp-loading">Chargement…</div></div>
+  </div>
 </div>
 
 <!-- ===== VUE GROUPE ===== -->
@@ -1500,6 +1540,32 @@
 .grp-shareopt .gs-ic{font-size:20px;flex:0 0 auto}
 .grp-shareopt .gs-sub{color:var(--muted);font-size:12px;font-weight:500}
 .grpav-datesw input[type=checkbox]{margin-top:3px;flex:0 0 auto;width:auto;min-width:0;transform:scale(1.2)}
+/* Affiliations artistes ⇄ structures */
+.aff-card{border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:11px;background:var(--panel2)}
+.aff-card .af-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:6px}
+.aff-card .af-name{font-weight:800;font-size:15px;flex:1;min-width:0;overflow-wrap:anywhere}
+.aff-pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.aff-pill.wait{background:rgba(255,209,102,.18);color:#ffd166}
+.aff-pill.active{background:rgba(61,220,151,.18);color:#3ddc97}
+.aff-pill.revoked{background:rgba(138,160,184,.18);color:var(--muted)}
+.aff-sub{font-size:12.5px;color:var(--muted);line-height:1.5;margin:4px 0 8px}
+.aff-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.aff-vis{margin-top:6px}
+.aff-vis-lbl{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.aff-visopt{display:flex;align-items:flex-start;gap:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:7px;cursor:pointer;font-size:13px;line-height:1.4}
+.aff-visopt.on{border-color:var(--accent);background:rgba(124,131,255,.10)}
+.aff-visopt input[type=radio]{margin-top:2px;flex:0 0 auto;width:auto;min-width:0}
+.aff-visopt>span:last-child{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+.aff-visopt .av-ic{font-size:17px;flex:0 0 auto}
+.aff-visopt .av-sub{color:var(--muted);font-size:11.5px;font-weight:500}
+.aff-search{display:flex;gap:8px;margin-top:6px}
+.aff-search input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px}
+.aff-frow{margin-bottom:8px}
+.aff-frow input{width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 11px;font-size:14px}
+.aff-adminform{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--panel2);margin-bottom:6px}
+.aff-adminrow{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:7px 0;background:var(--panel2);font-size:13px}
+.aff-adminrow .aar-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aff-adminrow select{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font-size:12.5px}
 /* Panneau de disponibilités du groupe (formulaire de date) */
 .grpav-panel{box-sizing:border-box;width:100%;margin-top:14px;background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
 .grpav-head{font-weight:700;color:var(--txt);margin-bottom:9px;overflow-wrap:anywhere}
@@ -2838,6 +2904,15 @@ function copyArtistInfo(){ const p=_baPerson; if(!p) return; const txt=buildArti
    À CHAQUE DÉPLOIEMENT : copier le premier bloc, id++, le placer EN TÊTE (le plus récent en premier).
    Champs : {id, name, date:'YYYY-MM-DD', tags?:[], summary, details?:[], major?:true} */
 const CHANGELOG = [
+  { id:13, name:"🏢 Artistes et structures se trouvent et s'affilient", date:'2026-07-20', major:true,
+    tags:['Cercle','Structure'],
+    summary:"Un artiste et une structure peuvent désormais se trouver par email, se demander de s'affilier, et l'artiste choisit précisément ce que la structure voit de ses données.",
+    details:[
+      "Nouveau « 🏢 Mes structures » (menu « Mon cercle » côté artiste) : accepte ou refuse les demandes, et pour chaque structure choisis le niveau de confidentialité — 🤝 Tout partager, 🧾 Partenaire ou 🔢 Minimal.",
+      "Nouveau « 🏢 Mes artistes » (côté structure) : vois tes artistes, réponds aux demandes reçues et ajoute un artiste par son email.",
+      "Rejoindre / ajouter : tu cherches l'autre par email et tu envoies une demande — l'autre doit l'accepter (c'est toujours l'artiste qui décide de ce qu'il partage).",
+      "Console admin : nouvel onglet « 🏢 Structures » pour affilier, régler la visibilité ou révoquer un accès.",
+      "Un badge sur « Mon cercle » signale les demandes d'affiliation qui attendent ta réponse." ] },
   { id:12, name:"🗓️ Propose une date, l'appli vérifie les dispos du groupe", date:'2026-07-19', major:true,
     tags:['Groupe','Dates'],
     summary:"Quand tu rattaches une nouvelle date à un de tes groupes, Guso Facile scanne en direct les agendas des membres et te dit qui est libre.",
@@ -2980,7 +3055,8 @@ const GUIDE_SECTIONS = [
     "<p><b>🎸 Groupe</b> — veiller les uns sur les autres. Tu crées ou rejoins un groupe (par email ou par <b>code</b>), chacun <b>consent</b> explicitement à ce qu'il partage et choisit son <b>niveau de partage</b>. Le tableau de bord montre des cartes 🔴🟡🟢 par membre (jauge, jours restants) — <b>jamais les montants</b>. Un <b>hub d'infos</b> permet de partager des messages au groupe.</p>"
     +"<p><b>🗓️ Vérification des disponibilités</b> — quand tu ajoutes une date et que tu la rattaches à un de tes groupes, un panneau s'affiche sous le formulaire : il scanne en direct les agendas des membres et te dit qui est <b>✅ libre</b>, <b>🔮 en option</b>, <b>❌ déjà engagé</b> ou <b>🤐 agenda privé</b>, avec un bandeau « tout le monde est libre ! » le cas échéant. Il repère aussi les engagements de la <b>veille</b> et du <b>lendemain</b> et estime la <b>distance en km</b> jusqu'au lieu de ta nouvelle date. C'est purement informatif : ça n'empêche jamais d'enregistrer.</p>"
     +"<p><b>Réglage « 📅 Mes disponibilités »</b> — dans l'onglet <b>Membres &amp; partage</b>, sous « Ce que je partage avec le groupe », tu choisis si le groupe peut voir tes dates <b>engagées / en option</b> pour cette vérification. <b>Jamais tes montants.</b> Tu peux le couper à tout moment pour garder ton agenda privé.</p>"
-    +"<p><b>🤗 Besoin d'aide</b> — quand tu bloques, choisis parmi 4 situations : <b>prochain pas</b>, <b>retard d'heures</b>, <b>blocage administratif</b> ou <b>doute perso</b>. L'app te donne d'abord un conseil concret (ton vrai prochain pas, tes vrais chiffres) ; partager ta demande à un proche, un groupe ou une structure reste <b>ton choix</b>.</p>" },
+    +"<p><b>🏢 Mes structures</b> (compte artiste) — retrouve les structures qui t'accompagnent. Tu peux <b>rejoindre une structure</b> en la cherchant par email puis en envoyant une demande (elle doit l'accepter). Pour chaque structure, tu réponds aux demandes (<b>Accepter / Refuser</b>) et surtout tu choisis ton <b>niveau de confidentialité</b> : 🤝 <b>Tout partager</b>, 🧾 <b>Partenaire</b> (défaut) ou 🔢 <b>Minimal</b> — c'est <b>toujours toi</b> qui décides ce que la structure voit, et tu peux te retirer à tout moment.</p>"
+    +"<p><b>🏢 Mes artistes</b> (compte structure) — retrouve les artistes que tu accompagnes, réponds aux <b>demandes reçues</b> et <b>ajoute un artiste</b> par son email (il doit accepter et choisir ce qu'il partage). La visibilité affichée est en lecture seule : c'est l'artiste qui la règle.</p>" },
   { id:'mes-documents', icon:'📄', title:'Mes documents', html:
     "<p>Sur chaque date, tu peux déposer le <b>feuillet GUSO</b> et la <b>facture</b> (PDF ou image, jusqu'à 10 Mo). Ils sont <b>hébergés en ligne</b> de façon sécurisée et s'ouvrent en un clic (<b>📄 Ouvrir le GUSO</b>, <b>🧾 Ouvrir la facture</b>).</p>"
     +"<p>Ton <b>RIB / IBAN officiel</b> se dépose dans le profil (et celui de la structure dans « Ma structure »). Si un fichier est trop lourd, tu peux coller un lien Drive à la place.</p>" },
@@ -2998,6 +3074,7 @@ const GUIDE_SECTIONS = [
     "<p>Réservé aux administrateurs (bouton <b>🛡️ Admin</b>). La console comporte trois onglets :</p>"
     +"<ul><li><b>📥 Demandes d'accès</b> — approuver ou refuser les demandes envoyées depuis la page de présentation (l'approbation crée le compte et envoie l'invitation).</li>"
     +"<li><b>👥 Comptes</b> — liste des comptes, offrir/retirer l'accès, nommer/retirer un administrateur.</li>"
+    +"<li><b>🏢 Structures</b> — affilier un artiste à une structure (par emails), régler le niveau de visibilité (🤝 complet / 🧾 partenaire / 🔢 minimal) et révoquer un accès.</li>"
     +"<li><b>✉️ Envoyer la mise à jour</b> — choisir les nouveautés à annoncer, prévisualiser l'email (<b>👁 Aperçu</b>), s'envoyer un <b>test</b>, puis <b>envoyer à tous</b> les abonnés.</li></ul>" },
   { id:'faq', icon:'❓', title:'FAQ — données & sécurité', html:
     "<p><b>Qui voit mes données ?</b> Toi seul, via ton compte. David et Iris se partagent leur espace (cas particulier assumé). Une structure ne voit que ce que tu autorises (partage gradué : complet, partenaire ou totaux seuls).</p>"
@@ -4171,13 +4248,14 @@ function openAdmin(){ try{ closeHdrMenu(); }catch(e){}
   admSwitch('req'); loadAdminRequests(); loadAdminAccounts(); }
 function closeAdmin(ev){ if(ev&&ev.target!==ev.currentTarget) return; document.getElementById('adminBg').classList.remove('show'); }
 function admSwitch(which){
-  ['Req','Acc','Mail'].forEach(function(w){
+  ['Req','Acc','Struct','Mail'].forEach(function(w){
     const key=w.toLowerCase();
     const tab=document.getElementById('admTab'+w), pane=document.getElementById('admPane'+w);
     if(tab) tab.classList.toggle('active', which===key);
     if(pane) pane.style.display = which===key ? '' : 'none';
   });
   if(which==='mail' && !_admMailInit) admMailRender();
+  if(which==='struct') loadAdminStructures();
 }
 function setAdminBadge(n){
   [['adminBadge'],['admTabReqBadge']].forEach(function(pair){
@@ -4950,7 +5028,7 @@ function myAcceptedGroups(){ return (_myGroups||[]).filter(g=>g.consent==='accep
 function myInvites(){ return (_myGroups||[]).filter(g=>g.consent==='invited'); }
 function updateInviteBadge(){
   const b=document.getElementById('grpInviteBadge'); if(!b) return;
-  const n=myInvites().length;
+  const n=myInvites().length + affilInvitesForMe().length;
   if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true;
 }
 function refreshGroupDatalist(){
@@ -5575,9 +5653,333 @@ async function helpAck(id){
   }catch(e){ console.warn('helpAck',e); toast('Action impossible pour le moment'); }
 }
 
+/* ============================================================
+   AFFILIATIONS artistes ⇄ structures (Mon cercle + console admin)
+   - Contrat FIGÉ : RPC my_affiliations, EF admin-users (searchStructure,
+     requestAffiliation, listStructures, affiliate, setVisibility, unaffiliate,
+     searchUser), UPDATE direct sur structure_artists (par id).
+   ============================================================ */
+let _myRole=null, _myAffils=[], ADM_STRUCTS=[];
+const AFF_VIS=[
+  {v:'full',    ic:'🤝', t:'Tout partager', sub:'Tout ton espace : dates, démarches et montants.'},
+  {v:'partner', ic:'🧾', t:'Partenaire',    sub:'Tes dates et démarches — sans le détail de tes montants.'},
+  {v:'minimal', ic:'🔢', t:'Minimal',       sub:'Seulement tes totaux d\'heures — le reste reste privé.'}
+];
+function _emailOk(s){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s||'').trim()); }
+function affVisLabel(v){ const o=AFF_VIS.find(x=>x.v===v)||AFF_VIS[1]; return o.ic+' '+o.t; }
+function affStatusPill(st){
+  if(st==='active')  return '<span class="aff-pill active">✅ Active</span>';
+  if(st==='revoked') return '<span class="aff-pill revoked">Retirée</span>';
+  return '<span class="aff-pill wait">⏳ En attente</span>';
+}
+function _uid(){ return String(_user&&_user.id||''); }
+
+/* ---------- chargement rôle + affiliations ---------- */
+async function loadMyRole(){
+  _myRole=null;
+  if(!sb||!_user) return _myRole;
+  try{
+    const r=await sb.from('profiles').select('role').eq('id',_user.id).maybeSingle();
+    _myRole=(r.data&&r.data.role)||null;
+  }catch(e){ console.warn('loadMyRole',e); _myRole=null; }
+  return _myRole;
+}
+function applyRoleUi(){
+  const isStruct=(_myRole==='structure');
+  const a=document.getElementById('menuMyStructures'), s=document.getElementById('menuMyArtists');
+  if(a){ if(isStruct) a.setAttribute('hidden',''); else a.removeAttribute('hidden'); }
+  if(s){ if(isStruct) s.removeAttribute('hidden'); else s.setAttribute('hidden',''); }
+}
+async function loadMyAffiliations(){
+  _myAffils=[];
+  if(!sb||!_user) return _myAffils;
+  try{
+    const r=await sb.rpc('my_affiliations');
+    if(r.error) throw r.error;
+    _myAffils=Array.isArray(r.data)?r.data:[];
+  }catch(e){ console.warn('loadMyAffiliations',e); _myAffils=[]; }
+  return _myAffils;
+}
+function affilInvitesForMe(){
+  return (_myAffils||[]).filter(a=>a && a.status==='invited' && String(a.requested_by)!==_uid());
+}
+async function refreshAffAll(){
+  await loadMyAffiliations(); updateInviteBadge();
+  const aB=document.getElementById('affArtistBg'), sB=document.getElementById('affStructBg');
+  if(aB&&aB.classList.contains('show')) renderMyStructures();
+  if(sB&&sB.classList.contains('show')) renderMyArtists();
+}
+
+/* ---------- UPDATE direct (artiste ET structure, par id) ---------- */
+async function affUpdate(affId, patch, okMsg){
+  try{
+    const r=await sb.from('structure_artists').update(patch).eq('id',affId);
+    if(r.error) throw r.error;
+    if(okMsg) toast(okMsg); return true;
+  }catch(e){ console.warn('affUpdate',e); toast('Action impossible pour le moment'); return false; }
+}
+/* Artiste */
+async function affAccept(affId){ if(await affUpdate(affId,{status:'active'},'✅ Affiliation acceptée')) await refreshAffAll(); }
+async function affRefuse(affId){ if(await affUpdate(affId,{status:'revoked'},'Demande refusée')) await refreshAffAll(); }
+async function affLeave(affId){ if(!confirm('Te retirer de cette structure ? Elle ne verra plus tes données.')) return;
+  if(await affUpdate(affId,{status:'revoked'},'Tu t\'es retiré·e de la structure')) await refreshAffAll(); }
+async function affSetVisibility(affId,v){ if(await affUpdate(affId,{visibility:v},'🔐 Confidentialité mise à jour')){ await loadMyAffiliations(); renderMyStructures(); } }
+/* Structure (owner) */
+async function affStructAccept(affId){ if(await affUpdate(affId,{status:'active'},'✅ Artiste accepté')) await refreshAffAll(); }
+async function affStructRefuse(affId){ if(await affUpdate(affId,{status:'revoked'},'Demande refusée')) await refreshAffAll(); }
+async function affStructRemove(affId){ if(!confirm('Retirer cet artiste ? Tu ne verras plus ses données.')) return;
+  if(await affUpdate(affId,{status:'revoked'},'Artiste retiré')) await refreshAffAll(); }
+
+/* ---------- ÉCRAN 2 : Mes structures (compte artiste) ---------- */
+function openMyStructures(){ try{closeHdrMenu();}catch(e){}
+  if(!sb||!_user){ toast('Connexion requise'); return; }
+  const bg=document.getElementById('affArtistBg'); if(bg) bg.classList.add('show'); renderMyStructures(); }
+function closeMyStructures(ev){ if(ev&&ev.target!==ev.currentTarget) return; const bg=document.getElementById('affArtistBg'); if(bg) bg.classList.remove('show'); }
+function affVisSelector(affId, cur){
+  const c=cur||'partner';
+  let h='<div class="aff-vis"><div class="aff-vis-lbl">Ce que cette structure voit</div>';
+  AFF_VIS.forEach(o=>{ const on=(o.v===c);
+    h+='<label class="aff-visopt'+(on?' on':'')+'"><input type="radio" name="vis_'+_escA(affId)+'" value="'+o.v+'"'+(on?' checked':'')
+      +' onchange="affSetVisibility(\''+_escA(affId)+'\',\''+o.v+'\')"><span class="av-ic">'+o.ic+'</span>'
+      +'<span><b>'+o.t+'</b><br><span class="av-sub">'+o.sub+'</span></span></label>';
+  });
+  return h+'</div>';
+}
+async function renderMyStructures(){
+  const box=document.getElementById('affArtistBody'); if(!box) return;
+  box.innerHTML='<div class="grp-loading">Chargement…</div>';
+  await loadMyAffiliations(); updateInviteBadge();
+  const mine=(_myAffils||[]).filter(a=>a.i_am==='artist' && a.status!=='revoked');
+  const myId=_uid();
+  let h='';
+  if(mine.length){
+    h+='<div class="grp-sec-t" style="margin-top:4px">Mes affiliations</div>';
+    mine.forEach(a=>{
+      const name=_esc(a.structure_name||'Structure');
+      const invitedToMe=(a.status==='invited' && String(a.requested_by)!==myId);
+      const invitedByMe=(a.status==='invited' && String(a.requested_by)===myId);
+      h+='<div class="aff-card"><div class="af-head"><span class="af-name">🏢 '+name+'</span>'+affStatusPill(a.status)+'</div>';
+      if(invitedToMe) h+='<div class="aff-sub"><b>'+name+'</b> demande à gérer ton espace. En acceptant, elle verra tes données selon le niveau que <b>TU</b> choisis.</div>';
+      else if(invitedByMe) h+='<div class="aff-sub">⏳ Demande envoyée — la structure doit accepter.</div>';
+      h+=affVisSelector(a.id, a.visibility);
+      h+='<div class="aff-btns">';
+      if(invitedToMe){
+        h+='<button class="btn sm" type="button" onclick="affAccept(\''+_escA(a.id)+'\')" data-tip="Accepter — elle verra tes données selon le niveau choisi">✅ Accepter</button>';
+        h+='<button class="btn ghost sm" type="button" onclick="affRefuse(\''+_escA(a.id)+'\')" data-tip="Refuser la demande">❌ Refuser</button>';
+      }
+      if(a.status==='active') h+='<button class="btn ghost sm" type="button" onclick="affLeave(\''+_escA(a.id)+'\')" data-tip="Te retirer de cette structure">🚪 Se retirer</button>';
+      h+='</div></div>';
+    });
+  } else {
+    h+='<div class="grp-intro"><div class="warm">Aucune structure pour l\'instant. Une structure (label, collectif, compagnie…) peut t\'accompagner dans tes démarches — et c\'est <b>toi</b> qui gardes la main sur ce qu\'elle voit.</div></div>';
+  }
+  h+='<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">';
+  h+='<div class="grp-sec-t">Rejoindre une structure</div>';
+  h+='<div class="aff-search"><input id="affJoinEmail" type="email" placeholder="Email du compte structure" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();affJoinSearch();}">'
+    +'<button class="btn" type="button" onclick="affJoinSearch()" data-tip="Chercher cette structure sur Guso Facile">🔎 Chercher</button></div>';
+  h+='<div id="affJoinResult" style="margin-top:10px"></div>';
+  box.innerHTML=h;
+}
+async function affJoinSearch(){
+  const el=document.getElementById('affJoinEmail'); const email=(el&&el.value||'').trim();
+  const res=document.getElementById('affJoinResult');
+  if(!_emailOk(email)){ if(res) res.innerHTML='<div class="grp-wait">Entre une adresse email valide.</div>'; return; }
+  if(res) res.innerHTML='<div class="grp-loading">Recherche…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'searchStructure', query:email}}); }
+  catch(e){ console.warn('searchStructure',e); if(res) res.innerHTML='<div class="grp-wait">Recherche indisponible pour le moment.</div>'; return; }
+  if(r&&r.error){ if(res) res.innerHTML='<div class="grp-wait">Recherche indisponible pour le moment.</div>'; return; }
+  const d=(r&&r.data)||{};
+  if(d.found && d.structure_id){
+    const nm=_esc(d.name||'Cette structure'), masked=_esc(d.email_masked||email);
+    if(res) res.innerHTML='<div class="grp-invres"><div>✅ <b>'+nm+'</b> ('+masked+')</div>'
+      +'<button class="btn" type="button" onclick="affRequestJoin(\''+_escA(d.structure_id)+'\')" data-tip="Envoyer une demande à cette structure">➕ Demander à rejoindre</button></div>';
+  } else if(res){ res.innerHTML='<div class="grp-wait">Aucune structure trouvée avec cet email.</div>'; }
+}
+async function affRequestJoin(structure_id){
+  const res=document.getElementById('affJoinResult');
+  if(res) res.innerHTML='<div class="grp-loading">Envoi de la demande…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'requestAffiliation', direction:'artist_to_structure', structure_id:structure_id}}); }
+  catch(e){ console.warn('requestAffiliation',e); if(res) res.innerHTML='<div class="grp-wait">Demande impossible pour le moment.</div>'; return; }
+  if(r&&r.error){ if(res) res.innerHTML='<div class="grp-wait">'+_esc(authMsg(r.error))+'</div>'; return; }
+  const d=(r&&r.data)||{};
+  if(d.already==='active') toast('Tu es déjà affilié·e à cette structure');
+  else toast('Demande envoyée — la structure doit accepter');
+  if(document.getElementById('affJoinEmail')) document.getElementById('affJoinEmail').value='';
+  await refreshAffAll();
+}
+
+/* ---------- ÉCRAN 3 : Mes artistes (compte structure) ---------- */
+function openMyArtists(){ try{closeHdrMenu();}catch(e){}
+  if(!sb||!_user){ toast('Connexion requise'); return; }
+  const bg=document.getElementById('affStructBg'); if(bg) bg.classList.add('show'); renderMyArtists(); }
+function closeMyArtists(ev){ if(ev&&ev.target!==ev.currentTarget) return; const bg=document.getElementById('affStructBg'); if(bg) bg.classList.remove('show'); }
+async function renderMyArtists(){
+  const box=document.getElementById('affStructBody'); if(!box) return;
+  box.innerHTML='<div class="grp-loading">Chargement…</div>';
+  await loadMyAffiliations(); updateInviteBadge();
+  const myId=_uid();
+  const all=(_myAffils||[]).filter(a=>a.i_am==='structure');
+  const active=all.filter(a=>a.status==='active');
+  const reqs=all.filter(a=>a.status==='invited' && String(a.requested_by)!==myId);      // l'artiste a demandé
+  const pendingMine=all.filter(a=>a.status==='invited' && String(a.requested_by)===myId); // j'ai invité
+  let h='';
+  if(reqs.length){
+    h+='<div class="grp-sec-t" style="margin-top:4px">Demandes reçues d\'artistes</div>';
+    reqs.forEach(a=>{ const name=_esc(a.space_name||'Un artiste');
+      h+='<div class="aff-card"><div class="af-head"><span class="af-name">🎤 '+name+'</span><span class="aff-pill wait">⏳ Demande</span></div>'
+        +'<div class="aff-sub">'+name+' demande à être accompagné·e par ta structure.</div>'
+        +'<div class="aff-btns"><button class="btn sm" type="button" onclick="affStructAccept(\''+_escA(a.id)+'\')" data-tip="Accepter cet artiste">✅ Accepter</button>'
+        +'<button class="btn ghost sm" type="button" onclick="affStructRefuse(\''+_escA(a.id)+'\')" data-tip="Refuser la demande">❌ Refuser</button></div></div>';
+    });
+  }
+  h+='<div class="grp-sec-t">Mes artistes</div>';
+  if(!active.length && !pendingMine.length){
+    h+='<div class="grp-intro"><div class="warm">Aucun artiste pour l\'instant. Ajoute un artiste par son email ci-dessous : il devra <b>accepter</b> et choisir ce qu\'il partage avec toi.</div></div>';
+  }
+  active.forEach(a=>{ const name=_esc(a.space_name||'Un artiste');
+    h+='<div class="aff-card"><div class="af-head"><span class="af-name">🎤 '+name+'</span>'+affStatusPill(a.status)+'</div>'
+      +'<div class="aff-sub">Confidentialité : <b>'+affVisLabel(a.visibility)+'</b> <span style="opacity:.75">— réglée par l\'artiste</span></div>'
+      +'<div class="aff-btns"><button class="btn ghost sm" type="button" onclick="affStructRemove(\''+_escA(a.id)+'\')" data-tip="Retirer cet artiste">🚪 Retirer</button></div></div>';
+  });
+  pendingMine.forEach(a=>{ const name=_esc(a.space_name||'Un artiste');
+    h+='<div class="aff-card"><div class="af-head"><span class="af-name">🎤 '+name+'</span><span class="aff-pill wait">⏳ En attente</span></div>'
+      +'<div class="aff-sub">Demande envoyée — l\'artiste doit accepter et choisir ce qu\'il partage.</div></div>';
+  });
+  h+='<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">';
+  h+='<div class="grp-sec-t">Ajouter un artiste</div>';
+  h+='<div class="aff-search"><input id="affAddEmail" type="email" placeholder="Email de l\'artiste" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();affAddSearch();}">'
+    +'<button class="btn" type="button" onclick="affAddSearch()" data-tip="Chercher cet artiste sur Guso Facile">🔎 Chercher</button></div>';
+  h+='<div id="affAddResult" style="margin-top:10px"></div>';
+  box.innerHTML=h;
+}
+async function affAddSearch(){
+  const el=document.getElementById('affAddEmail'); const email=(el&&el.value||'').trim();
+  const res=document.getElementById('affAddResult');
+  if(!_emailOk(email)){ if(res) res.innerHTML='<div class="grp-wait">Entre une adresse email valide.</div>'; return; }
+  if(res) res.innerHTML='<div class="grp-loading">Recherche…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'searchUser', query:email}}); }
+  catch(e){ console.warn('searchUser',e); if(res) res.innerHTML='<div class="grp-wait">Recherche indisponible pour le moment.</div>'; return; }
+  const d=(r&&r.data)||{};
+  const emailA=_escA(email);
+  if(d.found){
+    const nm=_esc(d.full_name||'Cette personne'), masked=_esc(d.email_masked||email);
+    if(res) res.innerHTML='<div class="grp-invres"><div>✅ <b>'+nm+'</b> ('+masked+') est sur Guso Facile.</div>'
+      +'<button class="btn" type="button" onclick="affRequestAdd(\''+emailA+'\')" data-tip="Envoyer une demande à cet artiste">➕ Envoyer une demande</button></div>';
+  } else if(res){ res.innerHTML='<div class="grp-wait">Aucun compte artiste avec cet email. L\'artiste doit d\'abord créer son espace.</div>'; }
+}
+async function affRequestAdd(email){
+  const res=document.getElementById('affAddResult');
+  if(res) res.innerHTML='<div class="grp-loading">Envoi de la demande…</div>';
+  let r;
+  try{ r=await sb.functions.invoke('admin-users',{body:{action:'requestAffiliation', direction:'structure_to_artist', artist_email:email}}); }
+  catch(e){ console.warn('requestAffiliation',e); if(res) res.innerHTML='<div class="grp-wait">Demande impossible pour le moment.</div>'; return; }
+  if(r&&r.error){ if(res) res.innerHTML='<div class="grp-wait">'+_esc(authMsg(r.error))+'</div>'; return; }
+  const d=(r&&r.data)||{};
+  if(d.error==='artist_not_found'){ if(res) res.innerHTML='<div class="grp-wait">Aucun compte artiste avec cet email.</div>'; return; }
+  if(d.error==='artist_has_no_space'){ if(res) res.innerHTML='<div class="grp-wait">Cet artiste n\'a pas encore d\'espace.</div>'; return; }
+  if(d.error){ if(res) res.innerHTML='<div class="grp-wait">'+_esc(authMsg(d.error))+'</div>'; return; }
+  if(d.already==='active') toast('Cet artiste est déjà affilié');
+  else toast('Demande envoyée — l\'artiste doit accepter et choisir ce qu\'il partage');
+  if(document.getElementById('affAddEmail')) document.getElementById('affAddEmail').value='';
+  await refreshAffAll();
+}
+
+/* ---------- ÉCRAN 1 : console admin → onglet Structures ---------- */
+async function loadAdminStructures(){
+  const host=document.getElementById('admStructList'); if(!host) return;
+  host.innerHTML='<div style="color:var(--muted);font-size:13px;padding:14px 0">Chargement…</div>';
+  try{
+    const r=await sb.functions.invoke('admin-users',{body:{action:'listStructures'}});
+    if(r.error) throw r.error;
+    ADM_STRUCTS=(r.data && r.data.structures)||[];
+    renderAdminStructures();
+  }catch(e){ host.innerHTML='<div style="color:var(--bad);font-size:13px">'+admEsc(authMsg(e))+'</div>'; }
+}
+function _structKey(s){ return s.owner_email||s.email||s.structure_owner_email||''; }
+function renderAdminStructures(){
+  const host=document.getElementById('admStructList'); if(!host) return;
+  if(!ADM_STRUCTS.length){ host.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 0">Aucune structure affiliée pour le moment.</div>'; return; }
+  let h='';
+  ADM_STRUCTS.forEach(s=>{
+    const sName=admEsc(s.name||s.structure_name||_structKey(s)||'Structure');
+    const sEmail=admEsc(_structKey(s));
+    const sid=admEsc(s.structure_id||s.id||'');
+    const sKey=admEsc(_structKey(s));
+    h+='<div class="adm-row"><div class="ar-top"><span class="ar-name">🏢 '+sName+'</span></div>';
+    if(sEmail) h+='<div class="ar-meta">✉️ '+sEmail+'</div>';
+    const arts=s.artists||[];
+    if(!arts.length) h+='<div class="ar-meta">Aucun artiste affilié.</div>';
+    arts.forEach(a=>{
+      const aName=admEsc(a.space_name||'Artiste'); const spId=admEsc(a.space_id||'');
+      const vis=a.visibility||'partner';
+      h+='<div class="aff-adminrow"><div class="aar-top"><span style="flex:1;min-width:0;font-weight:700">🎤 '+aName+'</span>'+affStatusPill(a.status)+'</div>';
+      h+='<div class="aar-top" style="margin-top:8px">';
+      h+='<select onchange="admSetVisibility(\''+sid+'\',\''+sKey+'\',\''+spId+'\',this.value)" data-tip="Choisir ce que la structure voit de cet artiste">';
+      AFF_VIS.forEach(o=>{ h+='<option value="'+o.v+'"'+(o.v===vis?' selected':'')+'>'+o.ic+' '+o.t+'</option>'; });
+      h+='</select>';
+      h+='<button class="btn ghost sm" type="button" onclick="admUnaffiliate(\''+sid+'\',\''+sKey+'\',\''+spId+'\',this)" data-tip="Révoquer l\'accès de cette structure à cet artiste">🗑️ Révoquer</button>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  });
+  host.innerHTML=h;
+}
+async function admSetVisibility(structId, structEmail, spaceId, vis){
+  try{
+    const body={action:'setVisibility', artist_space_id:spaceId, visibility:vis};
+    if(structId) body.structure_id=structId; if(structEmail) body.structure_owner_email=structEmail;
+    const r=await sb.functions.invoke('admin-users',{body:body});
+    if(r.error) throw r.error;
+    toast('Visibilité mise à jour ✅');
+  }catch(e){ toast(authMsg(e)); loadAdminStructures(); }
+}
+async function admUnaffiliate(structId, structEmail, spaceId, btn){
+  if(!confirm('Révoquer cet accès ? La structure ne verra plus cet artiste.')) return;
+  if(btn) btn.disabled=true;
+  try{
+    const body={action:'unaffiliate', artist_space_id:spaceId};
+    if(structId) body.structure_id=structId; if(structEmail) body.structure_owner_email=structEmail;
+    const r=await sb.functions.invoke('admin-users',{body:body});
+    if(r.error) throw r.error;
+    toast('Accès révoqué.');
+  }catch(e){ toast(authMsg(e)); if(btn) btn.disabled=false; }
+  loadAdminStructures();
+}
+async function admAffiliate(btn){
+  const se=(document.getElementById('admAffStructEmail').value||'').trim();
+  const ae=(document.getElementById('admAffArtistEmail').value||'').trim();
+  const msg=document.getElementById('admAffMsg');
+  if(!_emailOk(se)||!_emailOk(ae)){ if(msg) msg.textContent='Renseigne deux emails valides (structure + artiste).'; return; }
+  if(btn) btn.disabled=true;
+  if(msg) msg.textContent='Recherche de l\'artiste…';
+  try{
+    const u=await sb.functions.invoke('admin-users',{body:{action:'searchUser', query:ae}});
+    if(u.error) throw u.error;
+    const ud=(u.data)||{};
+    if(!ud.found || !ud.user_id){ if(msg) msg.textContent='Artiste introuvable (aucun compte avec cet email).'; if(btn) btn.disabled=false; return; }
+    const sp=await sb.from('spaces').select('id,name,owner_id').eq('owner_id',ud.user_id);
+    if(sp.error) throw sp.error;
+    const rows=(sp.data)||[];
+    if(!rows.length){ if(msg) msg.textContent='Cet artiste n\'a pas encore d\'espace.'; if(btn) btn.disabled=false; return; }
+    const spaceId=rows[0].id;
+    const r=await sb.functions.invoke('admin-users',{body:{action:'affiliate', structure_owner_email:se, artist_space_id:spaceId}});
+    if(r.error) throw r.error;
+    if(msg) msg.textContent='✅ Affiliation créée.';
+    document.getElementById('admAffArtistEmail').value='';
+    loadAdminStructures();
+  }catch(e){ if(msg) msg.textContent=authMsg(e); }
+  if(btn) btn.disabled=false;
+}
+
 /* ---------- amorçage (après connexion + chargement de l'espace) ---------- */
 async function grpHelpBoot(){
-  try{ await loadMyGroups(); updateInviteBadge(); refreshGroupDatalist(); }catch(e){ console.warn(e); }
+  try{ await loadMyRole(); applyRoleUi(); }catch(e){ console.warn(e); }
+  try{ await loadMyGroups(); }catch(e){ console.warn(e); }
+  try{ await loadMyAffiliations(); }catch(e){ console.warn(e); }
+  try{ updateInviteBadge(); refreshGroupDatalist(); }catch(e){ console.warn(e); }
   try{ await loadHelpInbox(); }catch(e){ console.warn(e); }
 }
 if(typeof startApp==='function'){
